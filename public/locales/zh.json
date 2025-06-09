@@ -25,7 +25,8 @@
   "noteItem": {
     "untitled": "無標題筆記",
     "noContent": "尚無內容...",
-    "moreTags": "+{{count}} 個更多"
+    "moreTags": "+{{count}} 個更多",
+    "viewNote": "查看 {{title}}"
   },
   "noteEditor": {
     "titlePlaceholder": "筆記標題",
@@ -86,6 +87,8 @@
     "mediumFont": "中",
     "largeFont": "大",
     "defaultSort": "預設筆記排序",
+     "general": {
+    },
     "openRouterApi": {
       "title": "AI 設定 (OpenRouter)",
       "keyLabel": "API 金鑰:",
@@ -147,6 +150,10 @@
       "unknownError": "未知錯誤"
     },
     "success": {
+      "summaryGenerated": "摘要已產生並可供檢閱。",
+      "correctionGenerated": "校正文字已產生並可供檢閱。",
+      "expansionGenerated": "內容已處理並可供檢閱。",
+      "contentGenerated": "內容已產生並可供檢閱。",
       "summaryApplied": "摘要已產生並套用於筆記。",
       "bulletSummaryApplied": "重點摘要已產生並套用於筆記。",
       "correctionApplied": "文法和拼寫校正已套用於筆記。",
@@ -157,7 +164,19 @@
     "info": {
       "noNewTags": "沒有新的標籤建議或 AI 無法建議標籤。"
     },
-    "processing": "正在處理 {{label}}..."
+    "processing": "正在處理 {{label}}...",
+    "preview": {
+      "title": "AI 產生內容",
+      "contentAreaLabel": "AI 產生內容預覽",
+      "apply": "套用至編輯器",
+      "copy": "複製",
+      "copied": "已複製到剪貼簿！",
+      "copyFailed": "複製失敗",
+      "discard": "捨棄",
+      "createNew": "建立新筆記",
+      "editCurrent": "編輯目前筆記",
+      "newNoteTitlePrefix": "AI: "
+    }
   },
   "welcomeScreen": {
     "title": "歡迎使用 我的筆記",
@@ -169,5 +188,10 @@
     "error": "錯誤",
     "success": "成功",
     "info": "資訊"
+  },
+  "viewNote": {
+    "editButton": "編輯筆記",
+    "createdAt": "建立時間",
+    "updatedAt": "最後更新"
   }
 }

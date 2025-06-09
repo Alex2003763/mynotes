@@ -25,7 +25,8 @@
   "noteItem": {
     "untitled": "Untitled Note",
     "noContent": "No content yet...",
-    "moreTags": "+{{count}} more"
+    "moreTags": "+{{count}} more",
+    "viewNote": "View {{title}}"
   },
   "noteEditor": {
     "titlePlaceholder": "Note Title",
@@ -86,6 +87,8 @@
     "mediumFont": "Medium",
     "largeFont": "Large",
     "defaultSort": "Default Note Sort",
+    "general": {
+    },
     "openRouterApi": {
       "title": "AI Settings (OpenRouter)",
       "keyLabel": "API Key:",
@@ -147,6 +150,10 @@
       "unknownError": "Unknown error"
     },
     "success": {
+      "summaryGenerated": "Summary generated and ready for review.",
+      "correctionGenerated": "Corrected text generated and ready for review.",
+      "expansionGenerated": "Content processed and ready for review.",
+      "contentGenerated": "Content generated and ready for review.",
       "summaryApplied": "Summary generated and applied to note.",
       "bulletSummaryApplied": "Bulleted summary generated and applied to note.",
       "correctionApplied": "Grammar and spelling corrections applied to note.",
@@ -157,7 +164,19 @@
     "info": {
       "noNewTags": "No new tags suggested or AI could not suggest tags."
     },
-    "processing": "Processing {{label}}..."
+    "processing": "Processing {{label}}...",
+    "preview": {
+      "title": "AI Generated Content",
+      "contentAreaLabel": "AI generated content preview",
+      "apply": "Apply to Editor",
+      "copy": "Copy",
+      "copied": "Copied to clipboard!",
+      "copyFailed": "Failed to copy",
+      "discard": "Discard",
+      "createNew": "Create New Note",
+      "editCurrent": "Edit Current Note",
+      "newNoteTitlePrefix": "AI: "
+    }
   },
   "welcomeScreen": {
     "title": "Welcome to MyNotes",
@@ -169,5 +188,10 @@
     "error": "Error",
     "success": "Success",
     "info": "Info"
+  },
+  "viewNote": {
+    "editButton": "Edit Note",
+    "createdAt": "Created",
+    "updatedAt": "Last Updated"
   }
 }

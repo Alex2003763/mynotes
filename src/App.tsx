@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { NoteEditor } from './components/NoteEditor';
-import { NoteList } from './components/NoteList'; // NoteList is inside Sidebar
+import { ViewNote } from './components/ViewNote'; // Import ViewNote
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { SettingsModal } from './components/SettingsModal';
@@ -30,41 +30,39 @@ const App: React.FC = () => {
     const pathIsNew = location.pathname === '/new';
     const pathIsRoot = location.pathname === '/';
     const pathNoteId = location.pathname.startsWith('/note/') ? location.pathname.split('/note/')[1] : null;
+    const pathViewId = location.pathname.startsWith('/view/') ? location.pathname.split('/view/')[1] : null;
+    const currentIdInPath = pathNoteId || pathViewId;
 
     if (pathIsNew) {
-      // When navigating to create a new note, ensure no note is marked as selected globally
-      if (selectedNoteId !== null) selectNote(null);
+      if (selectedNoteId !== null && (!location.state || !location.state.initialContentText)) { // Don't clear if navigating with state for new note
+        selectNote(null); 
+      }
     } else if (pathIsRoot) {
-      // When navigating to the root, ensure no note is marked as selected globally
-      // This allows the WelcomeScreen to show.
-      if (selectedNoteId !== null) selectNote(null);
-      // If there are no notes, WelcomeScreen with create button will be shown by Route.
-      // If there are notes, WelcomeScreen with "select or create" will be shown.
-    } else if (pathNoteId) {
-      // We are on a /note/:id path
-      if (selectedNoteId !== pathNoteId) {
-        // If the globally selected note is different from the path, or no note is selected yet
-        const noteExists = notes.some(n => n.id === pathNoteId);
+      if (selectedNoteId !== null) {
+        selectNote(null); 
+      }
+    } else if (currentIdInPath) {
+      if (selectedNoteId !== currentIdInPath) {
+        const noteExists = notes.some(n => n.id === currentIdInPath);
         if (noteExists) {
-          selectNote(pathNoteId); // Sync global selection with the path
+          selectNote(currentIdInPath); 
         } else {
-          // Note ID in path does not exist (e.g., deleted, or bad link)
-          selectNote(null); // Deselect any potentially lingering selection
-          navigate('/', { replace: true }); // Navigate to the root/welcome screen
+          selectNote(null); 
+          navigate('/', { replace: true }); 
         }
       }
-      // If selectedNoteId === pathNoteId, everything is consistent.
     } else {
-      // Path is not /new, /, or /note/:id (e.g., unrecognized path, or selectedNoteId exists but path is different)
+      // Path is not /new, not /, and not /note/:id or /view/:id
       if (selectedNoteId) {
-        // A note is globally selected, so user should be on its page
-        navigate(`/note/${selectedNoteId}`, { replace: true });
+        // A note IS selected in context, but URL doesn't match its view/edit page.
+        // Default to its view page.
+        navigate(`/view/${selectedNoteId}`, { replace: true });
       } else {
-        // No note selected, and path is unrecognized. Default to root.
-         if (!pathIsRoot) navigate('/', { replace: true });
+        // No note selected, and not on a recognized general path. Go to root.
+        navigate('/', { replace: true });
       }
     }
-  }, [notesLoading, location.pathname, selectedNoteId, notes, selectNote, navigate]);
+  }, [notesLoading, location.pathname, selectedNoteId, notes, selectNote, navigate, location.state]);
   
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
   const openSettingsModal = () => setIsSettingsModalOpen(true);
@@ -79,7 +77,7 @@ const App: React.FC = () => {
       />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-        <main className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8 overflow-y-auto bg-white dark:bg-slate-800 shadow-inner">
+        <main className="flex-1 px-1 sm:px-2 md:px-3 lg:px-4 py-3 sm:py-4 md:py-5 lg:py-6 overflow-y-auto bg-white dark:bg-slate-800 shadow-inner">
           <Routes>
             <Route path="/" element={
               notesLoading ? <p className="text-center py-10">{t('noteList.loading')}</p> : 
@@ -88,6 +86,7 @@ const App: React.FC = () => {
             } />
             <Route path="/note/:noteId" element={<NoteEditor />} />
             <Route path="/new" element={<NoteEditor isNewNote={true} />} />
+            <Route path="/view/:noteId" element={<ViewNote />} /> {/* Added ViewNote route */}
           </Routes>
         </main>
       </div>

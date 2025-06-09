@@ -19,6 +19,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
   const { t, setLanguage: i18nSetLanguage, language: currentLanguage } = useI18n();
   
   const [localApiKey, setLocalApiKey] = useState(settings.openRouterApiKey);
+  // const [localAutosaveDelaySeconds, setLocalAutosaveDelaySeconds] = useState<number>((settings.autosaveDelay || DEFAULT_AUTOSAVE_DELAY_MS) / 1000); // REMOVED
   const [importStatus, setImportStatus] = useState<{ type: 'info' | 'success' | 'error'; message: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [customColor, setCustomColor] = useState(settings.primaryColor);
@@ -28,15 +29,27 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
   useEffect(() => {
     setLocalApiKey(settings.openRouterApiKey);
     setCustomColor(settings.primaryColor);
-  }, [settings.openRouterApiKey, settings.primaryColor]);
+    // setLocalAutosaveDelaySeconds((settings.autosaveDelay || DEFAULT_AUTOSAVE_DELAY_MS) / 1000); // REMOVED
+  }, [settings.openRouterApiKey, settings.primaryColor]); // Removed settings.autosaveDelay
 
   const handleChange = (e: ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
+
     if (name === 'language') {
       i18nSetLanguage(value as Language); 
     } else if (name === 'aiModel') {
       updateSettings({ aiModel: value });
-    }
+    } 
+    // REMOVED autosaveDelaySeconds handling
+    // else if (name === 'autosaveDelaySeconds') {
+    //   const delaySeconds = parseFloat(value);
+    //   if (!isNaN(delaySeconds) && delaySeconds >= 1 && delaySeconds <= 60) { // Example range 1-60 seconds
+    //     setLocalAutosaveDelaySeconds(delaySeconds);
+    //     updateSettings({ autosaveDelay: delaySeconds * 1000 });
+    //   } else if (value === '') { // Allow clearing the input
+    //     setLocalAutosaveDelaySeconds(NaN); // Or some indicator for empty
+    //   }
+    // }
     else {
       updateSettings({ [name]: value } as Partial<AppSettings>);
     }
@@ -95,6 +108,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                  validSettingsToApply.primaryColor = importedData.settings.primaryColor;
             if (typeof importedData.settings.aiModel === 'string') 
                 validSettingsToApply.aiModel = importedData.settings.aiModel;
+            // REMOVED autosaveDelay import logic
+            //  if (typeof importedData.settings.autosaveDelay === 'number' && importedData.settings.autosaveDelay >= 1000 && importedData.settings.autosaveDelay <= 60000)
+            //     validSettingsToApply.autosaveDelay = importedData.settings.autosaveDelay;
             
             if (typeof importedData.settings.openRouterApiKey === 'string') {
                  validSettingsToApply.openRouterApiKey = importedData.settings.openRouterApiKey;
@@ -212,6 +228,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                     ))}
                   </select>
                 </div>
+                 {/* REMOVED Autosave Delay Input Field
+                 <div>
+                    <label htmlFor="autosaveDelaySeconds" className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('settingsModal.general.autosaveDelay')}</label>
+                    <input
+                        id="autosaveDelaySeconds"
+                        name="autosaveDelaySeconds"
+                        type="number"
+                        min="1"
+                        max="60"
+                        step="1"
+                        value={isNaN(localAutosaveDelaySeconds) ? '' : localAutosaveDelaySeconds}
+                        onChange={handleChange}
+                        className="mt-1 block w-full p-2.5 border border-slate-300 dark:border-slate-600 rounded-lg shadow-sm focus:outline-none focus:ring-primary-light focus:border-primary-light sm:text-sm bg-white dark:bg-slate-700"
+                    />
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t('settingsModal.general.autosaveDelayHelp')}</p>
+                </div>
+                */}
             </div>
         </section>
 

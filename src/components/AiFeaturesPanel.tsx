@@ -1,50 +1,52 @@
+
 import React, { useState } from 'react';
-import { ApiFeedback } from '../types';
+import { ApiFeedback, EditorJsOutputData } from '../types';
 import { useI18n } from '../contexts/I18nContext';
 import { 
-  summarizeText, 
   correctGrammarAndSpelling, 
   expandContent, 
-  suggestTags as suggestTagsApi, 
-  answerQuestionFromNote 
+  suggestTags as suggestTagsApi
 } from '../services/openRouterService';
-import { SparklesIcon, DocumentTextIcon, CheckBadgeIcon, ChatBubbleLeftEllipsisIcon, TagIcon, LightBulbIcon, ChevronDownIcon } from './Icons';
+import { SparklesIcon, CheckBadgeIcon, TagIcon, LightBulbIcon, ChevronDownIcon, ClipboardDocumentIcon, CheckCircleIcon, XCircleIcon } from './Icons';
+import { textToEditorJsData } from './NoteEditor'; // For converting AI text output to EditorJsData
 
 interface AiFeaturesPanelProps {
-  noteTitle: string; // Current note title for context
-  getFullContentAsText: () => Promise<string>; // Function to get current editor content as plain text
-  onSuggestionsApplied: (newText: string) => void; // Callback to apply AI text output to editor
+  noteTitle: string; 
+  getFullContentAsText: () => Promise<string>; 
+  onApplyChanges: (newEditorData: EditorJsOutputData) => void; 
   onTagsSuggested: (newTags: string[]) => void;
   setApiMessage: (message: ApiFeedback | null) => void;
-  selectedAiModel: string; // Pass the selected AI model ID
+  selectedAiModel: string; 
 }
 
-type AiAction = 'summarize_short' | 'summarize_bullet' | 'correct_grammar' | 'expand' | 'suggest_tags' | 'qna';
+type AiEditAction = 'correct_grammar' | 'expand' | 'suggest_tags';
+
+interface AiEditResultPreview {
+  actionType: AiEditAction;
+  generatedContent: string;
+}
 
 export const AiFeaturesPanel: React.FC<AiFeaturesPanelProps> = ({ 
   noteTitle,
   getFullContentAsText, 
-  onSuggestionsApplied, 
+  onApplyChanges,
   onTagsSuggested,
   setApiMessage,
   selectedAiModel
 }) => {
   const { t, language } = useI18n();
-  const [isLoading, setIsLoading] = useState<AiAction | null>(null);
-  const [qnaQuestion, setQnaQuestion] = useState('');
-  const [qnaAnswer, setQnaAnswer] = useState('');
+  const [isLoading, setIsLoading] = useState<AiEditAction | null>(null);
   const [expansionInstruction, setExpansionInstruction] = useState('');
   const [isPanelOpen, setIsPanelOpen] = useState(true);
+  const [aiResultPreview, setAiResultPreview] = useState<AiEditResultPreview | null>(null);
 
-  const handleAiAction = async (action: AiAction) => {
+
+  const handleAiAction = async (action: AiEditAction) => {
     setIsLoading(action);
     setApiMessage(null);
-    setQnaAnswer(''); 
+    setAiResultPreview(null);
 
     const currentContentText = await getFullContentAsText();
-    // For Editor.js, most AI actions will operate on the whole content.
-    // "Selection" is not straightforward with block editors for this context.
-    // We assume AI operations work on the whole text and the result replaces the whole content.
 
     try {
       let result: string | string[] | undefined;
@@ -52,29 +54,19 @@ export const AiFeaturesPanel: React.FC<AiFeaturesPanelProps> = ({
       let successMessageParams: Record<string, string> | undefined = undefined;
       let infoMessageKey: string | null = null;
 
-      if (!currentContentText && !['suggest_tags', 'qna'].includes(action) && !noteTitle) { // Allow tag suggestion/QnA if there's at least a title
+      if (!currentContentText && action !== 'suggest_tags' && !noteTitle) {
         setApiMessage({ type: 'error', text: t('aiPanel.error.noContentToProcess') });
         setIsLoading(null);
         return;
       }
       
-      const textToProcessForAI = currentContentText || noteTitle; // Use title as fallback for some actions
+      const textToProcessForAI = currentContentText || noteTitle;
 
       switch (action) {
-        case 'summarize_short':
-          result = await summarizeText(textToProcessForAI, 'short', language, selectedAiModel);
-          onSuggestionsApplied(result);
-          successMessageKey = 'aiPanel.success.summaryApplied';
-          break;
-        case 'summarize_bullet':
-          result = await summarizeText(textToProcessForAI, 'bullet', language, selectedAiModel);
-          onSuggestionsApplied(result);
-          successMessageKey = 'aiPanel.success.bulletSummaryApplied';
-          break;
         case 'correct_grammar':
           result = await correctGrammarAndSpelling(textToProcessForAI, language, selectedAiModel);
-          onSuggestionsApplied(result);
-          successMessageKey = 'aiPanel.success.correctionApplied';
+          setAiResultPreview({actionType: action, generatedContent: result});
+          successMessageKey = 'aiPanel.success.correctionGenerated'; // Changed from 'Applied'
           break;
         case 'expand':
           if (!expansionInstruction) {
@@ -82,30 +74,19 @@ export const AiFeaturesPanel: React.FC<AiFeaturesPanelProps> = ({
             setIsLoading(null); return;
           }
           result = await expandContent(textToProcessForAI, expansionInstruction, language, selectedAiModel);
-          onSuggestionsApplied(result);
-          successMessageKey = 'aiPanel.success.expansionApplied';
+          setAiResultPreview({actionType: action, generatedContent: result});
+          successMessageKey = 'aiPanel.success.expansionGenerated'; // Changed from 'Applied'
           break;
         case 'suggest_tags':
-          // Use title and content for better tag suggestions
           const contentForTags = `${noteTitle}\n${currentContentText}`.trim();
           result = await suggestTagsApi(contentForTags, language, selectedAiModel);
           if (Array.isArray(result) && result.length > 0) {
-            onTagsSuggested(result);
+            onTagsSuggested(result); // Tags are applied directly as it's less intrusive
             successMessageKey = 'aiPanel.success.tagsSuggested';
             successMessageParams = { tags: result.join(', ') };
           } else {
             infoMessageKey = 'aiPanel.info.noNewTags';
           }
-          break;
-        case 'qna':
-          if (!qnaQuestion) {
-            setApiMessage({ type: 'error', text: t('aiPanel.error.noQuestion') });
-            setIsLoading(null); return;
-          }
-          result = await answerQuestionFromNote(qnaQuestion, textToProcessForAI, language, selectedAiModel);
-          setQnaAnswer(result);
-          // QnA answer is displayed, not directly applied to editor content typically
-          successMessageKey = 'aiPanel.success.answerReceived';
           break;
       }
       if (successMessageKey) {
@@ -121,12 +102,35 @@ export const AiFeaturesPanel: React.FC<AiFeaturesPanelProps> = ({
       setIsLoading(null);
     }
   };
+  
+  const handleApplyPreview = () => {
+    if (aiResultPreview) {
+      const newEditorData = textToEditorJsData(aiResultPreview.generatedContent);
+      onApplyChanges(newEditorData);
+      setApiMessage({type: 'success', text: t('aiPanel.preview.applied')});
+      setAiResultPreview(null);
+    }
+  };
+
+  const handleCopyPreview = () => {
+    if (aiResultPreview) {
+      navigator.clipboard.writeText(aiResultPreview.generatedContent)
+        .then(() => setApiMessage({ type: 'success', text: t('aiPanel.preview.copied') }))
+        .catch(err => setApiMessage({ type: 'error', text: t('aiPanel.preview.copyFailed') + ': ' + err}));
+    }
+  };
+  
+  const handleDiscardPreview = () => {
+    setAiResultPreview(null);
+    setApiMessage(null);
+  };
+
 
   const aiButtonClass = "flex items-center justify-center text-xs sm:text-sm px-2 py-1.5 sm:px-3 sm:py-2 border rounded-lg transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 dark:focus:ring-offset-slate-800 focus:ring-primary-light";
   const enabledButtonClass = "bg-primary/10 hover:bg-primary/20 dark:bg-primary-dark/20 dark:hover:bg-primary-dark/30 border-primary/30 dark:border-primary-dark/40 text-primary dark:text-primary-light";
   const disabledButtonClass = "bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-400 dark:text-slate-500 cursor-not-allowed";
   
-  const renderButton = (action: AiAction, labelKey: string, icon: React.ReactNode) => (
+  const renderButton = (action: AiEditAction, labelKey: string, icon: React.ReactNode) => (
     <button
       onClick={() => handleAiAction(action)}
       disabled={!!isLoading}
@@ -156,9 +160,7 @@ export const AiFeaturesPanel: React.FC<AiFeaturesPanelProps> = ({
       
       {isPanelOpen && (
         <div id="ai-features-collapsible-panel" className="space-y-4">
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2">
-            {renderButton('summarize_short', 'aiPanel.summarizeShort', <DocumentTextIcon className="w-4 h-4 mr-0 sm:mr-1"/>)}
-            {renderButton('summarize_bullet', 'aiPanel.summarizeBullet', <DocumentTextIcon className="w-4 h-4 mr-0 sm:mr-1"/>)}
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-2"> {/* Adjusted grid for fewer items */}
             {renderButton('correct_grammar', 'aiPanel.correctText', <CheckBadgeIcon className="w-4 h-4 mr-0 sm:mr-1"/>)}
             {renderButton('suggest_tags', 'aiPanel.suggestTags', <TagIcon className="w-4 h-4 mr-0 sm:mr-1"/>)}
           </div>
@@ -181,30 +183,30 @@ export const AiFeaturesPanel: React.FC<AiFeaturesPanelProps> = ({
                 {renderButton('expand', 'aiPanel.expandButton', <SparklesIcon className="w-4 h-4 mr-0 sm:mr-1"/>)}
               </div>
             </div>
-
-            {/* Q&A */}
-            <div>
-              <label htmlFor="qna-question" className="block text-xs font-medium text-primary dark:text-primary-light mb-1">{t('aiPanel.qnaLabel')}</label>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <input 
-                  type="text" 
-                  id="qna-question"
-                  value={qnaQuestion}
-                  onChange={(e) => setQnaQuestion(e.target.value)}
-                  placeholder={t('aiPanel.qnaPlaceholder')}
-                  className="flex-grow p-2 border border-primary/30 dark:border-primary-dark/40 rounded-md text-xs sm:text-sm bg-white dark:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-primary-light dark:text-slate-100"
-                  disabled={!!isLoading}
-                  aria-label={t('aiPanel.qnaPlaceholder')}
-                />
-                 {renderButton('qna', 'aiPanel.qnaButton', <ChatBubbleLeftEllipsisIcon className="w-4 h-4 mr-0 sm:mr-1"/>)}
-              </div>
-              {qnaAnswer && (
-                <div className="mt-2 p-2 text-xs sm:text-sm border border-primary/20 dark:border-primary-dark/30 rounded-md bg-white/50 dark:bg-slate-700/50 text-primary dark:text-primary-light">
-                  <strong>{t('aiPanel.qnaAnswerPrefix')}</strong> {qnaAnswer}
-                </div>
-              )}
-            </div>
           </div>
+
+          {aiResultPreview && (aiResultPreview.actionType === 'correct_grammar' || aiResultPreview.actionType === 'expand') && (
+            <div className="mt-4 p-3 border border-green-500/30 dark:border-green-400/30 rounded-lg bg-green-50 dark:bg-green-900/20">
+              <h4 className="text-sm font-semibold text-green-700 dark:text-green-300 mb-2">{t('aiPanel.preview.title')}</h4>
+              <textarea
+                readOnly
+                value={aiResultPreview.generatedContent}
+                className="w-full h-32 p-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-xs text-slate-700 dark:text-slate-200 resize-none"
+                aria-label={t('aiPanel.preview.contentAreaLabel')}
+              />
+              <div className="mt-3 flex flex-wrap gap-2 justify-end">
+                 <button onClick={handleApplyPreview} className={`${aiButtonClass} ${enabledButtonClass}`}>
+                    <CheckCircleIcon className="w-4 h-4 mr-1"/>{t('aiPanel.preview.apply')}
+                </button>
+                <button onClick={handleCopyPreview} className={`${aiButtonClass} bg-slate-200 hover:bg-slate-300 dark:bg-slate-600 dark:hover:bg-slate-500 border-slate-400 dark:border-slate-500 text-slate-700 dark:text-slate-200`}>
+                    <ClipboardDocumentIcon className="w-4 h-4 mr-1"/>{t('aiPanel.preview.copy')}
+                </button>
+                <button onClick={handleDiscardPreview} className={`${aiButtonClass} bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-800/40 border-red-300 dark:border-red-600 text-red-600 dark:text-red-400`}>
+                    <XCircleIcon className="w-4 h-4 mr-1"/>{t('aiPanel.preview.discard')}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -1,10 +1,10 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './src/App';
-import { NotesProvider } from './src/contexts/NoteContext';
-import { SettingsProvider } from './src/contexts/SettingsContext';
-import { I18nProvider } from './src/contexts/I18nContext';
+import App from './src/App'; // Path assumes App.tsx is in src/
+import { NotesProvider } from './src/contexts/NoteContext'; // Path assumes NoteContext.tsx is in src/contexts/
+import { SettingsProvider } from './src/contexts/SettingsContext'; // Path assumes SettingsContext.tsx is in src/contexts/
+import { I18nProvider } from './src/contexts/I18nContext'; // Path assumes I18nContext.tsx is in src/contexts/
 import { HashRouter } from 'react-router-dom';
 
 const rootElement = document.getElementById('root');

@@ -12,8 +12,8 @@ export const NoteList: React.FC = () => {
   const navigate = useNavigate();
 
   const handleSelectNote = (id: string) => {
-    selectNote(id);
-    navigate(`/note/${id}`);
+    selectNote(id); // This updates the context
+    navigate(`/view/${id}`); // Navigate to view mode by default
   };
   
   const handleNewNote = () => {

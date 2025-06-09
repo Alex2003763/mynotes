@@ -53,6 +53,7 @@ export interface AppSettings {
   language: Language;
   primaryColor: string;
   aiModel: string; // ID of the selected AI model
+  // autosaveDelay: number; // Delay in milliseconds for autosave - REMOVED
 }
 
 export interface MyNotesExportData {

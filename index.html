@@ -68,7 +68,10 @@
     }
     /* Editor.js specific styles */
     .codex-editor__redactor {
-      padding-bottom: 100px !important; /* Ensure space for toolbar */
+      padding-bottom: 100px !important; /* Ensure space for toolbar in editable mode */
+    }
+    .view-note-content .codex-editor--read-only .codex-editor__redactor { /* Override for read-only view */
+      padding-bottom: 16px !important; /* Adjust as needed for view mode, e.g., 1rem or theme('padding.4') equivalent */
     }
   </style>
 <script type="importmap">

@@ -26,6 +26,7 @@ export const DEFAULT_AI_MODEL_ID = AVAILABLE_AI_MODELS[0].id; // Default to Deep
 
 
 export const DEFAULT_SETTINGS_KEY = 'appSettings';
+// export const DEFAULT_AUTOSAVE_DELAY_MS = 2000; // REMOVED - Default autosave delay in milliseconds (2 seconds)
 
 // Predefined theme colors for the color board
 export const PREDEFINED_THEME_COLORS: { name: string; hex: string }[] = [

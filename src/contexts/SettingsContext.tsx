@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import tinycolor from 'tinycolor2';
 import { AppSettings, SortOption, Language } from '../types';
@@ -22,6 +23,7 @@ const defaultSettings: AppSettings = {
   language: 'en',
   primaryColor: PREDEFINED_THEME_COLORS[0].hex,
   aiModel: DEFAULT_AI_MODEL_ID, // Initialize with default AI model
+  // autosaveDelay: DEFAULT_AUTOSAVE_DELAY_MS, // REMOVED
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -92,12 +94,13 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
       const storedSettings = await dbGetSettings();
       let activeSettings = defaultSettings;
       if (storedSettings) {
-        // Ensure all keys from defaultSettings are present, especially new ones like aiModel
+        // Ensure all keys from defaultSettings are present, especially new ones
         activeSettings = { 
             ...defaultSettings, 
             ...storedSettings, 
             key: storedSettings.key || DEFAULT_SETTINGS_KEY,
-            aiModel: storedSettings.aiModel || DEFAULT_AI_MODEL_ID // Ensure aiModel has a value
+            aiModel: storedSettings.aiModel || DEFAULT_AI_MODEL_ID,
+            // autosaveDelay: storedSettings.autosaveDelay ?? DEFAULT_AUTOSAVE_DELAY_MS, // REMOVED
         };
       } else {
         await dbSaveSettings(defaultSettings); 

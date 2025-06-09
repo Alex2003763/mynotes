@@ -130,8 +130,7 @@ export const NotesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     try {
       await dbDeleteNote(id);
       if (selectedNoteId === id) {
-        selectNote(null);
-        setCurrentNote(null);
+        selectNote(null); // This call already sets currentNote to null
       }
       await fetchNotes(); // Refresh notes list
       await fetchTags(); // Refresh tags list

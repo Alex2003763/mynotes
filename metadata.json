@@ -1,5 +1,9 @@
+
 {
   "name": "MyNotes",
   "description": "An offline-first notebook application with AI-powered features through OpenRouter API integration. Manage notes, tags, and leverage AI for summarization, grammar correction, content expansion, and more.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [
+    "keyboard-map"
+  ],
+  "prompt": ""
 }

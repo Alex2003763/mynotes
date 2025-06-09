@@ -1,18 +1,18 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import EditorJS, { OutputData, API, BlockToolConstructable } from '@editorjs/editorjs';
 // Editor.js Tools
-import Header from '@editorjs/header';
-import List from '@editorjs/list';
-import Paragraph from '@editorjs/paragraph';
-import Quote from '@editorjs/quote';
-import CodeTool from '@editorjs/code';
-import Delimiter from '@editorjs/delimiter';
-import ImageTool from '@editorjs/image';
-import Warning from '@editorjs/warning';
-import Table from '@editorjs/table';
-import Checklist from '@editorjs/checklist';
+import HeaderTool from '@editorjs/header';
+import ListTool from '@editorjs/list';
+import ParagraphTool from '@editorjs/paragraph';
+import QuoteTool from '@editorjs/quote';
+import CodeToolTool from '@editorjs/code';
+import DelimiterTool from '@editorjs/delimiter';
+import ImageToolTool from '@editorjs/image';
+import WarningTool from '@editorjs/warning';
+import TableTool from '@editorjs/table';
+import ChecklistTool from '@editorjs/checklist';
 
 import { useNotes } from '../contexts/NoteContext';
 import { Note, ApiFeedback, EditorJsOutputData, EditorJsBlock } from '../types';
@@ -21,70 +21,202 @@ import { AiFeaturesPanel } from './AiFeaturesPanel';
 import { useSettings } from '../contexts/SettingsContext';
 import { useI18n } from '../contexts/I18nContext';
 import { exportNoteAsMarkdown, exportNoteAsTXT, exportNotesAsJSON } from '../services/fileService';
-import { TrashIcon, DownloadIcon, CheckCircleIcon, ExclamationCircleIcon, InformationCircleIcon, SaveIcon, ChevronDownIcon } from './Icons';
-// EDITOR_HOLDER_ID is not used directly anymore, using ref.
-// import { EDITOR_HOLDER_ID } from '../constants';
+import { TrashIcon, DownloadIcon, CheckCircleIcon, ExclamationCircleIcon, InformationCircleIcon, SaveIcon, ChevronDownIcon, LightBulbIcon } from './Icons';
+import { EDITOR_HOLDER_ID } from '../constants';
 
+const EDITOR_VERSION_STRING = "2.30.0"; // Use a consistent version string
+
+export const createEmptyEditorData = (version = EDITOR_VERSION_STRING): EditorJsOutputData => ({
+  time: Date.now(),
+  blocks: [{ type: 'paragraph', data: { text: '' } }],
+  version: version,
+});
 
 // Helper to convert plain text to basic EditorJS OutputData (paragraphs)
-const textToEditorJsData = (text: string): EditorJsOutputData => {
-  const blocks = text.split('\n\n') // Split by double newlines for paragraphs
-    .filter(paragraph => paragraph.trim() !== '')
+export const textToEditorJsData = (text: string): EditorJsOutputData => {
+  const paragraphs = text.split(/[\r\n]+/).map(p => p.trim());
+  const blocks = paragraphs
     .map(paragraph => ({
       type: 'paragraph' as const,
-      data: { text: paragraph.trim() },
+      data: { text: paragraph },
     }));
   return {
     time: Date.now(),
-    blocks: blocks.length > 0 ? blocks : [{type: 'paragraph', data: {text: ''}}],
-    version: "2.29.1" 
+    blocks: blocks.length > 0 ? blocks : [{ type: 'paragraph', data: { text: '' } }],
+    version: EDITOR_VERSION_STRING
   };
 };
 
-// Helper function to convert EditorJsOutputData to plain text
 const editorDataToText = (data: EditorJsOutputData | undefined | null): string => {
   if (!data || !Array.isArray(data.blocks)) return '';
   return data.blocks
     .map(block => {
-      if (!block || typeof block.data !== 'object') return ''; 
+      if (!block || typeof block.data !== 'object' || block.data === null) return '';
       switch (block.type) {
         case 'header':
-          return block.data.text;
+          return block.data.text || '';
         case 'paragraph':
-          return block.data.text;
+          return block.data.text || '';
         case 'list':
           return Array.isArray(block.data.items) ? block.data.items.join(' ') : '';
         case 'quote':
-          return `${block.data.text} ${block.data.caption || ''}`;
+          return `${block.data.text || ''} ${block.data.caption || ''}`.trim();
         case 'code':
-          return block.data.code;
+          return block.data.code || '';
         case 'checklist':
-          return Array.isArray(block.data.items) ? block.data.items.map((item: {text: string, checked: boolean}) => item.text).join(' ') : '';
+          return Array.isArray(block.data.items) ? block.data.items.map((item: any) => item.text || '').join(' ') : '';
         default:
-          if(block.data && typeof block.data.text === 'string') return block.data.text;
+          if (block.data && typeof (block.data as any).text === 'string') return (block.data as any).text;
           return '';
       }
     })
-    .join('\n') 
+    .join('\n')
     .replace(/<[^>]+>/g, '');
 };
+
+export const sanitizeEditorOutputData = (data: any): EditorJsOutputData => {
+  const defaultVersion = EDITOR_VERSION_STRING;
+  const defaultTime = Date.now();
+
+  if (typeof data === 'string') {
+    console.warn("Sanitizing: Input data is a string. Converting to basic EditorJsOutputData.");
+    return textToEditorJsData(data);
+  }
+
+  if (!data || typeof data !== 'object') {
+    console.warn("Sanitizing: Input data is not a valid object. Returning empty structure.");
+    return createEmptyEditorData(defaultVersion);
+  }
+
+  const output: EditorJsOutputData = {
+    time: typeof data.time === 'number' ? data.time : defaultTime,
+    blocks: [],
+    version: typeof data.version === 'string' ? data.version : defaultVersion,
+  };
+
+  if (!Array.isArray(data.blocks)) {
+    console.warn("Sanitizing: Data.blocks is not an array. Returning structure with one empty paragraph.");
+    output.blocks = [{ type: 'paragraph', data: { text: '' } }];
+    return output;
+  }
+
+  output.blocks = data.blocks.map((block: any, index: number): EditorJsBlock | null => {
+    if (typeof block !== 'object' || block === null) {
+      console.warn(`Sanitizing block ${index}: Block is not an object. Converting to empty paragraph.`);
+      return { id: block?.id || `malformed-${index}`, type: 'paragraph', data: { text: '' } };
+    }
+    if (typeof block.type !== 'string' || !block.type) {
+      console.warn(`Sanitizing block ${index} (ID: ${block.id || 'N/A'}): Type is missing or not a string. Converting to empty paragraph.`);
+      return { id: block.id || `malformed-type-${index}`, type: 'paragraph', data: { text: '' } };
+    }
+    
+    const blockDataInput = (typeof block.data === 'object' && block.data !== null) ? block.data : {};
+    const sanitizedBlock: EditorJsBlock = { 
+        id: typeof block.id === 'string' ? block.id : undefined, 
+        type: block.type, 
+        data: { ...blockDataInput } 
+    };
+
+    switch (sanitizedBlock.type) {
+      case 'paragraph':
+        sanitizedBlock.data = {
+          text: typeof blockDataInput.text === 'string' ? blockDataInput.text : ''
+        };
+        break;
+      case 'header':
+        let level = parseInt(String(blockDataInput.level), 10);
+        if (isNaN(level) || level < 1 || level > 6) level = 2;
+        sanitizedBlock.data = {
+          text: typeof blockDataInput.text === 'string' ? blockDataInput.text : '',
+          level: level
+        };
+        break;
+      case 'list':
+        if (!Array.isArray(sanitizedBlock.data.items) || !sanitizedBlock.data.items.every((item: any) => typeof item === 'string')) {
+          sanitizedBlock.data.items = (Array.isArray(sanitizedBlock.data.items) ? sanitizedBlock.data.items.filter((item:any) => typeof item === 'string').map((item:any) => String(item)) : []) as string[];
+        }
+        if (typeof sanitizedBlock.data.style !== 'string' || !['ordered', 'unordered'].includes(sanitizedBlock.data.style)) {
+          sanitizedBlock.data.style = 'unordered';
+        }
+        break;
+      case 'image':
+        if (typeof sanitizedBlock.data.file !== 'object' || sanitizedBlock.data.file === null || typeof sanitizedBlock.data.file.url !== 'string') {
+            if (typeof sanitizedBlock.data.url === 'string' && sanitizedBlock.data.url) { 
+                 sanitizedBlock.data.file = { url: sanitizedBlock.data.url };
+            } else {
+                 console.warn(`Sanitizing image block (ID: ${sanitizedBlock.id || 'N/A'}): Invalid file URL. Block might not render.`);
+                 sanitizedBlock.data.file = { url: '' }; 
+            }
+        }
+        if (typeof sanitizedBlock.data.caption !== 'string') sanitizedBlock.data.caption = '';
+        if (typeof sanitizedBlock.data.withBorder !== 'boolean') sanitizedBlock.data.withBorder = false;
+        if (typeof sanitizedBlock.data.stretched !== 'boolean') sanitizedBlock.data.stretched = false;
+        if (typeof sanitizedBlock.data.withBackground !== 'boolean') sanitizedBlock.data.withBackground = false;
+        break;
+      case 'checklist':
+        if (!Array.isArray(sanitizedBlock.data.items) || !sanitizedBlock.data.items.every((item: any) => typeof item === 'object' && item !== null && typeof item.text === 'string' && typeof item.checked === 'boolean')) {
+          sanitizedBlock.data.items = (Array.isArray(sanitizedBlock.data.items) 
+            ? sanitizedBlock.data.items.filter((item:any) => typeof item === 'object' && item !== null && typeof item.text === 'string' && typeof item.checked === 'boolean')
+            : []
+          ) as {text: string, checked: boolean}[];
+        }
+        break;
+      case 'code':
+        if (typeof sanitizedBlock.data.code !== 'string') sanitizedBlock.data.code = '';
+        break;
+      case 'quote':
+        if (typeof sanitizedBlock.data.text !== 'string') sanitizedBlock.data.text = '';
+        if (typeof sanitizedBlock.data.caption !== 'string') sanitizedBlock.data.caption = '';
+        if (typeof sanitizedBlock.data.alignment !== 'string' || !['left', 'center'].includes(sanitizedBlock.data.alignment)) {
+             sanitizedBlock.data.alignment = 'left';
+        }
+        break;
+      case 'table':
+        if (typeof sanitizedBlock.data.withHeadings !== 'boolean') sanitizedBlock.data.withHeadings = false;
+        if (!Array.isArray(sanitizedBlock.data.content) || !sanitizedBlock.data.content.every((row: any) => Array.isArray(row) && row.every((cell: any) => typeof cell === 'string'))) {
+          const fixedContent: string[][] = [];
+          if(Array.isArray(sanitizedBlock.data.content)) {
+            sanitizedBlock.data.content.forEach((rowItem: any) => {
+              if(Array.isArray(rowItem)) {
+                fixedContent.push(rowItem.map(cell => typeof cell === 'string' ? cell : String(cell)));
+              }
+            });
+          }
+          sanitizedBlock.data.content = fixedContent;
+        }
+        break;
+      case 'warning':
+        if (typeof sanitizedBlock.data.title !== 'string') sanitizedBlock.data.title = '';
+        if (typeof sanitizedBlock.data.message !== 'string') sanitizedBlock.data.message = '';
+        break;
+      case 'delimiter': break;
+      default:
+        console.warn(`Sanitizing block (ID: ${sanitizedBlock.id || 'N/A'}): Unknown block type "${sanitizedBlock.type}". Keeping data as is, but ensuring data is an object.`);
+        if (typeof sanitizedBlock.data !== 'object' || sanitizedBlock.data === null) {
+          sanitizedBlock.data = {}; 
+        }
+    }
+    return sanitizedBlock;
+  }).filter(block => block !== null) as EditorJsBlock[]; 
+
+  if (output.blocks.length === 0) {
+    console.warn("Sanitizing: All blocks were invalid or removed. Returning structure with one empty paragraph.");
+    output.blocks = [{ type: 'paragraph', data: { text: '' } }];
+  }
+
+  return output;
+};
+
 
 interface NoteEditorProps {
   isNewNote?: boolean;
 }
 
-const EDITOR_VERSION_STRING = "2.29.1"; 
-
-const createEmptyEditorData = (): EditorJsOutputData => ({
-  time: Date.now(),
-  blocks: [{ type: 'paragraph', data: { text: '' } }],
-  version: EDITOR_VERSION_STRING,
-});
-
 export const NoteEditor: React.FC<NoteEditorProps> = ({ isNewNote = false }) => {
   const { noteId } = useParams<{ noteId: string }>();
   const navigate = useNavigate();
-  const { getNoteById, addNote, updateNote, deleteNote, loading: notesLoading, currentNote: contextNote, selectNote } = useNotes();
+  const location = useLocation();
+  const { getNoteById, addNote, updateNote, deleteNote, loading: notesLoading, currentNote: contextNote, selectNote, selectedNoteId } = useNotes();
   const { settings } = useSettings();
   const { t, language } = useI18n();
 
@@ -96,52 +228,76 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ isNewNote = false }) => 
   const [currentEditorContent, setCurrentEditorContent] = useState<EditorJsOutputData | null>(null);
   
   const editorInstanceRef = useRef<EditorJS | null>(null);
-  const editorHolderRef = useRef<HTMLDivElement | null>(null); // Ref for the editor container div
+  const editorHolderRef = useRef<HTMLDivElement | null>(null);
+  const lastInitializedNoteIdOrNewFlagRef = useRef<string | null>(null);
 
 
   const [showExportOptions, setShowExportOptions] = useState(false);
-  const [showAiPanel, setShowAiPanel] = useState(false);
   const [apiMessage, setApiMessage] = useState<ApiFeedback | null>(null);
   const apiMessageTimeoutRef = useRef<number | null>(null);
-  const debounceTimeoutRef = useRef<number | null>(null);
   const [isLoadingEditor, setIsLoadingEditor] = useState(true);
 
-  const editorPlaceholderText = useRef(t('noteEditor.contentPlaceholder')); // Stabilize placeholder
+  const editorPlaceholderText = useRef(t('noteEditor.contentPlaceholder'));
 
   useEffect(() => {
     editorPlaceholderText.current = t('noteEditor.contentPlaceholder');
   }, [t]);
 
 
-  const displayApiMessage = (message: ApiFeedback) => {
+  const displayApiMessage = useCallback((message: ApiFeedback | null) => {
     if (apiMessageTimeoutRef.current) clearTimeout(apiMessageTimeoutRef.current);
     setApiMessage(message);
-    apiMessageTimeoutRef.current = window.setTimeout(() => setApiMessage(null), 4000);
-  };
+    if (message) {
+        apiMessageTimeoutRef.current = window.setTimeout(() => setApiMessage(null), 5000);
+    }
+  }, []);
 
-  // Step 1: Effect to load note data and set `initialDataForEditor`
-  useEffect(() => {
+ useEffect(() => {
     setIsLoadingEditor(true);
+    const passedState = location.state as { initialContentText?: string; initialTitle?: string, replaceExistingContent?: boolean };
+
     const loadNote = async () => {
+      let noteDataForEditorInitialization: EditorJsOutputData | undefined = undefined;
+      let noteTitle = '';
+      let noteTags: string[] = [];
+
       if (isNewNote) {
-        const emptyContent = createEmptyEditorData();
-        const newTempNote: Note = {
-          id: `temp-${Date.now()}`,
-          title: '',
-          content: emptyContent,
-          tags: [],
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        };
-        setLocalNote(newTempNote);
-        setTitle('');
-        setTags([]);
-        setInitialDataForEditor(emptyContent); 
-        setCurrentEditorContent(emptyContent);
-        if (noteId) selectNote(null); 
+        if (passedState?.initialContentText) {
+          noteDataForEditorInitialization = sanitizeEditorOutputData(textToEditorJsData(passedState.initialContentText));
+          noteTitle = passedState.initialTitle || '';
+          // Clear state after using it
+          navigate(location.pathname, { replace: true, state: null });
+        } else if (lastInitializedNoteIdOrNewFlagRef.current !== 'new' || !editorInstanceRef.current) {
+          noteDataForEditorInitialization = createEmptyEditorData();
+        }
+        lastInitializedNoteIdOrNewFlagRef.current = 'new';
+        const tempNoteContent = noteDataForEditorInitialization || currentEditorContent || createEmptyEditorData();
+        setLocalNote({
+          id: `temp-${Date.now()}`, title: noteTitle, content: tempNoteContent,
+          tags: noteTags, createdAt: Date.now(), updatedAt: Date.now(),
+        });
+        setTitle(noteTitle);
+        setTags(noteTags);
+        if (noteId && noteId !== 'new') selectNote(null);
+
       } else if (noteId) {
         let noteToLoad: Note | undefined | null = null;
-        if (contextNote && contextNote.id === noteId) {
+        if (passedState?.replaceExistingContent && passedState?.initialContentText) {
+            // Load existing note for title/tags, but use passed content
+            noteToLoad = await getNoteById(noteId);
+            if (noteToLoad) {
+                noteDataForEditorInitialization = sanitizeEditorOutputData(textToEditorJsData(passedState.initialContentText));
+                noteTitle = noteToLoad.title;
+                noteTags = noteToLoad.tags;
+                // Clear state after using it
+                navigate(location.pathname, { replace: true, state: null });
+            } else { // Note not found, treat as new with this content
+                 noteDataForEditorInitialization = sanitizeEditorOutputData(textToEditorJsData(passedState.initialContentText));
+                 noteTitle = ''; // Or a default title
+                 noteTags = [];
+                 navigate(location.pathname, { replace: true, state: null });
+            }
+        } else if (contextNote && contextNote.id === noteId) {
           noteToLoad = contextNote;
         } else {
           noteToLoad = await getNoteById(noteId);
@@ -149,266 +305,129 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ isNewNote = false }) => 
 
         if (noteToLoad) {
           setLocalNote(noteToLoad);
-          setTitle(noteToLoad.title);
-          setTags(noteToLoad.tags);
+          setTitle(noteTitle || noteToLoad.title); // Use pre-filled title if available
+          setTags(noteTags.length > 0 ? noteTags : noteToLoad.tags); // Use pre-filled tags if available
 
-          let contentToSet: EditorJsOutputData;
-          if (typeof noteToLoad.content === 'string') {
-            console.warn(`Note ID ${noteId}: Content is a string. Converting.`);
-            contentToSet = textToEditorJsData(noteToLoad.content);
-          } else if (
-            noteToLoad.content &&
-            typeof noteToLoad.content === 'object' &&
-            Array.isArray(noteToLoad.content.blocks)
-          ) {
-            const validatedBlocks = noteToLoad.content.blocks.map((block: any) => {
-              // Ensure block and block.data are objects
-              if (typeof block !== 'object' || block === null || typeof block.data !== 'object' || block.data === null) {
-                console.warn(`Sanitizing block (ID: ${block?.id || 'N/A'}): Malformed block structure. Converting to empty paragraph.`);
-                return { type: 'paragraph', data: { text: '' } };
-              }
-              
-              const newBlock = { ...block, data: { ...block.data } }; // Deep copy data
-
-              if (newBlock.type === 'header') {
-                if (typeof newBlock.data.text !== 'string') {
-                  console.warn(`Sanitizing header block (ID: ${newBlock.id || 'N/A'}): 'text' was not a string or missing. Setting to empty string.`);
-                  newBlock.data.text = '';
-                }
-                if (typeof newBlock.data.level !== 'number' || newBlock.data.level < 1 || newBlock.data.level > 6) {
-                  console.warn(`Sanitizing header block (ID: ${newBlock.id || 'N/A'}): 'level' was invalid or missing (${newBlock.data.level}). Setting to 2.`);
-                  newBlock.data.level = 2; // Default to H2
-                }
-              }
-              // Add similar validation for other crucial block types if necessary
-              // For example, for 'list':
-              // if (newBlock.type === 'list') {
-              //   if (!Array.isArray(newBlock.data.items)) newBlock.data.items = [];
-              //   if (typeof newBlock.data.style !== 'string' || (newBlock.data.style !== 'ordered' && newBlock.data.style !== 'unordered')) {
-              //     newBlock.data.style = 'unordered';
-              //   }
-              // }
-              return newBlock;
-            }).filter(block => block !== null); // Remove any blocks that became null after potential future stricter validation
-
-            contentToSet = { ...(noteToLoad.content as EditorJsOutputData), blocks: validatedBlocks };
-            if (contentToSet.blocks.length === 0) {
-              contentToSet = createEmptyEditorData();
-            }
-          } else {
-            console.warn(`Note ID ${noteId}: Content malformed, null, or undefined. Initializing empty.`);
-            contentToSet = createEmptyEditorData();
+          if (!noteDataForEditorInitialization && (!editorInstanceRef.current || lastInitializedNoteIdOrNewFlagRef.current !== noteId)) {
+            noteDataForEditorInitialization = sanitizeEditorOutputData(noteToLoad.content);
           }
-          setInitialDataForEditor(contentToSet);
-          setCurrentEditorContent(contentToSet);
-        } else {
+          lastInitializedNoteIdOrNewFlagRef.current = noteId;
+        } else if (!passedState?.initialContentText) { // Only navigate if not coming from a "create new with content" type action
           console.warn(`Note ${noteId} not found. Navigating to home.`);
           navigate('/');
-          setInitialDataForEditor(null);
-          setCurrentEditorContent(null);
+          lastInitializedNoteIdOrNewFlagRef.current = null;
+          setIsLoadingEditor(false);
+          return;
         }
-      } else {
-        setInitialDataForEditor(null);
-        setCurrentEditorContent(null);
+      } else { 
+        if (lastInitializedNoteIdOrNewFlagRef.current !== 'empty' || !editorInstanceRef.current) {
+          noteDataForEditorInitialization = createEmptyEditorData();
+          lastInitializedNoteIdOrNewFlagRef.current = 'empty';
+        }
+        setLocalNote(null); setTitle(''); setTags([]);
+      }
+
+      if (noteDataForEditorInitialization) {
+        setInitialDataForEditor(noteDataForEditorInitialization);
+        setCurrentEditorContent(noteDataForEditorInitialization);
       }
       setIsLoadingEditor(false);
     };
 
     loadNote();
-  }, [noteId, isNewNote, getNoteById, navigate, contextNote, selectNote]);
+  }, [noteId, isNewNote, getNoteById, navigate, contextNote, selectNote, location.state]);
 
 
-  // Step 2: Effect to initialize Editor.js when `initialDataForEditor` is ready AND holder is mounted
   useEffect(() => {
-    if (!initialDataForEditor || !editorHolderRef.current || isLoadingEditor) {
+    if (isLoadingEditor || !editorHolderRef.current || !initialDataForEditor) {
       return;
     }
-
-    // Destroy previous instance
+  
     if (editorInstanceRef.current && typeof editorInstanceRef.current.destroy === 'function') {
-      try {
-        editorInstanceRef.current.destroy();
-      } catch (e) {
-        console.error("Error destroying previous Editor.js instance:", e);
-      }
+      try { editorInstanceRef.current.destroy(); } catch (e) { console.error("Error destroying previous Editor.js instance:", e); }
     }
     editorInstanceRef.current = null;
-    
-    // Clear the holder 
+  
     const holder = editorHolderRef.current;
-    while (holder.firstChild) {
-        holder.removeChild(holder.firstChild);
-    }
-    
-    // Defer Editor.js instantiation slightly longer.
-    // NOTE on "getLayoutMap() must be called from a top-level browsing context...":
-    // This error is often encountered when the application is running in a sandboxed iframe
-    // (e.g., in some online IDEs or preview environments). The iframe's security policy
-    // (sandbox attribute or Permissions-Policy header) may restrict access to the
-    // getLayoutMap() browser API. This is an environmental restriction and typically
-    // cannot be "fixed" from within the iframe's content code.
-    // The 100ms delay below is an attempt to ensure the DOM is as settled as possible,
-    // which can sometimes help with rendering-related issues in complex libraries,
-    // but it won't override a strict permission policy.
+    while (holder.firstChild) holder.removeChild(holder.firstChild);
+  
     const editorTimeout = setTimeout(() => {
-        if (!editorHolderRef.current || !initialDataForEditor) { // Re-check as state might change
-             console.warn("Editor holder or initial data became null before deferred initialization.");
-             return;
-        }
-        try {
-            const editor = new EditorJS({
-              holder: editorHolderRef.current, 
-              data: initialDataForEditor,
-              placeholder: editorPlaceholderText.current, 
-            //   autofocus: false, // Removed to potentially help with layout issues
-              tools: {
-                paragraph: { class: Paragraph as unknown as BlockToolConstructable, inlineToolbar: true },
-                header: Header as unknown as BlockToolConstructable, // Default level can be set here if needed: { class: Header, config: { defaultLevel: 2 } }
-                list: List as unknown as BlockToolConstructable,
-                quote: Quote as unknown as BlockToolConstructable,
-                code: CodeTool as unknown as BlockToolConstructable,
-                delimiter: Delimiter as unknown as BlockToolConstructable,
-                image: {
-                    class: ImageTool as unknown as BlockToolConstructable,
-                    config: {
-                        uploader: {
-                            uploadByFile: (file: File) => new Promise(r => { const reader = new FileReader(); reader.onload = e => r({success:1, file:{url: e.target?.result as string}}); reader.readAsDataURL(file);}),
-                            uploadByUrl: (url: string) => (url && (url.startsWith('http') || url.startsWith('data:'))) ? Promise.resolve({success:1, file:{url}}) : Promise.resolve({success:0, file:{url:'', message:'Invalid URL'}})
-                        }
-                    }
-                },
-                warning: Warning as unknown as BlockToolConstructable,
-                table: Table as unknown as BlockToolConstructable,
-                checklist: Checklist as unknown as BlockToolConstructable,
-              },
-              onChange: async (api: API, event: CustomEvent) => {
-                if (api && typeof api.saver?.save === 'function') {
-                  const savedData = await api.saver.save();
-                  if (savedData && Array.isArray(savedData.blocks)) {
-                     setCurrentEditorContent(savedData); 
-                  } else {
-                     console.warn("Editor.js onChange returned invalid data structure.", savedData);
-                  }
-                }
-              },
-              onReady: () => { /* console.log('Editor.js is ready.'); */ },
-            });
-            editorInstanceRef.current = editor;
-        } catch (e) {
-            console.error("Failed to initialize Editor.js:", e);
-            displayApiMessage({type: 'error', text: 'Editor failed to load. Try refreshing or check console.'});
-        }
-    }, 50); // Reduced delay slightly based on previous changes, ensure DOM is ready
-
+      if (!editorHolderRef.current || !initialDataForEditor) {
+        console.warn("Editor holder or initial data became null before deferred initialization. Aborting editor setup.");
+        return; 
+      }
+      try {
+        const editor = new EditorJS({
+          holder: EDITOR_HOLDER_ID, data: initialDataForEditor,
+          placeholder: editorPlaceholderText.current, defaultBlock: 'paragraph',
+          tools: {
+            paragraph: { class: ParagraphTool as unknown as BlockToolConstructable, inlineToolbar: true },
+            header: HeaderTool as unknown as BlockToolConstructable, list: ListTool as unknown as BlockToolConstructable,
+            quote: QuoteTool as unknown as BlockToolConstructable, code: CodeToolTool as unknown as BlockToolConstructable,
+            delimiter: DelimiterTool as unknown as BlockToolConstructable,
+            image: { class: ImageToolTool as unknown as BlockToolConstructable, config: { uploader: { uploadByFile: (file: File) => new Promise(r => { const reader = new FileReader(); reader.onload = e => r({success:1, file:{url: e.target?.result as string}}); reader.readAsDataURL(file);}), uploadByUrl: (url: string) => (url && (url.startsWith('http') || url.startsWith('data:'))) ? Promise.resolve({success:1, file:{url}}) : Promise.resolve({success:0, file:{url:'', message:'Invalid URL'}}) }}},
+            warning: WarningTool as unknown as BlockToolConstructable, table: TableTool as unknown as BlockToolConstructable,
+            checklist: ChecklistTool as unknown as BlockToolConstructable,
+          },
+          onChange: async (api: API, event: CustomEvent) => {
+            if (api && typeof api.saver?.save === 'function') {
+              const savedData = await api.saver.save();
+              setCurrentEditorContent(savedData); 
+            }
+          },
+          onReady: () => { /* console.log('Editor.js is ready.'); */ },
+        });
+        editorInstanceRef.current = editor;
+      } catch (e) {
+        console.error("Failed to initialize Editor.js:", e);
+        displayApiMessage({type: 'error', text: 'Editor failed to load. Try refreshing.'});
+      }
+    }, 50); 
+  
     return () => {
       clearTimeout(editorTimeout);
       if (editorInstanceRef.current && typeof editorInstanceRef.current.destroy === 'function') {
-        try {
-          editorInstanceRef.current.destroy();
-        } catch (e) { /* console.error("Error destroying Editor.js on cleanup:", e); */ }
+        try { editorInstanceRef.current.destroy(); } catch (e) { /* console.error("Error destroying Editor.js on cleanup:", e); */ }
       }
       editorInstanceRef.current = null;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialDataForEditor, isLoadingEditor, isNewNote]); // Added isNewNote as it affects initialData
-
+  }, [initialDataForEditor, isLoadingEditor, editorPlaceholderText.current]); 
   
-  // Auto-save logic
-  const handleAutoSave = useCallback(async () => {
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current);
+  const isContentTrulyEmpty = (content: EditorJsOutputData | null): boolean => {
+    if (!content || !Array.isArray(content.blocks)) return true;
+    if (content.blocks.length === 0) return true;
+    const sanitizedContent = sanitizeEditorOutputData(content); 
+    if (sanitizedContent.blocks.length === 0) return true;
+    if (sanitizedContent.blocks.length === 1 && sanitizedContent.blocks[0].type === 'paragraph') {
+      const paragraphData = sanitizedContent.blocks[0].data;
+      return !paragraphData || typeof paragraphData.text !== 'string' || paragraphData.text.trim() === '';
     }
-    debounceTimeoutRef.current = window.setTimeout(async () => {
-      if (!localNote || !currentEditorContent || !Array.isArray(currentEditorContent.blocks)) { 
-        return;
-      }
-
-      const isTrulyEmptyNewNote = localNote.id.startsWith('temp-') && title.trim() === '' && (currentEditorContent.blocks.length === 0 || (currentEditorContent.blocks.length === 1 && currentEditorContent.blocks[0].type === 'paragraph' && !currentEditorContent.blocks[0].data.text?.trim()));
-      
-      if (isTrulyEmptyNewNote) {
-        return;
-      }
-      
-      const validatedContentForSave = {
-        ...currentEditorContent,
-        blocks: Array.isArray(currentEditorContent.blocks) ? currentEditorContent.blocks : []
-      };
-      
-      const noteDataForSave = { title, content: validatedContentForSave, tags };
-
-      if (!localNote.id.startsWith('temp-')) {
-        const originalContentText = editorDataToText(localNote.content); 
-        const currentContentTextFromState = editorDataToText(currentEditorContent);
-        
-        const noChanges = title === localNote.title &&
-                          currentContentTextFromState === originalContentText && 
-                          JSON.stringify(tags) === JSON.stringify(localNote.tags);
-        if (noChanges) {
-            return;
-        }
-      }
-      
-      if (localNote.id.startsWith('temp-')) {
-        const newNote = await addNote(noteDataForSave);
-        if (newNote) {
-          navigate(`/note/${newNote.id}`, { replace: true });
-        }
-      } else {
-        const noteToUpdate = { ...localNote, ...noteDataForSave };
-        await updateNote(noteToUpdate);
-      }
-    }, 2000); 
-  }, [localNote, title, currentEditorContent, tags, addNote, updateNote, navigate]);
-
-
-  useEffect(() => {
-    if (localNote && currentEditorContent && !isLoadingEditor) { 
-      handleAutoSave();
-    }
-    return () => {
-      if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
-    };
-  }, [title, currentEditorContent, tags, localNote, handleAutoSave, isLoadingEditor]);
-
+    return false;
+  };
 
   const handleManualSave = async () => {
-    if (!localNote) {
-        displayApiMessage({ type: 'error', text: t('noteEditor.saveError') + ' (No local note)' });
+    if (!localNote && !isNewNote) { // Should not happen if logic is correct
+        displayApiMessage({ type: 'error', text: t('noteEditor.saveError') + ' (No local note context)' });
         return;
     }
     
-    let contentToSave = currentEditorContent;
+    let contentFromEditor = currentEditorContent; 
     if (editorInstanceRef.current && typeof editorInstanceRef.current.save === 'function') {
-        try {
-            contentToSave = await editorInstanceRef.current.save();
-             if (contentToSave && Array.isArray(contentToSave.blocks)) {
-                setCurrentEditorContent(contentToSave);
-            } else {
-                throw new Error("Editor returned invalid data on save.");
-            }
-        } catch (e) {
+        try { contentFromEditor = await editorInstanceRef.current.save(); } catch (e) {
             console.error("Error getting data from editor on manual save:", e);
-            displayApiMessage({ type: 'error', text: t('noteEditor.saveError') + ' (Editor data retrieval failed)' });
-            return;
+            contentFromEditor = currentEditorContent; 
         }
     }
 
-    if (!contentToSave || !Array.isArray(contentToSave.blocks)) { 
-        displayApiMessage({ type: 'error', text: t('noteEditor.saveError')  + ' (No valid content to save)'});
-        return;
-    }
+    const sanitizedContentForSave = sanitizeEditorOutputData(contentFromEditor);
+    setCurrentEditorContent(sanitizedContentForSave); 
     setApiMessage(null);
     
-    const validatedContentForSave = {
-        ...contentToSave,
-        blocks: Array.isArray(contentToSave.blocks) ? contentToSave.blocks : []
-    };
-
-    const noteDataToSave = { title, content: validatedContentForSave, tags };
+    const noteDataToSave = { title, content: sanitizedContentForSave, tags };
 
     try {
-      if (isNewNote || localNote.id.startsWith('temp-')) {
-        const isTrulyEmpty = title.trim() === '' && (validatedContentForSave.blocks.length === 0 || (validatedContentForSave.blocks.length === 1 && validatedContentForSave.blocks[0].type === 'paragraph' && !validatedContentForSave.blocks[0].data.text?.trim()));
+      if (isNewNote || (localNote && localNote.id.startsWith('temp-'))) {
+        const isTrulyEmpty = title.trim() === '' && isContentTrulyEmpty(sanitizedContentForSave);
         if (isTrulyEmpty) {
             displayApiMessage({ type: 'error', text: t('noteEditor.emptyNoteError') });
             return;
@@ -418,7 +437,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ isNewNote = false }) => 
           navigate(`/note/${newNote.id}`, { replace: true });
           displayApiMessage({ type: 'success', text: t('noteEditor.createSuccess') });
         }
-      } else {
+      } else if (localNote) { // Existing note
         const noteToUpdate = { ...localNote, ...noteDataToSave };
         await updateNote(noteToUpdate);
         displayApiMessage({ type: 'success', text: t('noteEditor.saveSuccess') });
@@ -429,35 +448,43 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ isNewNote = false }) => 
   };
 
   const handleDelete = async () => {
-    if (localNote && !localNote.id.startsWith('temp-')) {
+    if (localNote && !localNote.id.startsWith('temp-')) { 
       if (window.confirm(t('noteEditor.deleteConfirmation'))) {
         await deleteNote(localNote.id);
         navigate('/');
       }
     } else { 
-        setTitle('');
-        setTags([]);
-        const emptyData = createEmptyEditorData();
-        setInitialDataForEditor(emptyData); 
-        setCurrentEditorContent(emptyData);
-        setLocalNote(null);
-        if (editorInstanceRef.current?.clear) editorInstanceRef.current.clear();
+        setTitle(''); setTags([]);   
+        if (localNote && contextNote && localNote.id === contextNote.id) selectNote(null);
+        if (localNote && selectedNoteId === localNote.id) selectNote(null);
         navigate('/'); 
     }
   };
 
   const handleExport = (format: 'json' | 'md' | 'txt') => {
-    const contentForExport = currentEditorContent || localNote?.content;
-    if (!localNote || localNote.id.startsWith('temp-') || !contentForExport || !Array.isArray(contentForExport.blocks)) { 
-      displayApiMessage({type: 'info', text: t('noteEditor.saveBeforeExport')});
-      return;
+    let contentForExport = sanitizeEditorOutputData(currentEditorContent || localNote?.content);
+
+    if (!localNote || localNote.id.startsWith('temp-')) { 
+      if (title.trim() === '' && isContentTrulyEmpty(contentForExport)) {
+        displayApiMessage({type: 'info', text: t('noteEditor.saveBeforeExport') + " (Note is empty)"});
+        return;
+      }
+      // Note: If saving navigates, the context for export might be slightly off.
+      // This path is for unsaved notes, so using current state is best.
+      const tempNoteForExport: Note = { 
+          id: localNote?.id || `temp-${Date.now()}`, title, content: contentForExport, tags,
+          createdAt: localNote?.createdAt || Date.now(), updatedAt: localNote?.updatedAt || Date.now()
+      };
+      const filenameBase = title.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'note';
+      switch (format) {
+          case 'json': exportNotesAsJSON([tempNoteForExport], settings, `${filenameBase}.json`); break;
+          case 'md': exportNoteAsMarkdown(tempNoteForExport, `${filenameBase}.md`); break;
+          case 'txt': exportNoteAsTXT(tempNoteForExport, `${filenameBase}.txt`); break;
+      }
+      return; // No need to call manual save here for export of temp note.
     }
-    const noteToExport: Note = { 
-        ...localNote, 
-        title, 
-        content: contentForExport, 
-        tags 
-    };
+
+    const noteToExport: Note = { ...localNote, title, content: contentForExport, tags };
     const filenameBase = title.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'note';
     switch (format) {
       case 'json': exportNotesAsJSON([noteToExport], settings, `${filenameBase}.json`); break;
@@ -468,35 +495,32 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ isNewNote = false }) => 
   };
   
   const getFullContentAsText = async (): Promise<string> => {
+    let contentToProcess = currentEditorContent;
     if (editorInstanceRef.current && typeof editorInstanceRef.current.save === 'function') {
-      const savedData = await editorInstanceRef.current.save();
-      return editorDataToText(savedData);
+      try { contentToProcess = await editorInstanceRef.current.save(); } catch (e) {
+        console.warn("Could not explicitly save editor for getFullContentAsText, using current state.", e);
+      }
     }
-    return editorDataToText(currentEditorContent); 
+    return editorDataToText(sanitizeEditorOutputData(contentToProcess)); 
   };
 
-  const applyAiSuggestionToEditor = (textOutput: string) => {
-    const newEditorData = textToEditorJsData(textOutput);
+  const applyAiChangesToEditor = (newEditorData: EditorJsOutputData) => {
+    const sanitizedNewData = sanitizeEditorOutputData(newEditorData); 
     if (editorInstanceRef.current && typeof editorInstanceRef.current.render === 'function') {
-      editorInstanceRef.current.render(newEditorData); 
-      setCurrentEditorContent(newEditorData); 
+      editorInstanceRef.current.render(sanitizedNewData); 
+      setCurrentEditorContent(sanitizedNewData); 
     } else {
-        // This case should ideally not happen if editor is initialized correctly
-        console.warn("Attempting to apply AI suggestion but editor instance is not fully available. Setting as initial data.");
-        setInitialDataForEditor(newEditorData); 
-        setCurrentEditorContent(newEditorData);
+        console.warn("Attempting to apply AI suggestion but editor instance is not fully available. Setting as initial data for next render.");
+        setInitialDataForEditor(sanitizedNewData); 
+        setCurrentEditorContent(sanitizedNewData);
     }
   };
 
-
-  if (isLoadingEditor || (notesLoading && !isNewNote && !localNote && !initialDataForEditor)) { 
+  if (isLoadingEditor || (notesLoading && !isNewNote && !localNote && !(location.state as any)?.initialContentText)) { 
     return <div className="p-6 text-center text-slate-500 dark:text-slate-400">{t('noteEditor.loading')}</div>;
   }
   
-  if (!isNewNote && !noteId && !localNote && !isLoadingEditor) {
-     return <div className="p-6 text-center text-slate-500 dark:text-slate-400">{t('noteEditor.loading')}</div>; 
-  }
-  if (!isNewNote && noteId && !localNote && !isLoadingEditor) {
+  if (!isNewNote && noteId && !localNote && !isLoadingEditor && !(location.state as any)?.initialContentText) {
      return (
         <div className="p-6 text-center text-slate-500 dark:text-slate-400">
           <h2 className="text-xl font-semibold mb-2">{t('noteEditor.notFound.title')}</h2>
@@ -534,13 +558,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ isNewNote = false }) => 
     );
   };
 
-  const aiButtonDisabled = settings.openRouterApiKeyStatus !== 'valid';
-  let aiButtonTitle = t('noteEditor.aiFeatures.toggle');
-  if (settings.openRouterApiKeyStatus === 'checking') aiButtonTitle = t('noteEditor.aiFeatures.checkingKey');
-  else if (settings.openRouterApiKeyStatus === 'invalid') aiButtonTitle = t('noteEditor.aiFeatures.keyInvalid');
-  else if (settings.openRouterApiKeyStatus === 'unset' || (settings.openRouterApiKeyStatus === 'set' && !settings.openRouterApiKey)) aiButtonTitle = t('noteEditor.aiFeatures.keyMissing');
-  else if (aiButtonDisabled) aiButtonTitle = t('noteEditor.aiFeatures.keyNotSet');
-
+  const showAiFeatures = settings.openRouterApiKeyStatus === 'valid' && (localNote || isNewNote);
 
   return (
     <div className={`p-0 md:px-2 h-full flex flex-col ${fontSizeClass} relative`}>
@@ -596,28 +614,11 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ isNewNote = false }) => 
 
       <TagInput tags={tags} setTags={setTags} />
       
-      <div className="my-3 flex items-center justify-between">
-        <button 
-            onClick={() => setShowAiPanel(!showAiPanel)}
-            className={`px-3 py-1.5 text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-primary transition-colors flex items-center
-                        ${aiButtonDisabled ? 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-not-allowed' : 'bg-secondary dark:bg-secondary-dark text-white hover:bg-secondary-light dark:hover:bg-secondary'}`}
-            disabled={aiButtonDisabled}
-            title={aiButtonTitle}
-            aria-expanded={showAiPanel}
-        >
-          {t('noteEditor.aiFeatures.toggle')}
-          {settings.openRouterApiKeyStatus === 'checking' && <span className="ml-1.5 text-xs">{t('noteEditor.aiFeatures.checkingKey')}</span>}
-          {settings.openRouterApiKeyStatus === 'invalid' && <span className="ml-1.5 text-xs">{t('noteEditor.aiFeatures.keyInvalid')}</span>}
-          {(settings.openRouterApiKeyStatus === 'unset' || (settings.openRouterApiKeyStatus === 'set' && !settings.openRouterApiKey)) && <span className="ml-1.5 text-xs">{t('noteEditor.aiFeatures.keyMissing')}</span>}
-          <ChevronDownIcon className={`w-4 h-4 ml-1.5 transform transition-transform ${showAiPanel ? 'rotate-180' : ''}`} />
-        </button>
-      </div>
-
-      {showAiPanel && settings.openRouterApiKeyStatus === 'valid' && (localNote || isNewNote) && (
+      {showAiFeatures && (
         <AiFeaturesPanel
           noteTitle={title} 
           getFullContentAsText={getFullContentAsText}
-          onSuggestionsApplied={applyAiSuggestionToEditor} 
+          onApplyChanges={applyAiChangesToEditor} 
           onTagsSuggested={(newTags) => setTags(prev => Array.from(new Set([...prev, ...newTags])))}
           setApiMessage={displayApiMessage}
           selectedAiModel={settings.aiModel}
@@ -626,6 +627,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ isNewNote = false }) => 
       
       <div className="flex-1 flex flex-col mt-1 min-h-[300px] sm:min-h-[400px] border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 dark:text-slate-100 overflow-y-auto">
         <div 
+            id={EDITOR_HOLDER_ID} 
             ref={editorHolderRef} 
             className="p-2 prose dark:prose-invert max-w-none w-full h-full"
         >
