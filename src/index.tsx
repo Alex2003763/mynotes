@@ -1,10 +1,10 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './src/App';
-import { NotesProvider } from './src/contexts/NoteContext';
-import { SettingsProvider } from './src/contexts/SettingsContext';
-import { I18nProvider } from './src/contexts/I18nContext';
+import App from './App';
+import { NotesProvider } from './contexts/NoteContext';
+import { SettingsProvider } from './contexts/SettingsContext';
+import { I18nProvider } from './contexts/I18nContext';
 import { HashRouter } from 'react-router-dom';
 
 const rootElement = document.getElementById('root');
