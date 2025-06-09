@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MyNotes</title>
+  <link rel="icon" type="image/png" href="/pencil.png">
+  <link rel="apple-touch-icon" href="/pencil.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class', // or 'media'
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              DEFAULT: 'rgb(var(--color-primary-DEFAULT) / <alpha-value>)',
+              light: 'rgb(var(--color-primary-light) / <alpha-value>)',
+              dark: 'rgb(var(--color-primary-dark) / <alpha-value>)',
+            },
+            secondary: { // Secondary colors can remain static or also be made dynamic if needed
+              DEFAULT: '#64748b', // slate-500
+              light: '#94a3b8', // slate-400
+              dark: '#334155',  // slate-700
+            }
+          },
+          animation: {
+            'spin-slow': 'spin 3s linear infinite',
+          },
+        }
+      }
+    }
+  </script>
+  <style id="custom-theme-vars">
+    :root {
+      --color-primary-DEFAULT: 79 70 229; /* Default: Indigo-600 */
+      --color-primary-light: 99 102 241; /* Default: Indigo-500 */
+      --color-primary-dark: 55 48 163;   /* Default: Indigo-800 */
+    }
+  </style>
+  <style>
+    /* For custom scrollbars, optional */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9; /* slate-100 */
+    }
+    .dark ::-webkit-scrollbar-track {
+      background: #1e293b; /* slate-800 */
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #94a3b8; /* slate-400 */
+      border-radius: 4px;
+    }
+    .dark ::-webkit-scrollbar-thumb {
+      background: #475569; /* slate-600 */
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #64748b; /* slate-500 */
+    }
+    .dark ::-webkit-scrollbar-thumb:hover {
+      background: #334155; /* slate-700 */
+    }
+    body {
+      overscroll-behavior-y: contain; /* Prevent pull-to-refresh on mobile for better PWA feel */
+    }
+    /* Editor.js specific styles */
+    .codex-editor__redactor {
+      padding-bottom: 100px !important; /* Ensure space for toolbar */
+    }
+  </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.1.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
+    "react-router-dom": "https://esm.sh/react-router-dom@^7.6.2",
+    "react/": "https://esm.sh/react@^19.1.0/",
+    "idb": "https://esm.sh/idb@^8.0.3",
+    "date-fns": "https://esm.sh/date-fns@^4.1.0",
+    "date-fns/": "https://esm.sh/date-fns@^4.1.0/",
+    "@editorjs/list": "https://esm.sh/@editorjs/list@^2.0.8",
+    "@editorjs/checklist": "https://esm.sh/@editorjs/checklist@^1.6.0",
+    "@editorjs/delimiter": "https://esm.sh/@editorjs/delimiter@^1.4.2",
+    "@editorjs/code": "https://esm.sh/@editorjs/code@^2.9.3",
+    "@editorjs/paragraph": "https://esm.sh/@editorjs/paragraph@^2.11.7",
+    "tinycolor2": "https://esm.sh/tinycolor2@^1.6.0",
+    "@editorjs/image": "https://esm.sh/@editorjs/image@^2.10.2",
+    "@editorjs/editorjs": "https://esm.sh/@editorjs/editorjs@^2.30.8",
+    "@editorjs/table": "https://esm.sh/@editorjs/table@^2.4.5",
+    "@editorjs/header": "https://esm.sh/@editorjs/header@^2.8.8",
+    "@editorjs/quote": "https://esm.sh/@editorjs/quote@^2.7.6",
+    "@editorjs/warning": "https://esm.sh/@editorjs/warning@^1.4.1"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body class="bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 antialiased">
+  <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(registration => {
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+          })
+          .catch(error => {
+            console.log('ServiceWorker registration failed: ', error);
+          });
+      });
+    }
+  </script>
+</body>
+</html>

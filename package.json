@@ -1,0 +1,35 @@
+{
+  "name": "mynotes",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.6.2",
+    "idb": "^8.0.3",
+    "date-fns": "^4.1.0",
+    "@editorjs/list": "^2.0.8",
+    "@editorjs/checklist": "^1.6.0",
+    "@editorjs/delimiter": "^1.4.2",
+    "@editorjs/code": "^2.9.3",
+    "@editorjs/paragraph": "^2.11.7",
+    "tinycolor2": "^1.6.0",
+    "@editorjs/image": "^2.10.2",
+    "@editorjs/editorjs": "^2.30.8",
+    "@editorjs/table": "^2.4.5",
+    "@editorjs/header": "^2.8.8",
+    "@editorjs/quote": "^2.7.6",
+    "@editorjs/warning": "^1.4.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "typescript": "~5.7.2",
+    "vite": "^6.2.0"
+  }
+}
