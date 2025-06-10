@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Cherry from 'cherry-markdown';
@@ -222,10 +223,6 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ isNewNote = false }) => 
     }
   
     if (editorInstanceRef.current) {
-      // This check is important if the key prop isn't used or if we want to be super safe
-      // With the key prop, this effect will run after the old instance is unmounted
-      // and editorHolderRef.current points to a new div.
-      // However, explicit destroy here doesn't hurt.
       try {
         editorInstanceRef.current.destroy();
       } catch (e) {
@@ -236,52 +233,48 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ isNewNote = false }) => 
   
     const holder = editorHolderRef.current;
   
-    // Delay initialization slightly to ensure DOM is fully ready, especially after key-driven remount
-    const editorTimeout = setTimeout(() => {
-      // Re-check holder, as it might have changed or component unmounted during timeout
-      if (!editorHolderRef.current || editorHolderRef.current !== holder || initialMarkdownForEditor === null) {
-        console.warn("Editor holder or initial markdown became null/changed before deferred initialization. Aborting editor setup.");
-        return; 
-      }
+    // Direct initialization
+    if (!editorHolderRef.current || initialMarkdownForEditor === null) {
+      console.warn("Editor holder or initial markdown became null before initialization. Aborting editor setup.");
+      return;
+    }
 
-      try {
-        const cherryConfig = {
-          el: holder, // Use the current ref
-          value: initialMarkdownForEditor,
-          toolbars: {
-            theme: 'light', 
-            showToolbar: true,
+    try {
+      const cherryConfig = {
+        el: holder, // Use the current ref
+        value: initialMarkdownForEditor,
+        toolbars: {
+          theme: 'light', 
+          showToolbar: true,
+        },
+        editor: {
+          height: '100%', 
+          defaultModel: 'editOnly',
+          // placeholder: editorPlaceholderText.current, // Cherry Markdown might not support placeholder this way
+        },
+        fileUpload: (file: File, callback: (url: string, params?: Record<string, any>) => void) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const base64Str = e.target?.result as string;
+            callback(base64Str, { name: file.name }); 
+          };
+          reader.readAsDataURL(file);
+        },
+        callback: {
+          afterChange: (markdown: string, html: string) => {
+            setCurrentMarkdownContent(markdown);
           },
-          editor: {
-            height: '100%', 
-            defaultModel: 'editOnly',
-            // placeholder: editorPlaceholderText.current, // Cherry Markdown might not support placeholder this way
-          },
-          fileUpload: (file: File, callback: (url: string, params?: Record<string, any>) => void) => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-              const base64Str = e.target?.result as string;
-              callback(base64Str, { name: file.name }); 
-            };
-            reader.readAsDataURL(file);
-          },
-          callback: {
-            afterChange: (markdown: string, html: string) => {
-              setCurrentMarkdownContent(markdown);
-            },
-          },
-        };
-        const cherryInstance = new Cherry(cherryConfig);
-        editorInstanceRef.current = cherryInstance;
+        },
+      };
+      const cherryInstance = new Cherry(cherryConfig);
+      editorInstanceRef.current = cherryInstance;
 
-      } catch (e) {
-        console.error("Failed to initialize Cherry Markdown editor:", e);
-        displayApiMessage({type: 'error', text: 'Editor failed to load. Try refreshing.'});
-      }
-    }, 50); 
+    } catch (e) {
+      console.error("Failed to initialize Cherry Markdown editor:", e);
+      displayApiMessage({type: 'error', text: 'Editor failed to load. Try refreshing.'});
+    }
   
     return () => {
-      clearTimeout(editorTimeout);
       if (editorInstanceRef.current) {
         try {
           editorInstanceRef.current.destroy();

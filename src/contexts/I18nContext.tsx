@@ -79,11 +79,17 @@ export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [updateSettings]);
 
   const t = useCallback((key: TranslationKey, replacements?: Record<string, string>): string => {
+    if (typeof key !== 'string') {
+      console.error('Translation key is not a string:', key);
+      return String(key); // Return the key itself as a string or a placeholder
+    }
+
     let translation = getNestedValue(translations, key);
     if (translation === undefined) {
       console.warn(`Translation key "${key}" not found for language "${settings.language}".`);
       // Fallback to key or a more descriptive missing string
-      translation = key.includes('.') ? key.split('.').pop() || key : key; 
+      // Check key.includes only if key is confirmed string (already done by the guard above)
+      translation = key.includes('.') ? key.split('.').pop() || key : key;
     }
     if (replacements && typeof translation === 'string') {
       Object.keys(replacements).forEach(placeholder => {
