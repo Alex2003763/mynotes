@@ -7,6 +7,7 @@
   <link rel="icon" type="image/png" href="/pencil.png">
   <link rel="apple-touch-icon" href="/pencil.png">
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cherry-markdown@latest/dist/cherry-markdown.min.css"/>
   <script>
     tailwind.config = {
       darkMode: 'class', // or 'media'
@@ -66,13 +67,185 @@
     body {
       overscroll-behavior-y: contain; /* Prevent pull-to-refresh on mobile for better PWA feel */
     }
-    /* Editor.js specific styles */
-    .codex-editor__redactor {
-      padding-bottom: 100px !important; /* Ensure space for toolbar in editable mode */
+
+    /* --- Enhanced Cherry Markdown Styles (Always Light Theme) --- */
+
+    /* Main Container for Cherry Editor/Viewer */
+    .cherry-markdown-container {
+      border: 1px solid #e2e8f0; /* Tailwind slate-200 */
+      background-color: #ffffff; /* Tailwind white */
+      border-radius: 0.375rem; /* Tailwind rounded-md */
+      box-shadow: none !important;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden; /* Ensures children conform to rounded corners */
     }
-    .view-note-content .codex-editor--read-only .codex-editor__redactor { /* Override for read-only view */
-      padding-bottom: 16px !important; /* Adjust as needed for view mode, e.g., 1rem or theme('padding.4') equivalent */
+
+    /* Toolbar */
+    .cherry-toolbar {
+      background-color: #f8fafc !important; /* Tailwind slate-50 */
+      border-bottom: 1px solid #e2e8f0 !important; /* Tailwind slate-200 */
+      padding: 0.25rem 0.5rem !important; /* Add some padding */
+      flex-shrink: 0; /* Prevent toolbar from shrinking */
     }
+    .cherry-toolbar button {
+      color: #475569 !important; /* Tailwind slate-600 */
+      border-radius: 0.25rem !important; /* rounded-sm */
+    }
+    .cherry-toolbar button:hover {
+      background-color: #e2e8f0 !important; /* Tailwind slate-200 */
+      color: #1e293b !important; /* Tailwind slate-800 */
+    }
+    .cherry-toolbar button.active, .cherry-toolbar button:focus, .cherry-toolbar button.selected { /* Assuming 'selected' class for active state */
+      background-color: rgba(var(--color-primary-DEFAULT), 0.1) !important;
+      color: rgb(var(--color-primary-DEFAULT)) !important;
+      box-shadow: 0 0 0 2px rgba(var(--color-primary-DEFAULT), 0.3) !important;
+    }
+
+    /* Editor and Previewer Content Areas */
+    .cherry-editor, .cherry-previewer {
+      border: none !important; /* Remove internal borders */
+      background-color: transparent !important; /* Inherit from .cherry-markdown-container */
+      flex-grow: 1; /* Allow content to fill space */
+      overflow-y: auto; /* Enable scrolling for content */
+      padding: 0.75rem !important; /* Add padding to content area */
+      line-height: 1.6;
+    }
+    
+    /* Text color for editor and previewer content */
+    .cherry-editor .cm-editor .cm-content, 
+    .cherry-editor .CodeMirror-lines, 
+    .cherry-previewer {
+      color: #334155; /* Tailwind slate-700 */
+      box-sizing: border-box; /* Ensure padding/border included in width/height */
+    }
+
+    .cherry-editor .cm-editor .cm-line,
+    .cherry-editor .CodeMirror-lines .CodeMirror-line {
+        line-height: 1.6 !important; /* Explicitly set line-height for cursor height consistency */
+        min-height: 1.6em; /* Ensure line takes up minimum height based on font-size and line-height */
+        box-sizing: border-box !important;
+        margin: 0 !important;
+        padding: 0 !important; /* Reset padding to avoid interference with cursor */
+    }
+    
+    .cherry-editor .cm-editor .cm-line > span, /* Target direct children spans often holding text */
+    .cherry-editor .CodeMirror-lines .CodeMirror-line > span {
+        line-height: 1.6 !important; /* Ensure spans within lines also respect this line height */
+    }
+
+
+    /* CodeMirror Specifics (Editor Area) */
+    .cm-editor { /* CodeMirror 6 wrapper */
+        height: 100%;
+    }
+    .cm-placeholder, .CodeMirror-placeholder {
+      color: #94a3b8 !important; /* Tailwind slate-400 */
+      font-style: italic;
+    }
+    
+    /* Updated Caret Style */
+    .cm-editor .cm-cursorLayer .cm-cursor, /* CM6 more specific */
+    .CodeMirror-cursors .CodeMirror-cursor /* CM5 more specific */ {
+      border-left: 1px solid rgb(var(--color-primary-DEFAULT)) !important;
+      height: 1.6em !important;  /* Explicitly set to match line-height via em unit */
+      width: 0 !important; 
+      background-color: transparent !important;
+      border-right: none !important;
+      border-top: none !important;
+      border-bottom: none !important;
+      padding: 0 !important;
+      margin: 0 !important; 
+      outline: none !important;
+      position: absolute !important; 
+    }
+
+    .cm-selectionBackground, .CodeMirror-selected { /* For CodeMirror selection */
+      background-color: rgba(var(--color-primary-DEFAULT), 0.2) !important;
+    }
+    
+    /* Line numbers gutter (if enabled) */
+    .cm-gutters {
+        background-color: #f8fafc !important; /* Tailwind slate-50 */
+        border-right: 1px solid #e2e8f0 !important; /* Tailwind slate-200 */
+        color: #64748b !important; /* Tailwind slate-500 */
+    }
+
+    /* Code Blocks within Editor/Previewer */
+    .cherry-previewer pre, .cherry-editor pre, 
+    .cm-editor pre.HyperMD-codeblock, .CodeMirror pre.CodeMirror-line { /* More specific CM selectors */
+      background-color: #f1f5f9 !important; /* Tailwind slate-100 */
+      color: #1e293b !important; /* Tailwind slate-800 */
+      border: 1px solid #e2e8f0 !important; /* Tailwind slate-200 */
+      padding: 0.75em !important;
+      border-radius: 0.25rem !important; /* rounded-sm */
+      margin-top: 0.5em !important;
+      margin-bottom: 0.5em !important;
+    }
+    .cherry-previewer code:not(pre code), .cherry-editor code:not(pre code) { /* Inline code */
+        background-color: rgba(var(--color-primary-DEFAULT), 0.08) !important;
+        color: rgb(var(--color-primary-dark)) !important;
+        padding: 0.2em 0.4em !important;
+        border-radius: 0.2rem !important;
+        font-size: 0.875em !important;
+    }
+
+    /* Dropdowns */
+    .cherry-dropdown {
+      background-color: #ffffff !important; /* Tailwind white */
+      border: 1px solid #e2e8f0 !important; /* Tailwind slate-200 */
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1) !important; /* Tailwind shadow-md */
+      border-radius: 0.375rem !important; /* Tailwind rounded-md */
+    }
+    .cherry-dropdown-item {
+      color: #334155 !important; /* Tailwind slate-700 */
+    }
+    .cherry-dropdown-item:hover {
+      background-color: #f1f5f9 !important; /* Tailwind slate-100 */
+    }
+
+    /* Syntax Highlighting (Always Light Theme) */
+    .token.comment, .token.prolog, .token.doctype, .token.cdata { color: #64748b; } /* slate-500 */
+    .token.punctuation { color: #64748b; } /* slate-500 */
+    .token.property, .token.tag, .token.boolean, .token.number, .token.constant, .token.symbol, .token.deleted { color: #c026d3; } /* fuchsia-600 */
+    .token.selector, .token.attr-name, .token.string, .token.char, .token.builtin, .token.inserted { color: #16a34a; } /* green-600 */
+    .token.operator, .token.entity, .token.url, .language-css .token.string, .style .token.string { color: #2563eb; } /* blue-600 */
+    .token.atrule, .token.attr-value, .token.keyword { color: #db2777; } /* pink-600 */
+    .token.function, .token.class-name { color: #ea580c; } /* orange-600 */
+    .token.regex, .token.important, .token.variable { color: #ca8a04; } /* yellow-600 */
+
+    /* Resizer styles */
+    .sidebar-resizer {
+      width: 5px;
+      cursor: col-resize;
+      background-color: #e2e8f0; /* slate-200 */
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .dark .sidebar-resizer {
+      background-color: #334155; /* slate-700 */
+    }
+    .sidebar-resizer:hover {
+      background-color: #cbd5e1; /* slate-300 */
+    }
+    .dark .sidebar-resizer:hover {
+      background-color: #475569; /* slate-600 */
+    }
+    .sidebar-resizer::before { /* Optional: visual dots or lines on handle */
+        content: '';
+        width: 1px;
+        height: 20px;
+        background-color: #94a3b8; /* slate-400 */
+        opacity: 0.5;
+    }
+    .dark .sidebar-resizer::before {
+        background-color: #64748b; /* slate-500 */
+    }
+
+
   </style>
 <script type="importmap">
 {
@@ -84,18 +257,19 @@
     "idb": "https://esm.sh/idb@^8.0.3",
     "date-fns": "https://esm.sh/date-fns@^4.1.0",
     "date-fns/": "https://esm.sh/date-fns@^4.1.0/",
-    "@editorjs/list": "https://esm.sh/@editorjs/list@^2.0.8",
-    "@editorjs/checklist": "https://esm.sh/@editorjs/checklist@^1.6.0",
-    "@editorjs/delimiter": "https://esm.sh/@editorjs/delimiter@^1.4.2",
-    "@editorjs/code": "https://esm.sh/@editorjs/code@^2.9.3",
-    "@editorjs/paragraph": "https://esm.sh/@editorjs/paragraph@^2.11.7",
     "tinycolor2": "https://esm.sh/tinycolor2@^1.6.0",
-    "@editorjs/image": "https://esm.sh/@editorjs/image@^2.10.2",
+    "cherry-markdown": "https://cdn.jsdelivr.net/npm/cherry-markdown@latest/dist/cherry-markdown.esm.js",
     "@editorjs/editorjs": "https://esm.sh/@editorjs/editorjs@^2.30.8",
-    "@editorjs/table": "https://esm.sh/@editorjs/table@^2.4.5",
     "@editorjs/header": "https://esm.sh/@editorjs/header@^2.8.8",
+    "@editorjs/list": "https://esm.sh/@editorjs/list@^2.0.8",
+    "@editorjs/paragraph": "https://esm.sh/@editorjs/paragraph@^2.11.7",
     "@editorjs/quote": "https://esm.sh/@editorjs/quote@^2.7.6",
-    "@editorjs/warning": "https://esm.sh/@editorjs/warning@^1.4.1"
+    "@editorjs/code": "https://esm.sh/@editorjs/code@^2.9.3",
+    "@editorjs/delimiter": "https://esm.sh/@editorjs/delimiter@^1.4.2",
+    "@editorjs/image": "https://esm.sh/@editorjs/image@^2.10.2",
+    "@editorjs/warning": "https://esm.sh/@editorjs/warning@^1.4.1",
+    "@editorjs/table": "https://esm.sh/@editorjs/table@^2.4.5",
+    "@editorjs/checklist": "https://esm.sh/@editorjs/checklist@^1.6.0"
   }
 }
 </script>

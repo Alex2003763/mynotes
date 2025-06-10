@@ -6,7 +6,7 @@ const ASSETS_TO_CACHE = [
   '/src/index.tsx', // In a real build, this would be the bundled JS
   '/locales/en.json',
   '/locales/zh.json',
-  'https://cdn.tailwindcss.com',
+  // 'https://cdn.tailwindcss.com', // Removed from pre-caching
   '/pencil.png' // Added app icon
   // Add other static assets like icons, fonts if any
 ];
@@ -16,7 +16,27 @@ self.addEventListener('install', event => {
     caches.open(CACHE_NAME)
       .then(cache => {
         console.log('Opened cache: ' + CACHE_NAME);
-        return cache.addAll(ASSETS_TO_CACHE);
+        // cache.addAll can fail if any of the resources fail to fetch.
+        // For essential resources, this is okay. For non-essential or problematic ones (like some CDNs),
+        // it might be better to cache them via the fetch handler.
+        return cache.addAll(ASSETS_TO_CACHE.filter(url => !url.startsWith('http'))) // Cache local assets
+          .then(() => {
+            // Optionally, try to cache CDN assets individually with more control if needed,
+            // but for now, we'll let the fetch handler manage Tailwind.
+            // Example:
+            // const cdnAssets = ASSETS_TO_CACHE.filter(url => url.startsWith('http'));
+            // cdnAssets.forEach(assetUrl => {
+            //   fetch(new Request(assetUrl, { mode: 'cors' })) // Explicitly request with CORS
+            //     .then(response => {
+            //       if (response.ok) {
+            //         cache.put(assetUrl, response);
+            //       } else {
+            //         console.warn(`Failed to pre-cache ${assetUrl} with CORS. Status: ${response.status}`);
+            //       }
+            //     })
+            //     .catch(err => console.error(`Error pre-caching ${assetUrl}:`, err));
+            // });
+          });
       })
   );
 });
@@ -31,9 +51,12 @@ self.addEventListener('fetch', event => {
         }
         return fetch(event.request).then(
           fetchResponse => {
-            // Check if we received a valid response
-            if(!fetchResponse || fetchResponse.status !== 200 || fetchResponse.type !== 'basic' && fetchResponse.type !== 'cors') {
-              return fetchResponse;
+            // Check if we received a valid response that we can cache
+            // Do not cache opaque responses (type 'opaque') for scripts/styles as they can cause CORS issues when served from cache.
+            // Do not cache non-200 responses.
+            if (!fetchResponse || fetchResponse.status !== 200 || 
+                (fetchResponse.type !== 'basic' && fetchResponse.type !== 'cors')) {
+              return fetchResponse; // Return problematic responses directly without caching
             }
 
             // IMPORTANT: Clone the response. A response is a stream
@@ -52,7 +75,16 @@ self.addEventListener('fetch', event => {
 
             return fetchResponse;
           }
-        );
+        ).catch(error => {
+          console.error('Fetch failed; returning offline page or error indicator if applicable.', error);
+          // Optionally, return a custom offline fallback page or simple error response
+          // For example, if it's a navigation request:
+          // if (event.request.mode === 'navigate') {
+          //   return caches.match('/offline.html'); // You'd need an offline.html in ASSETS_TO_CACHE
+          // }
+          // For now, just rethrow or let it be. The browser will show its default network error.
+          throw error;
+        });
       })
   );
 });

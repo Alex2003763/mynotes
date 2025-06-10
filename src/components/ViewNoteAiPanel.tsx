@@ -1,8 +1,8 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ApiFeedback } from '../types';
 import { useI18n } from '../contexts/I18nContext';
+import { useEditorInteraction } from '../contexts/EditorInteractionContext';
 import { 
   summarizeText, 
   answerQuestionFromNote 
@@ -10,10 +10,7 @@ import {
 import { SparklesIcon, DocumentTextIcon, ChatBubbleLeftEllipsisIcon, LightBulbIcon, ChevronDownIcon, ClipboardDocumentIcon, PlusCircleIcon, PencilSquareIcon, XCircleIcon } from './Icons';
 
 interface ViewNoteAiPanelProps {
-  noteId: string;
-  noteTitle: string;
-  noteContent: string; 
-  setApiMessage: (message: ApiFeedback | null) => void;
+  displayApiMessage: (message: ApiFeedback | null) => void;
   selectedAiModel: string;
 }
 
@@ -21,39 +18,49 @@ type AiViewAction = 'summarize_short' | 'summarize_bullet' | 'qna';
 
 interface AiResultPreview {
   actionType: AiViewAction;
-  originalTitle?: string; // To keep track of the original note title for "Edit Current Note"
-  generatedContent: string;
+  originalTitle?: string;
+  generatedContent: string; 
 }
 
 export const ViewNoteAiPanel: React.FC<ViewNoteAiPanelProps> = ({ 
-  noteId,
-  noteTitle,
-  noteContent,
-  setApiMessage,
+  displayApiMessage,
   selectedAiModel
 }) => {
   const { t, language } = useI18n();
   const navigate = useNavigate();
+  const editorInteraction = useEditorInteraction();
+  
   const [isLoading, setIsLoading] = useState<AiViewAction | null>(null);
   const [qnaQuestion, setQnaQuestion] = useState('');
   const [aiResultPreview, setAiResultPreview] = useState<AiResultPreview | null>(null);
   const [isPanelOpen, setIsPanelOpen] = useState(true);
 
+  const activeEditorId = editorInteraction?.activeEditor?.id;
+
   const handleAiAction = async (action: AiViewAction) => {
+    if (!editorInteraction || !editorInteraction.activeEditor) {
+      displayApiMessage({ type: 'error', text: "Note data not available for AI action." });
+      return;
+    }
+    const { getFullContentAsText, getTitle } = editorInteraction.activeEditor;
+    const currentNoteTitle = getTitle();
+
     setIsLoading(action);
-    setApiMessage(null);
+    displayApiMessage(null);
     setAiResultPreview(null);
+    
+    const noteContentForAI = await getFullContentAsText(); 
 
     try {
-      let result: string | undefined;
+      let result: string | undefined; 
       
-      if (!noteContent && !noteTitle && action !== 'qna') { // QnA might still work if question is general
-        setApiMessage({ type: 'error', text: t('aiPanel.error.noContentToProcess') });
+      if (!noteContentForAI && !currentNoteTitle && action !== 'qna') {
+        displayApiMessage({ type: 'error', text: t('aiPanel.error.noContentToProcess') });
         setIsLoading(null);
         return;
       }
       
-      const textToProcessForAI = noteContent || noteTitle;
+      const textToProcessForAI = noteContentForAI || currentNoteTitle; 
 
       switch (action) {
         case 'summarize_short':
@@ -64,7 +71,7 @@ export const ViewNoteAiPanel: React.FC<ViewNoteAiPanelProps> = ({
           break;
         case 'qna':
           if (!qnaQuestion) {
-            setApiMessage({ type: 'error', text: t('aiPanel.error.noQuestion') });
+            displayApiMessage({ type: 'error', text: t('aiPanel.error.noQuestion') });
             setIsLoading(null); return;
           }
           result = await answerQuestionFromNote(qnaQuestion, textToProcessForAI, language, selectedAiModel);
@@ -72,23 +79,19 @@ export const ViewNoteAiPanel: React.FC<ViewNoteAiPanelProps> = ({
       }
       
       if (result !== undefined) {
-        setAiResultPreview({ actionType: action, generatedContent: result, originalTitle: noteTitle });
-        // Only show explicit success message for summary actions.
-        // For QnA, the result appearing in the preview is the primary feedback.
+        setAiResultPreview({ actionType: action, generatedContent: result, originalTitle: currentNoteTitle });
         if (action === 'summarize_short' || action === 'summarize_bullet') {
-             setApiMessage({ type: 'success', text: t('aiPanel.success.summaryGenerated') });
+             displayApiMessage({ type: 'success', text: t('aiPanel.success.summaryGenerated') });
+        } else if (action === 'qna') {
+            displayApiMessage({ type: 'success', text: t('aiPanel.success.answerReceived') });
         }
-        // If an explicit message for QnA success is desired, it could be added here:
-        // else if (action === 'qna') {
-        //   setApiMessage({ type: 'success', text: t('aiPanel.success.answerReceived') });
-        // }
       } else {
-        setApiMessage({ type: 'info', text: t('aiPanel.error.actionFailed', {message: t('aiPanel.error.unknownError')}) });
+        displayApiMessage({ type: 'info', text: t('aiPanel.error.actionFailed', {message: t('aiPanel.error.unknownError')}) });
       }
 
     } catch (error) {
       console.error(`AI Action (${action}) Error:`, error);
-      setApiMessage({ type: 'error', text: t('aiPanel.error.actionFailed', {message: error instanceof Error ? error.message : t('aiPanel.error.unknownError')})});
+      displayApiMessage({ type: 'error', text: t('aiPanel.error.actionFailed', {message: error instanceof Error ? error.message : t('aiPanel.error.unknownError')})});
     } finally {
       setIsLoading(null);
     }
@@ -97,37 +100,44 @@ export const ViewNoteAiPanel: React.FC<ViewNoteAiPanelProps> = ({
   const handleCopyResult = () => {
     if (aiResultPreview) {
       navigator.clipboard.writeText(aiResultPreview.generatedContent)
-        .then(() => setApiMessage({ type: 'success', text: t('aiPanel.preview.copied') }))
-        .catch(err => setApiMessage({ type: 'error', text: t('aiPanel.preview.copyFailed') + ': ' + err}));
+        .then(() => displayApiMessage({ type: 'success', text: t('aiPanel.preview.copied') }))
+        .catch(err => displayApiMessage({ type: 'error', text: t('aiPanel.preview.copyFailed') + ': ' + err}));
     }
   };
 
   const handleCreateNewWithResult = () => {
-    if (aiResultPreview) {
-      navigate('/new', { state: { initialContentText: aiResultPreview.generatedContent, initialTitle: t('aiPanel.preview.newNoteTitlePrefix') + (aiResultPreview.originalTitle || noteTitle) } });
+    if (aiResultPreview && editorInteraction?.activeEditor) {
+      const originalTitle = aiResultPreview.originalTitle || editorInteraction.activeEditor.getTitle() || 'Note';
+      navigate('/new', { state: { initialContentText: aiResultPreview.generatedContent, initialTitle: t('aiPanel.preview.newNoteTitlePrefix') + originalTitle } });
     }
   };
 
   const handleEditCurrentWithResult = () => {
-    if (aiResultPreview) {
-      navigate(`/note/${noteId}`, { state: { initialContentText: aiResultPreview.generatedContent, replaceExistingContent: true } });
+    if (aiResultPreview && editorInteraction?.activeEditor) {
+      navigate(`/note/${editorInteraction.activeEditor.id}`, { state: { initialContentText: aiResultPreview.generatedContent, replaceExistingContent: true } });
     }
   };
   
   const handleDiscardPreview = () => {
     setAiResultPreview(null);
-    setApiMessage(null);
+    displayApiMessage(null);
   };
 
-  const aiButtonClass = "flex items-center justify-center text-xs sm:text-sm px-2 py-1.5 sm:px-3 sm:py-2 border rounded-lg transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 dark:focus:ring-offset-slate-800 focus:ring-primary-light";
+  useEffect(() => {
+    setQnaQuestion('');
+    setAiResultPreview(null);
+  }, [activeEditorId]);
+
+
+  const aiButtonClass = "flex items-center justify-center text-xs sm:text-sm px-2 py-1.5 sm:px-3 sm:py-2 border rounded-lg transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 dark:focus:ring-offset-slate-900 focus:ring-primary-light";
   const enabledButtonClass = "bg-primary/10 hover:bg-primary/20 dark:bg-primary-dark/20 dark:hover:bg-primary-dark/30 border-primary/30 dark:border-primary-dark/40 text-primary dark:text-primary-light";
-  const disabledButtonClass = "bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-400 dark:text-slate-500 cursor-not-allowed";
+  const disabledButtonClass = "bg-slate-200 dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-400 dark:text-slate-500 cursor-not-allowed";
   
   const renderButton = (action: AiViewAction, labelKey: string, icon: React.ReactNode) => (
     <button
       onClick={() => handleAiAction(action)}
-      disabled={!!isLoading}
-      className={`${aiButtonClass} ${isLoading ? disabledButtonClass : enabledButtonClass}`}
+      disabled={!!isLoading || !editorInteraction?.activeEditor}
+      className={`${aiButtonClass} ${isLoading || !editorInteraction?.activeEditor ? disabledButtonClass : enabledButtonClass}`}
       title={isLoading ? t('aiPanel.processing', {label: t(labelKey)}) : t(labelKey)}
       aria-label={t(labelKey)}
     >
@@ -136,8 +146,16 @@ export const ViewNoteAiPanel: React.FC<ViewNoteAiPanelProps> = ({
     </button>
   );
 
+  if (!editorInteraction?.activeEditor) {
+    return (
+        <div className="p-3 my-1">
+            <p className="text-sm text-center text-slate-500 dark:text-slate-400">{t('noteEditor.aiFeatures.keyNotSet')}</p>
+        </div>
+    );
+  }
+
   return (
-    <div className="p-3 my-4 border border-primary/20 dark:border-primary-dark/30 rounded-lg bg-primary/5 dark:bg-primary-dark/10">
+    <div className="p-3 my-1">
       <button 
         onClick={() => setIsPanelOpen(!isPanelOpen)}
         className="w-full flex items-center justify-between text-left mb-3 p-1 hover:bg-primary/10 dark:hover:bg-primary-dark/20 rounded-md"
@@ -152,13 +170,12 @@ export const ViewNoteAiPanel: React.FC<ViewNoteAiPanelProps> = ({
       </button>
       
       {isPanelOpen && (
-        <div id="ai-view-features-collapsible-panel" className="space-y-4">
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-2">
+        <div id="ai-view-features-collapsible-panel" className="space-y-3">
+          <div className="grid grid-cols-2 gap-2">
             {renderButton('summarize_short', 'aiPanel.summarizeShort', <DocumentTextIcon className="w-4 h-4 mr-0 sm:mr-1"/>)}
             {renderButton('summarize_bullet', 'aiPanel.summarizeBullet', <DocumentTextIcon className="w-4 h-4 mr-0 sm:mr-1"/>)}
           </div>
           
-          {/* Q&A */}
           <div className="pt-2 border-t border-primary/10 dark:border-primary-dark/20">
               <label htmlFor="view-qna-question" className="block text-xs font-medium text-primary dark:text-primary-light mb-1">{t('aiPanel.qnaLabel')}</label>
               <div className="flex flex-col sm:flex-row gap-2">
@@ -169,7 +186,7 @@ export const ViewNoteAiPanel: React.FC<ViewNoteAiPanelProps> = ({
                   onChange={(e) => setQnaQuestion(e.target.value)}
                   placeholder={t('aiPanel.qnaPlaceholder')}
                   className="flex-grow p-2 border border-primary/30 dark:border-primary-dark/40 rounded-md text-xs sm:text-sm bg-white dark:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-primary-light dark:text-slate-100"
-                  disabled={!!isLoading}
+                  disabled={!!isLoading || !editorInteraction?.activeEditor}
                   aria-label={t('aiPanel.qnaPlaceholder')}
                 />
                  {renderButton('qna', 'aiPanel.qnaButton', <ChatBubbleLeftEllipsisIcon className="w-4 h-4 mr-0 sm:mr-1"/>)}
@@ -177,22 +194,22 @@ export const ViewNoteAiPanel: React.FC<ViewNoteAiPanelProps> = ({
           </div>
 
           {aiResultPreview && (
-            <div className="mt-4 p-3 border border-green-500/30 dark:border-green-400/30 rounded-lg bg-green-50 dark:bg-green-900/20">
-              <h4 className="text-sm font-semibold text-green-700 dark:text-green-300 mb-2">{t('aiPanel.preview.title')}</h4>
+            <div className="mt-3 p-2 border border-green-500/30 dark:border-green-400/30 rounded-lg bg-green-50 dark:bg-green-900/20">
+              <h4 className="text-sm font-semibold text-green-700 dark:text-green-300 mb-1">{t('aiPanel.preview.title')}</h4>
               <textarea
                 readOnly
-                value={aiResultPreview.generatedContent}
-                className="w-full h-32 p-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-xs text-slate-700 dark:text-slate-200 resize-none"
+                value={aiResultPreview.generatedContent} 
+                className="w-full h-48 p-1.5 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-xs text-slate-700 dark:text-slate-200 resize-none"
                 aria-label={t('aiPanel.preview.contentAreaLabel')}
               />
-              <div className="mt-3 flex flex-wrap gap-2 justify-end">
+              <div className="mt-2 flex flex-wrap gap-1.5 justify-end">
                 <button onClick={handleCopyResult} className={`${aiButtonClass} bg-slate-200 hover:bg-slate-300 dark:bg-slate-600 dark:hover:bg-slate-500 border-slate-400 dark:border-slate-500 text-slate-700 dark:text-slate-200`}>
                     <ClipboardDocumentIcon className="w-4 h-4 mr-1"/>{t('aiPanel.preview.copy')}
                 </button>
                 <button onClick={handleCreateNewWithResult} className={`${aiButtonClass} ${enabledButtonClass}`}>
                     <PlusCircleIcon className="w-4 h-4 mr-1"/>{t('aiPanel.preview.createNew')}
                 </button>
-                {aiResultPreview.actionType !== 'qna' && ( // "Edit Current" doesn't make sense for QnA
+                {aiResultPreview.actionType !== 'qna' && editorInteraction?.activeEditor?.applyAiChangesToEditor && ( 
                     <button onClick={handleEditCurrentWithResult} className={`${aiButtonClass} ${enabledButtonClass}`}>
                        <PencilSquareIcon className="w-4 h-4 mr-1"/>{t('aiPanel.preview.editCurrent')}
                     </button>

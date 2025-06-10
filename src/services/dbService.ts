@@ -1,5 +1,5 @@
 import { openDB, IDBPDatabase, DBSchema } from 'idb';
-import { Note, AppSettings, SortOption, EditorJsOutputData, EditorJsBlock } from '../types';
+import { Note, AppSettings, SortOption } from '../types';
 import { DB_NAME, NOTES_STORE_NAME, SETTINGS_STORE_NAME, DB_VERSION, DEFAULT_SETTINGS_KEY } from '../constants';
 
 interface MyNotesDB extends DBSchema {
@@ -41,36 +41,41 @@ const getDb = (): Promise<IDBPDatabase<MyNotesDB>> => {
   return dbPromise;
 };
 
-// Helper function to convert EditorJsOutputData to plain text
-const editorDataToText = (data: EditorJsOutputData | undefined | string): string => {
-  if (!data) return '';
-  if (typeof data === 'string') return data; // Should not happen with new structure but handle defensively
-
-  if (data && Array.isArray(data.blocks)) {
-    return data.blocks
-      .map(block => {
-        switch (block.type) {
-          case 'header':
-            return block.data.text;
-          case 'paragraph':
-            return block.data.text;
-          case 'list':
-            return block.data.items.join(' ');
-          case 'quote':
-            return `${block.data.text} - ${block.data.caption}`;
-          case 'code':
-            return block.data.code;
-          case 'checklist':
-            return block.data.items.map((item: {text: string, checked: boolean}) => item.text).join(' ');
-          // Add other block types as needed
-          default:
-            return '';
-        }
-      })
-      .join(' ')
-      .replace(/<[^>]+>/g, ''); // Strip any HTML tags that might be in text
-  }
-  return '';
+// Helper function to convert Markdown to plain text for search
+// This is a very basic conversion. For more accurate conversion, a library might be needed.
+const markdownToPlainText = (markdown: string | undefined): string => {
+  if (!markdown) return '';
+  
+  let text = markdown;
+  // Remove headings
+  text = text.replace(/^#+\s*(.*)/gm, '$1');
+  // Remove emphasis (bold, italic)
+  text = text.replace(/(\*\*|__)(.*?)\1/g, '$2');
+  text = text.replace(/(\*|_)(.*?)\1/g, '$2');
+  // Remove strikethrough
+  text = text.replace(/~~(.*?)~~/g, '$1');
+  // Remove links, keeping the text
+  text = text.replace(/\[(.*?)\]\(.*?\)/g, '$1');
+  // Remove images, keeping alt text if present
+  text = text.replace(/!\[(.*?)\]\(.*?\)/g, '$1');
+  // Remove inline code
+  text = text.replace(/`([^`]+)`/g, '$1');
+  // Remove code blocks (simple version, might not handle all cases)
+  text = text.replace(/```[\s\S]*?```/g, '');
+  // Remove blockquotes
+  text = text.replace(/^\>\s*(.*)/gm, '$1');
+  // Remove horizontal rules
+  text = text.replace(/^---\s*$/gm, '');
+  text = text.replace(/^\*\*\*\s*$/gm, '');
+  // Remove list markers (simple version)
+  text = text.replace(/^[\*\-\+]\s*/gm, '');
+  text = text.replace(/^\d+\.\s*/gm, '');
+  // Replace multiple newlines with a single space for better searchability of paragraphs
+  text = text.replace(/\n+/g, ' ');
+  // Remove any remaining HTML tags
+  text = text.replace(/<[^>]+>/g, '');
+  
+  return text.trim();
 };
 
 
@@ -86,7 +91,7 @@ export const getNote = async (id: string): Promise<Note | undefined> => {
 
 export const updateNote = async (note: Note): Promise<void> => {
   const db = await getDb();
-  await db.put(NOTES_STORE_NAME, note); // put will add or update
+  await db.put(NOTES_STORE_NAME, note);
 };
 
 export const deleteNote = async (id: string): Promise<void> => {
@@ -98,22 +103,19 @@ export const getAllNotes = async (sortBy: SortOption = SortOption.UpdatedAtDesc,
   const db = await getDb();
   let notes = await db.getAll(NOTES_STORE_NAME);
 
-  // Filter by tags (AND logic for multiple tags)
   if (filterTags.length > 0) {
     notes = notes.filter(note => filterTags.every(tag => note.tags.includes(tag)));
   }
 
-  // Filter by search query (title or content)
   if (searchQuery.trim() !== '') {
     const lowerQuery = searchQuery.toLowerCase();
     notes = notes.filter(note => {
-      const contentText = editorDataToText(note.content);
+      const contentText = markdownToPlainText(note.content); // Use new helper
       return note.title.toLowerCase().includes(lowerQuery) || 
              contentText.toLowerCase().includes(lowerQuery);
     });
   }
   
-  // Sort
   notes.sort((a, b) => {
     switch (sortBy) {
       case SortOption.CreatedAtAsc:
@@ -129,7 +131,7 @@ export const getAllNotes = async (sortBy: SortOption = SortOption.UpdatedAtDesc,
       case SortOption.TitleDesc:
         return b.title.localeCompare(a.title);
       default:
-        return b.updatedAt - a.updatedAt; // Default sort
+        return b.updatedAt - a.updatedAt;
     }
   });
   return notes;

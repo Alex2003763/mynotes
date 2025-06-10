@@ -1,151 +1,40 @@
 
-import { Note, EditorJsOutputData, EditorJsBlock, AppSettings, MyNotesExportData } from '../types';
+import { Note, AppSettings, MyNotesExportData } from '../types';
+import { sanitizeMarkdownString } from '../components/NoteEditor'; // For sanitizing imported content
 
-// Simplified local text-to-EditorJsOutputData converter
-const localTextToEditorJsData = (text: string): EditorJsOutputData => {
-  const paragraphs = text.split(/[\r\n]+/).map(p => p.trim());
-  const blocks = paragraphs
-    .map(paragraph => ({
-      type: 'paragraph' as const,
-      data: { text: paragraph },
-    }));
-  return {
-    time: Date.now(),
-    blocks: blocks.length > 0 ? blocks : [{ type: 'paragraph', data: { text: '' } }],
-    version: "2.30.0" // Match a known good version
-  };
-};
-
-// Simplified local sanitizer for EditorJsOutputData on import
-const localSanitizeImportedEditorData = (data: any): EditorJsOutputData => {
-    const defaultVersion = "2.30.0";
-    const defaultTime = Date.now();
-
-    if (typeof data === 'string') {
-        return localTextToEditorJsData(data);
-    }
-
-    if (!data || typeof data !== 'object' || !Array.isArray(data.blocks)) {
-        return { time: defaultTime, blocks: [{ type: 'paragraph', data: { text: '' } }], version: defaultVersion };
-    }
-
-    const sanitizedBlocks = data.blocks.map((block: any) => {
-        if (typeof block !== 'object' || block === null || typeof block.type !== 'string') {
-            return { type: 'paragraph', data: { text: '' } }; // Default fallback
-        }
-        const blockData = (typeof block.data === 'object' && block.data !== null) ? { ...block.data } : {};
-
-        switch (block.type) {
-            case 'paragraph':
-                if (typeof blockData.text !== 'string') blockData.text = '';
-                break;
-            case 'header':
-                if (typeof blockData.text !== 'string') blockData.text = '';
-                
-                let level = parseInt(String(blockData.level), 10);
-                if (isNaN(level) || level < 1 || level > 6) {
-                  level = 2; // Default to H2
-                }
-                blockData.level = level;
-                break;
-            case 'list':
-                if (!Array.isArray(blockData.items)) blockData.items = [];
-                blockData.items = blockData.items.filter((item: any) => typeof item === 'string').map(String);
-                if (!['ordered', 'unordered'].includes(blockData.style)) blockData.style = 'unordered';
-                break;
-             case 'image':
-                if (typeof blockData.file !== 'object' || blockData.file === null || typeof blockData.file.url !== 'string') {
-                    if (typeof blockData.url === 'string' && blockData.url) {
-                         blockData.file = { url: blockData.url };
-                    } else {
-                         blockData.file = { url: '' }; 
-                    }
-                }
-                if (typeof blockData.caption !== 'string') blockData.caption = '';
-                break;
-            // Add more common types if necessary for import robustness
-        }
-        return { ...block, data: blockData };
-    });
-
-    return {
-        time: typeof data.time === 'number' ? data.time : defaultTime,
-        blocks: sanitizedBlocks.length > 0 ? sanitizedBlocks : [{ type: 'paragraph', data: { text: '' } }],
-        version: typeof data.version === 'string' ? data.version : defaultVersion,
-    };
-};
-
-
-// Helper to convert Editor.js block data to text for TXT export (Markdown)
-const blockToPlainTextForMarkdown = (block: EditorJsBlock): string => {
-  switch (block.type) {
-    case 'header':
-      return `${'#'.repeat(block.data.level || 1)} ${block.data.text || ''}\n`;
-    case 'paragraph':
-      return `${block.data.text || ''}\n`;
-    case 'list':
-      const listPrefix = block.data.style === 'ordered' ? '1. ' : '* ';
-      return (block.data.items || []).map((item: string) => `${listPrefix}${item}`).join('\n') + '\n';
-    case 'quote':
-      return `> ${block.data.text || ''}\n${block.data.caption ? `> -- ${block.data.caption}\n` : ''}`;
-    case 'code':
-      return `\`\`\`${block.data.language || ''}\n${block.data.code || ''}\n\`\`\`\n`;
-    case 'delimiter':
-      return '---\n';
-    case 'image':
-      let caption = block.data.caption ? `\n*${block.data.caption}*` : '';
-      return `![${block.data.alt || 'Image'}](${block.data.file?.url || block.data.url || ''})${caption}\n`;
-    case 'checklist':
-      return (block.data.items || []).map((item: {text: string, checked: boolean}) => `[${item.checked ? 'x' : ' '}] ${item.text || ''}`).join('\n') + '\n';
-    case 'table':
-      if (block.data.withHeadings && block.data.content && block.data.content[0]) {
-        const header = (block.data.content[0] || []).join(' | ');
-        const separator = (block.data.content[0] || []).map(() => '---').join(' | ');
-        const body = (block.data.content.slice(1) || []).map((row: string[]) => (row || []).join(' | ')).join('\n');
-        return `${header}\n${separator}\n${body}\n`;
-      }
-      return (block.data.content || []).map((row: string[]) => (row || []).join('\t')).join('\n') + '\n';
-    case 'warning':
-      return `**${block.data.title || 'Warning'}**: ${block.data.message || ''}\n`;
-    default:
-      if (block.data && typeof block.data.text === 'string') {
-        return `${block.data.text}\n`;
-      }
-      return '';
-  }
-};
-
-// Helper to convert Editor.js OutputData to Markdown
-const editorDataToMarkdown = (data: EditorJsOutputData): string => {
-  if (!data || !Array.isArray(data.blocks)) return '';
-  return data.blocks.map(blockToPlainTextForMarkdown).join('\n');
-};
-
-// Helper to convert Editor.js OutputData to plain text
-const editorDataToPlainText = (data: EditorJsOutputData): string => {
-    if (!data || !Array.isArray(data.blocks)) return '';
-    return data.blocks.map(block => {
-      switch (block.type) {
-        case 'header': return `${block.data.text || ''}\n\n`;
-        case 'paragraph': return `${block.data.text || ''}\n\n`;
-        case 'list': return (block.data.items || []).map((item: string) => `- ${item}`).join('\n') + '\n\n';
-        case 'quote': return `"${block.data.text || ''}" ${block.data.caption ? `- ${block.data.caption}` : ''}\n\n`;
-        case 'code': return `${block.data.code || ''}\n\n`;
-        case 'delimiter': return `----------\n\n`;
-        case 'image': return `(Image: ${block.data.file?.url || block.data.url || ''} ${block.data.caption ? `- ${block.data.caption}` : ''})\n\n`;
-        case 'checklist': return (block.data.items || []).map((item: {text:string, checked:boolean}) => `[${item.checked ? 'x' : ' '}] ${item.text || ''}`).join('\n') + '\n\n';
-        case 'table': return (block.data.content || []).map((row: string[]) => (row || []).join('\t')).join('\n') + '\n\n';
-        case 'warning': return `Warning: ${block.data.title || ''} - ${block.data.message || ''}\n\n`;
-        default: 
-            if (block.data && typeof block.data.text === 'string') return `${block.data.text}\n\n`;
-            return '';
-      }
-    }).join('');
+// Helper to convert Markdown to plain text for TXT export
+// This is a basic conversion. For more accurate results, a dedicated library might be better.
+const markdownToPlainTextForTxtExport = (markdown: string): string => {
+  let text = markdown;
+  // Remove headings
+  text = text.replace(/^#+\s*(.*)/gm, '$1');
+  // Remove bold/italic but keep content
+  text = text.replace(/(\*\*|__)(.*?)\1/g, '$2');
+  text = text.replace(/(\*|_)(.*?)\1/g, '$2');
+  // Remove strikethrough
+  text = text.replace(/~~(.*?)~~/g, '$1');
+  // Handle links: display text and URL
+  text = text.replace(/\[(.*?)\]\((.*?)\)/g, '$1 ($2)');
+  // Handle images: display alt text and URL
+  text = text.replace(/!\[(.*?)\]\((.*?)\)/g, 'Image: $1 ($2)');
+  // Convert list items
+  text = text.replace(/^[\*\-\+]\s*(.*)/gm, '- $1');
+  text = text.replace(/^\d+\.\s*(.*)/gm, '$1.'); // Keep number for ordered
+  // Remove blockquotes prefix
+  text = text.replace(/^\>\s*(.*)/gm, '$1');
+  // Convert horizontal rules to a line
+  text = text.replace(/^(---\s*|\*\*\*\s*)/gm, '------------------------------');
+  // Attempt to format code blocks
+  text = text.replace(/```(\w*)\n([\s\S]*?)\n```/g, '\n--- Code ($1) ---\n$2\n--- End Code ---\n');
+  text = text.replace(/`([^`]+)`/g, '$1'); // inline code
+  // Remove HTML tags just in case
+  text = text.replace(/<[^>]+>/g, '');
+  return text;
 };
 
 export const exportNotesAsJSON = (notes: Note[], settings: AppSettings, filename: string = 'mynotes_export.json'): void => {
   const exportData: MyNotesExportData = {
-    version: 2, 
+    version: 2, // Keep version, format now implies Markdown content
     notes, 
     settings,
   };
@@ -162,9 +51,10 @@ export const exportNotesAsJSON = (notes: Note[], settings: AppSettings, filename
 };
 
 export const exportNoteAsMarkdown = (note: Note, filename?: string): void => {
+  // Note.content is already Markdown. Prepend title and tags.
   const titleHeader = `# ${note.title}\n\n`;
   const tagsHeader = note.tags.length > 0 ? `Tags: ${note.tags.join(', ')}\n\n` : '';
-  const markdownContent = titleHeader + tagsHeader + editorDataToMarkdown(note.content);
+  const markdownContent = titleHeader + tagsHeader + note.content;
   const blob = new Blob([markdownContent], { type: 'text/markdown;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -179,7 +69,8 @@ export const exportNoteAsMarkdown = (note: Note, filename?: string): void => {
 export const exportNoteAsTXT = (note: Note, filename?: string): void => {
   const titleHeader = `Title: ${note.title}\n\n`;
   const tagsHeader = note.tags.length > 0 ? `Tags: ${note.tags.join(', ')}\n\n` : '';
-  const txtContent = titleHeader + tagsHeader + editorDataToPlainText(note.content);
+  const plainTextContent = markdownToPlainTextForTxtExport(note.content);
+  const txtContent = titleHeader + tagsHeader + plainTextContent;
   const blob = new Blob([txtContent], { type: 'text/plain;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -202,7 +93,8 @@ export const importNotesFromJSON = (file: File): Promise<{ notes: Note[]; settin
         
         let notesToImport: Note[] = [];
         let settingsToImport: AppSettings | undefined = undefined;
-        let rawNotesArray: Array<Partial<Note> & { content: string | EditorJsOutputData | any }> = []; 
+        // Expect rawNotesArray to have 'content' as string (Markdown)
+        let rawNotesArray: Array<Partial<Note> & { content: string | any }> = []; 
 
         if (Array.isArray(parsedJson)) { 
           rawNotesArray = parsedJson;
@@ -229,12 +121,14 @@ export const importNotesFromJSON = (file: File): Promise<{ notes: Note[]; settin
             n.title = typeof n.title === 'string' ? n.title : 'Untitled Imported Note';
           }
           
-          const processedContent = localSanitizeImportedEditorData(n.content);
+          // Sanitize content to ensure it's a string.
+          // If n.content is old EditorJS format, sanitizeMarkdownString will try to convert it.
+          const processedContent = sanitizeMarkdownString(n.content);
 
           return {
             id: n.id as string, 
             title: n.title as string, 
-            content: processedContent,
+            content: processedContent, // Content is now Markdown string
             tags: Array.isArray(n.tags) ? n.tags.filter(t => typeof t === 'string') : [],
             createdAt: typeof n.createdAt === 'number' ? n.createdAt : Date.now(),
             updatedAt: typeof n.updatedAt === 'number' ? n.updatedAt : Date.now(),

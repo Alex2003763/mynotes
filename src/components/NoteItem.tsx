@@ -1,10 +1,10 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Note, EditorJsOutputData } from '../types';
+import { Note } from '../types'; // EditorJsOutputData removed
 import { formatDistanceToNow } from 'date-fns';
 import { useI18n } from '../contexts/I18nContext';
-import { EyeIcon } from './Icons'; // Import EyeIcon
+import { EyeIcon } from './Icons'; 
 
 interface NoteItemProps {
   note: Note;
@@ -12,27 +12,18 @@ interface NoteItemProps {
   onSelect: () => void;
 }
 
-// Helper function to convert EditorJsOutputData to plain text for summary
-const editorDataToSummaryText = (data: EditorJsOutputData | undefined): string => {
-  if (!data || !Array.isArray(data.blocks) || data.blocks.length === 0) return '';
+// Helper function to generate a summary from Markdown string
+const markdownToSummaryText = (markdown: string | undefined): string => {
+  if (!markdown) return '';
   
-  let summary = '';
-  for (let i = 0; i < Math.min(data.blocks.length, 3); i++) { 
-    const block = data.blocks[i];
-    let blockText = '';
-    switch (block.type) {
-      case 'header':
-      case 'paragraph':
-        blockText = block.data.text || '';
-        break;
-      case 'list':
-        blockText = (block.data.items || []).join(' ');
-        break;
-    }
-    summary += blockText.trim() + ' ';
-    if (summary.length > 120) break; 
-  }
-  return summary.trim().replace(/<[^>]+>/g, ''); 
+  // Basic summary: take the first few lines, remove markdown special chars for display
+  let summary = markdown.split('\n').slice(0, 3).join(' '); // Take first 3 lines
+  summary = summary.replace(/^[#>\s*-]+/gm, ''); // Remove leading markdown syntax
+  summary = summary.replace(/(\*\*|__|\*|_|~~|`)/g, ''); // Remove formatting characters
+  summary = summary.replace(/\[(.*?)\]\(.*?\)/g, '$1'); // Keep link text
+  summary = summary.replace(/!\[(.*?)\]\(.*?\)/g, '$1'); // Keep alt text
+  
+  return summary.trim();
 };
 
 
@@ -42,7 +33,8 @@ export const NoteItem: React.FC<NoteItemProps> = ({ note, isSelected, onSelect }
 
   const MAX_SUMMARY_LENGTH = 90;
   
-  const contentSummary = editorDataToSummaryText(note.content);
+  // note.content is now a string (Markdown)
+  const contentSummary = markdownToSummaryText(note.content);
   const summary = contentSummary.length > MAX_SUMMARY_LENGTH 
     ? `${contentSummary.substring(0, MAX_SUMMARY_LENGTH)}...` 
     : contentSummary;
@@ -50,7 +42,7 @@ export const NoteItem: React.FC<NoteItemProps> = ({ note, isSelected, onSelect }
   const formattedDate = formatDistanceToNow(new Date(note.updatedAt), { addSuffix: true });
 
   const handleViewNote = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent onSelect from firing when clicking view icon
+    e.stopPropagation(); 
     navigate(`/view/${note.id}`);
   };
 
@@ -80,7 +72,7 @@ export const NoteItem: React.FC<NoteItemProps> = ({ note, isSelected, onSelect }
           </p>
           {note.tags && note.tags.length > 0 && (
             <div className="flex flex-wrap gap-1 justify-end shrink-0 ml-2">
-              {note.tags.slice(0, 1).map(tag => ( // Show only 1 tag to save space
+              {note.tags.slice(0, 1).map(tag => (
                 <span key={tag} className="px-1.5 py-0.5 text-[10px] bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-full">
                   {tag}
                 </span>

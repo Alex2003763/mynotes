@@ -1,21 +1,8 @@
 
-export interface EditorJsBlock {
-  id?: string;
-  type: string;
-  data: any;
-  tunes?: { [name: string]: any };
-}
-
-export interface EditorJsOutputData {
-  time?: number;
-  blocks: EditorJsBlock[];
-  version?: string;
-}
-
 export interface Note {
   id: string;
   title: string;
-  content: EditorJsOutputData; // Changed from string to EditorJsOutputData
+  content: string; // Changed from EditorJsOutputData to string for Markdown
   tags: string[];
   createdAt: number;
   updatedAt: number;
@@ -46,14 +33,13 @@ export interface AvailableAIModel {
 export interface AppSettings {
   key: string; 
   theme: 'light' | 'dark';
-  fontSize: 'small' | 'medium' | 'large'; // Font size might apply less directly to Editor.js content
+  fontSize: 'small' | 'medium' | 'large';
   defaultSort: SortOption;
   openRouterApiKey: string;
   openRouterApiKeyStatus: 'unset' | 'checking' | 'valid' | 'invalid' | 'set';
   language: Language;
   primaryColor: string;
   aiModel: string; // ID of the selected AI model
-  // autosaveDelay: number; // Delay in milliseconds for autosave - REMOVED
 }
 
 export interface MyNotesExportData {

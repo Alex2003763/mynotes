@@ -141,6 +141,7 @@
     "qnaPlaceholder": "e.g., What are the main conclusions?",
     "qnaButton": "Ask",
     "qnaAnswerPrefix": "Answer:",
+    "loadingContext": "Initializing AI tools...",
     "error": {
       "noTextSelected": "No text selected or available.",
       "noContentToProcess": "No content in the note to process.",
@@ -175,7 +176,8 @@
       "discard": "Discard",
       "createNew": "Create New Note",
       "editCurrent": "Edit Current Note",
-      "newNoteTitlePrefix": "AI: "
+      "newNoteTitlePrefix": "AI: ",
+      "applied": "Content applied"
     }
   },
   "welcomeScreen": {

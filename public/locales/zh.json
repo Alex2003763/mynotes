@@ -141,6 +141,7 @@
     "qnaPlaceholder": "例如：主要結論是什麼？",
     "qnaButton": "提問",
     "qnaAnswerPrefix": "答案：",
+    "loadingContext": "正在初始化 AI 工具...",
     "error": {
       "noTextSelected": "未選取文字或無可用文字。",
       "noContentToProcess": "筆記中沒有可處理的內容。",
@@ -175,7 +176,8 @@
       "discard": "捨棄",
       "createNew": "建立新筆記",
       "editCurrent": "編輯目前筆記",
-      "newNoteTitlePrefix": "AI: "
+      "newNoteTitlePrefix": "AI: ",
+      "applied": "內容已套用"
     }
   },
   "welcomeScreen": {

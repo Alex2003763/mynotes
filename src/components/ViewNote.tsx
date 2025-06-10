@@ -1,49 +1,18 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import EditorJS, { OutputData, BlockToolConstructable } from '@editorjs/editorjs';
-// Import Editor.js tools, same as in NoteEditor
-import HeaderTool from '@editorjs/header';
-import ListTool from '@editorjs/list';
-import ParagraphTool from '@editorjs/paragraph';
-import QuoteTool from '@editorjs/quote';
-import CodeToolTool from '@editorjs/code';
-import DelimiterTool from '@editorjs/delimiter';
-import ImageToolTool from '@editorjs/image';
-import WarningTool from '@editorjs/warning';
-import TableTool from '@editorjs/table';
-import ChecklistTool from '@editorjs/checklist';
+import Cherry from 'cherry-markdown';
 
 import { useNotes } from '../contexts/NoteContext';
-import { Note, EditorJsOutputData, ApiFeedback } from '../types';
+import { Note, ApiFeedback } from '../types';
 import { useI18n } from '../contexts/I18nContext';
 import { useSettings } from '../contexts/SettingsContext';
+import { useEditorInteraction } from '../contexts/EditorInteractionContext';
 import { PencilSquareIcon, TagIcon, CalendarDaysIcon, ClockIcon, CheckCircleIcon, ExclamationCircleIcon, InformationCircleIcon } from './Icons';
-import { sanitizeEditorOutputData, createEmptyEditorData, textToEditorJsData } from './NoteEditor'; // Import helpers
-import { ViewNoteAiPanel } from './ViewNoteAiPanel'; // Import the new AI panel
+import { sanitizeMarkdownString, createEmptyMarkdown } from './NoteEditor'; 
 import { format } from 'date-fns';
 
 const EDITOR_VIEW_HOLDER_ID = 'editorjs-view-container';
-
-const editorDataToText = (data: EditorJsOutputData | undefined | null): string => {
-  if (!data || !Array.isArray(data.blocks)) return '';
-  return data.blocks
-    .map(block => {
-      if (!block || typeof block.data !== 'object' || block.data === null) return '';
-      switch (block.type) {
-        case 'header': return block.data.text || '';
-        case 'paragraph': return block.data.text || '';
-        case 'list': return Array.isArray(block.data.items) ? block.data.items.join(' ') : '';
-        case 'quote': return `${block.data.text || ''} ${block.data.caption || ''}`.trim();
-        case 'code': return block.data.code || '';
-        case 'checklist': return Array.isArray(block.data.items) ? block.data.items.map((item: any) => item.text || '').join(' ') : '';
-        default: if (block.data && typeof (block.data as any).text === 'string') return (block.data as any).text; return '';
-      }
-    })
-    .join('\n')
-    .replace(/<[^>]+>/g, '');
-};
-
 
 export const ViewNote: React.FC = () => {
   const { noteId } = useParams<{ noteId: string }>();
@@ -51,15 +20,14 @@ export const ViewNote: React.FC = () => {
   const { getNoteById, loading: notesLoading, currentNote: contextNote } = useNotes();
   const { t, dateFnsLocale, language } = useI18n();
   const { settings } = useSettings();
+  const { setActiveEditorInteraction, activeEditor } = useEditorInteraction();
 
   const [noteToView, setNoteToView] = useState<Note | null>(null);
-  const editorInstanceRef = useRef<EditorJS | null>(null);
+  const editorInstanceRef = useRef<Cherry | null>(null);
   const editorHolderRef = useRef<HTMLDivElement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [apiMessage, setApiMessage] = useState<ApiFeedback | null>(null);
   const apiMessageTimeoutRef = useRef<number | null>(null);
-  const [currentContentAsText, setCurrentContentAsText] = useState<string>('');
-
 
   const displayApiMessage = useCallback((message: ApiFeedback | null) => {
     if (apiMessageTimeoutRef.current) clearTimeout(apiMessageTimeoutRef.current);
@@ -69,18 +37,51 @@ export const ViewNote: React.FC = () => {
     }
   }, []);
 
-  const getNoteContentAsText = useCallback(async (): Promise<string> => {
-    if (editorInstanceRef.current && typeof editorInstanceRef.current.save === 'function') {
-      try {
-        const editorData = await editorInstanceRef.current.save();
-        return editorDataToText(sanitizeEditorOutputData(editorData));
-      } catch (e) {
-        console.warn("Could not save editor for text extraction, using noteToView.content", e);
-      }
+  const getNoteContentAsTextForAI = useCallback(async (): Promise<string> => {
+    if (editorInstanceRef.current) {
+        return editorInstanceRef.current.getMarkdown();
     }
-    return editorDataToText(sanitizeEditorOutputData(noteToView?.content));
+    return sanitizeMarkdownString(noteToView?.content || '');
   }, [noteToView]);
 
+  const applyAiChangesFromView = useCallback((newMarkdown: string) => {
+    if (noteToView) {
+      console.warn("Apply changes requested from ViewNote AI Panel. Navigating to editor.");
+      navigate(`/note/${noteToView.id}`, { state: { initialContentText: newMarkdown, replaceExistingContent: true } });
+    }
+  }, [navigate, noteToView]);
+
+  const getTitleForView = useCallback(() => noteToView?.title || '', [noteToView]);
+  
+  const setTagsFromAIForView = useCallback((newTags: string[]) => {
+      console.warn("Set tags from AI called in ViewNote context, not implemented directly. Consider navigating to edit mode or handling differently.");
+      if (noteToView) {
+          displayApiMessage({type: 'info', text: t('aiPanel.info.tagsCannotBeAppliedInViewMode') || `Tags suggested: ${newTags.join(', ')}. Edit the note to apply.`});
+      }
+  }, [noteToView, displayApiMessage, t]);
+
+
+  useEffect(() => {
+    if (noteToView) {
+        const editorId = noteToView.id;
+        setActiveEditorInteraction({
+            id: editorId,
+            getTitle: getTitleForView,
+            getFullContentAsText: getNoteContentAsTextForAI,
+            applyAiChangesToEditor: applyAiChangesFromView,
+            setTagsFromAI: setTagsFromAIForView,
+        });
+
+        return () => {
+            if (activeEditor && activeEditor.id === editorId) {
+                setActiveEditorInteraction(null);
+            }
+        };
+    } else if (!noteToView && activeEditor && noteId && activeEditor.id === noteId) {
+        setActiveEditorInteraction(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [noteToView, setActiveEditorInteraction, getTitleForView, getNoteContentAsTextForAI, applyAiChangesFromView, setTagsFromAIForView]);
 
   useEffect(() => {
     const loadNote = async () => {
@@ -99,9 +100,10 @@ export const ViewNote: React.FC = () => {
       
       if (noteData) {
         setNoteToView(noteData);
-        setCurrentContentAsText(editorDataToText(sanitizeEditorOutputData(noteData.content)));
+        // console.log("[ViewNote] Loaded note data:", noteData); // Keep this one as it's safe
       } else {
         console.warn(`Note ${noteId} not found for viewing. Navigating to home.`);
+        setNoteToView(null); 
         navigate('/'); 
       }
       setIsLoading(false);
@@ -111,54 +113,60 @@ export const ViewNote: React.FC = () => {
   }, [noteId, getNoteById, navigate, contextNote]);
 
   useEffect(() => {
-    if (noteToView && editorHolderRef.current) {
-      if (editorInstanceRef.current && typeof editorInstanceRef.current.destroy === 'function') {
-        try { editorInstanceRef.current.destroy(); } catch (e) { console.error("Error destroying previous view Editor.js instance:", e); }
+    if (isLoading || !noteToView || !editorHolderRef.current) {
+      // If still loading, note not available, or ref not set, do nothing or cleanup
+      if (!noteToView && editorInstanceRef.current) {
+        try { editorInstanceRef.current.destroy(); } catch (e) { /* console.error("Error destroying view Cherry when note is null", e); */ }
         editorInstanceRef.current = null;
       }
+      return;
+    }
 
-      const holder = editorHolderRef.current;
-      while (holder.firstChild) holder.removeChild(holder.firstChild);
-      
-      const sanitizedContent = sanitizeEditorOutputData(noteToView.content || createEmptyEditorData());
-      
-      const editorTimeout = setTimeout(() => {
-        if (!editorHolderRef.current) return; 
-        try {
-            const editor = new EditorJS({
-                holder: EDITOR_VIEW_HOLDER_ID, data: sanitizedContent, readOnly: true,
-                tools: { 
-                    paragraph: { class: ParagraphTool as unknown as BlockToolConstructable, inlineToolbar: true },
-                    header: HeaderTool as unknown as BlockToolConstructable, list: ListTool as unknown as BlockToolConstructable,
-                    quote: QuoteTool as unknown as BlockToolConstructable, code: CodeToolTool as unknown as BlockToolConstructable,
-                    delimiter: DelimiterTool as unknown as BlockToolConstructable,
-                    image: { class: ImageToolTool as unknown as BlockToolConstructable, config: { uploader: { uploadByFile: () => Promise.resolve({success:0, file:{url:''}}), uploadByUrl: () => Promise.resolve({success:0, file:{url:''}})}}},
-                    warning: WarningTool as unknown as BlockToolConstructable, table: TableTool as unknown as BlockToolConstructable,
-                    checklist: ChecklistTool as unknown as BlockToolConstructable,
-                },
-                onReady: async () => {
-                   const textContent = await getNoteContentAsText(); // update text on ready
-                   setCurrentContentAsText(textContent);
-                },
-            });
-            editorInstanceRef.current = editor;
-        } catch (e) { console.error("Failed to initialize read-only Editor.js:", e); }
-      }, 50);
-
-      return () => { 
-        clearTimeout(editorTimeout);
-        if (editorInstanceRef.current && typeof editorInstanceRef.current.destroy === 'function') {
-          try { editorInstanceRef.current.destroy(); } catch (e) { /* console.error("Error destroying view Editor.js on cleanup:", e); */ }
-        }
-        editorInstanceRef.current = null;
-      };
-    } else if (!noteToView && editorInstanceRef.current) {
-      if (typeof editorInstanceRef.current.destroy === 'function') {
-        try { editorInstanceRef.current.destroy(); } catch (e) { console.error("Error destroying view Editor.js when noteToView is null:", e); }
-      }
+    if (editorInstanceRef.current) {
+      try {
+        editorInstanceRef.current.destroy();
+      } catch(e) { console.warn("Error destroying previous view Cherry instance:", e); }
       editorInstanceRef.current = null;
     }
-  }, [noteToView, getNoteContentAsText]);
+
+    const holder = editorHolderRef.current;
+    const sanitizedContent = sanitizeMarkdownString(noteToView.content || createEmptyMarkdown());
+    
+    // console.log('[ViewNote] Initializing Cherry with content:', sanitizedContent); // Keep this one
+    try {
+        const cherryConfig = {
+            el: holder, 
+            value: sanitizedContent,
+            toolbars: { 
+                theme: 'light', 
+                showToolbar: false 
+            }, 
+            editor: {
+              defaultModel: 'previewOnly', 
+              height: '100%',
+            },
+        };
+        // Log a safe version of the config
+        const { el, ...loggableConfigParts } = cherryConfig;
+        console.log('[ViewNote] Cherry Markdown config for view mode (el property represented descriptively):', {
+          ...loggableConfigParts,
+          el: el ? `[HTMLDivElement: ${el.id || 'No ID on element'}]` : 'null'
+        });
+        
+        const cherryInstance = new Cherry(cherryConfig);
+        editorInstanceRef.current = cherryInstance;
+    } catch (e) { 
+        console.error("Failed to initialize read-only Cherry Markdown:", e); 
+        displayApiMessage({type: 'error', text: 'Failed to display note content.'});
+    }
+
+    return () => { 
+      if (editorInstanceRef.current) {
+        try { editorInstanceRef.current.destroy(); } catch (e) { /* console.error("Error destroying view Cherry on cleanup:", e); */ }
+      }
+      editorInstanceRef.current = null;
+    };
+  }, [noteToView, isLoading, displayApiMessage]); // Depend on noteToView and isLoading
 
   const renderApiMessage = () => {
     if (!apiMessage) return null;
@@ -184,11 +192,11 @@ export const ViewNote: React.FC = () => {
     );
   };
 
-  if (isLoading || notesLoading) {
+  if (isLoading || (notesLoading && !noteToView) ) { 
     return <div className="p-6 text-center text-slate-500 dark:text-slate-400">{t('noteEditor.loading')}</div>;
   }
 
-  if (!noteToView) {
+  if (!noteToView) { 
     return (
       <div className="p-6 text-center">
         <h2 className="text-xl font-semibold mb-2">{t('noteEditor.notFound.title')}</h2>
@@ -200,17 +208,27 @@ export const ViewNote: React.FC = () => {
     );
   }
   
-  const fontSizeClass = settings.fontSize === 'small' ? 'text-sm' : settings.fontSize === 'large' ? 'text-lg' : 'text-base';
   const dateFormat = language === 'zh' ? 'yyyy年M月d日 HH:mm' : 'MMMM d, yyyy HH:mm';
-  const showAiFeatures = settings.openRouterApiKeyStatus === 'valid' && noteToView;
-
+  const editorKey = noteToView.id || 'view-note-fallback';
+  
   return (
-    <div className={`p-0 md:px-2 h-full flex flex-col ${fontSizeClass} relative`}>
+    <div className="flex flex-col h-full"> 
       {renderApiMessage()}
-      <div className="mb-6 pb-4 border-b border-slate-200 dark:border-slate-700">
-        <h1 className="text-3xl sm:text-4xl font-bold text-slate-800 dark:text-slate-100 break-words">
-          {noteToView.title || t('noteItem.untitled')}
-        </h1>
+      <div className="mb-4 pb-4 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex justify-between items-start">
+            <h1 className="text-3xl sm:text-4xl font-bold text-slate-800 dark:text-slate-100 break-words flex-grow mr-4">
+              {noteToView.title || t('noteItem.untitled')}
+            </h1>
+            <button
+              onClick={() => navigate(`/note/${noteToView.id}`)}
+              className="mt-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-light focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-900 focus:ring-primary-dark transition-colors flex items-center text-sm font-medium flex-shrink-0"
+              title={t('viewNote.editButton')}
+            >
+              <PencilSquareIcon className="w-5 h-5 sm:mr-2" />
+              <span className="hidden sm:inline">{t('viewNote.editButton')}</span>
+            </button>
+        </div>
+
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-slate-500 dark:text-slate-400">
           <span className="flex items-center">
             <CalendarDaysIcon className="w-4 h-4 mr-1.5" />
@@ -232,33 +250,19 @@ export const ViewNote: React.FC = () => {
           </div>
         )}
       </div>
-
-      {showAiFeatures && noteToView && (
-        <ViewNoteAiPanel
-          noteId={noteToView.id}
-          noteTitle={noteToView.title}
-          noteContent={currentContentAsText} // Pass current text content
-          setApiMessage={displayApiMessage}
-          selectedAiModel={settings.aiModel}
-        />
-      )}
-
+      
       <div 
         id={EDITOR_VIEW_HOLDER_ID}
+        key={editorKey} 
         ref={editorHolderRef}
-        className="prose dark:prose-invert max-w-none w-full flex-grow view-note-content p-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 dark:text-slate-100 overflow-y-auto"
+        contentEditable={false} // Reinforce non-editable nature
+        className="flex-1 overflow-hidden max-w-none w-full" // Removed prose classes
       >
-        {/* Editor.js will render content here */}
-      </div>
-
-      <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-700 flex justify-end">
-        <button
-          onClick={() => navigate(`/note/${noteToView.id}`)}
-          className="px-5 py-2.5 bg-primary text-white rounded-lg hover:bg-primary-light focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-primary-dark transition-colors flex items-center text-sm font-medium"
-        >
-          <PencilSquareIcon className="w-5 h-5 mr-2" />
-          {t('viewNote.editButton')}
-        </button>
+         {(isLoading || !noteToView) && 
+            <div className="w-full h-full flex items-center justify-center text-slate-400 p-4 bg-white dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-600">
+                {t('noteEditor.loading')}
+            </div>
+         }
       </div>
     </div>
   );
