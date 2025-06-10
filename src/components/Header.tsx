@@ -3,15 +3,13 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSettings } from '../contexts/SettingsContext';
 import { useI18n } from '../contexts/I18nContext';
-import { SunIcon, MoonIcon, MenuIcon, XIcon, CogIcon, PlusCircleIcon } from './Icons';
+import { SunIcon, MoonIcon, CogIcon, PlusCircleIcon } from './Icons';
 
 interface HeaderProps {
-  onToggleSidebar: () => void;
   onOpenSettings: () => void;
-  isSidebarOpen: boolean;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, onOpenSettings, isSidebarOpen }) => {
+export const Header: React.FC<HeaderProps> = ({ onOpenSettings }) => {
   const { settings, updateSettings } = useSettings();
   const { t, language } = useI18n();
   const navigate = useNavigate();
@@ -29,13 +27,6 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, onOpenSettings,
   return (
     <header className="bg-primary dark:bg-primary-dark text-white p-3 shadow-lg flex items-center justify-between print:hidden relative z-40">
       <div className="flex items-center">
-        <button
-          onClick={onToggleSidebar}
-          className="mr-2 p-2 rounded-md hover:bg-primary-light dark:hover:bg-primary-dark/60 focus:outline-none focus:ring-2 focus:ring-white md:hidden"
-          aria-label={isSidebarOpen ? t('header.toggleSidebarOpen') : t('header.toggleSidebarClose')}
-        >
-          {isSidebarOpen ? <XIcon className="h-6 w-6" /> : <MenuIcon className="h-6 w-6" />}
-        </button>
         <Link to="/" className="text-xl md:text-2xl font-bold hover:opacity-90 transition-opacity">
           {t('appName')}
         </Link>

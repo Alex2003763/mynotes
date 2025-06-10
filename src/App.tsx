@@ -21,9 +21,9 @@ const App: React.FC = () => {
   const { settings } = useSettings();
   const { notes, selectNote, selectedNoteId, loading: notesLoading } = useNotes();
   const { t } = useI18n(); 
-  const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 768);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   // Right sidebar is always "open" conceptually on desktop for resizing, its content visibility is handled internally or by `showRightSidebarPanel`
-  const [isRightSidebarVisible, setIsRightSidebarVisible] = useState(window.innerWidth > 1024);
+  const [isRightSidebarVisible, setIsRightSidebarVisible] = useState(true);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   
   const [leftSidebarWidth, setLeftSidebarWidth] = useState<number>(
@@ -89,7 +89,7 @@ const App: React.FC = () => {
     }
   }, [notesLoading, location.pathname, selectedNoteId, notes, selectNote, navigate, location.state]);
   
-  const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
+  // Sidebar toggle functionality removed for desktop-only mode
   // const toggleRightSidebar = () => setIsRightSidebarVisible(!isRightSidebarVisible); 
   const openSettingsModal = () => setIsSettingsModalOpen(true);
   const closeSettingsModal = () => setIsSettingsModalOpen(false);
@@ -113,33 +113,20 @@ const App: React.FC = () => {
   // Determine if right sidebar should be shown based on route
   const showRightSidebarPanel = location.pathname.startsWith('/note/') || location.pathname.startsWith('/new') || location.pathname.startsWith('/view/');
 
-  // For responsive handling of right sidebar visibility (toggle on small screens, resizable on large)
-  useEffect(() => {
-    const handleResize = () => {
-      setIsSidebarOpen(window.innerWidth > 768); // Left sidebar auto-open on larger screens
-      setIsRightSidebarVisible(window.innerWidth > 1024); // Right sidebar auto-visible on larger screens
-    };
-    window.addEventListener('resize', handleResize);
-    handleResize(); // Initial check
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  // Responsive handling removed - desktop-only mode
 
 
   return (
     <div className="flex flex-col h-screen selection:bg-primary/30 selection:text-primary-dark dark:selection:text-primary-light">
-      <Header 
-        onToggleSidebar={toggleSidebar} 
-        onOpenSettings={openSettingsModal} 
-        isSidebarOpen={isSidebarOpen}
+      <Header
+        onOpenSettings={openSettingsModal}
       />
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar 
-          isOpen={isSidebarOpen} 
-          onClose={() => setIsSidebarOpen(false)} 
+        <Sidebar
           width={leftSidebarWidth}
         />
-        {/* Resizer for left sidebar, only shown on desktop where sidebar is not transformed */}
-        {! (window.innerWidth < 768) && <Resizer onResize={handleLeftResize} />}
+        {/* Resizer for left sidebar */}
+        <Resizer onResize={handleLeftResize} />
         
         <main className="flex-1 flex flex-col px-1 sm:px-2 md:px-3 lg:px-4 py-3 sm:py-4 md:py-5 lg:py-6 overflow-auto bg-white dark:bg-slate-800 shadow-inner">
           <Routes>
@@ -159,11 +146,11 @@ const App: React.FC = () => {
           </Routes>
         </main>
         
-        {/* Right sidebar and its resizer, only shown on relevant routes and desktop */}
-        {showRightSidebarPanel && isRightSidebarVisible && <Resizer onResize={handleRightResize} />}
-        {showRightSidebarPanel && isRightSidebarVisible && (
-          <RightSidebar 
-            width={rightSidebarWidth} 
+        {/* Right sidebar and its resizer, only shown on relevant routes */}
+        {showRightSidebarPanel && <Resizer onResize={handleRightResize} />}
+        {showRightSidebarPanel && (
+          <RightSidebar
+            width={rightSidebarWidth}
           />
         )}
       </div>
