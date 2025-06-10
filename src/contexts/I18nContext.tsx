@@ -4,10 +4,10 @@ import { useSettings } from './SettingsContext';
 import { Language, Translations, TranslationKey } from '../types';
 import type { Locale as DateFnsLocale } from 'date-fns/locale/types';
 
-// Dynamically import date-fns locales
+// Dynamically import date-fns locales using full URLs
 const dateFnsLocales: Record<Language, () => Promise<DateFnsLocale>> = {
-  en: () => import('date-fns/locale/en-US').then(mod => mod.default || mod),
-  zh: () => import('date-fns/locale/zh-CN').then(mod => mod.default || mod),
+  en: () => import('public/locale/en-US').then(mod => mod.default || mod),
+  zh: () => import('public/locale/zh-CN').then(mod => mod.default || mod),
 };
 
 interface I18nContextType {
@@ -20,13 +20,21 @@ interface I18nContextType {
 const I18nContext = createContext<I18nContextType | undefined>(undefined);
 
 // Helper to get nested values from translation object
-const getNestedValue = (obj: Translations, key: string): string | undefined => {
-  return key.split('.').reduce<string | Translations | undefined>((acc, part) => {
-    if (typeof acc === 'object' && acc !== null && part in acc) {
-      return acc[part] as string | Translations;
-    }
+const getNestedValue = (obj: Translations, key: TranslationKey): string | undefined => {
+  if (typeof key !== 'string' || !key) { // Ensure key is a non-empty string
+    // console.warn('getNestedValue called with invalid key:', key);
     return undefined;
-  }, obj) as string | undefined;
+  }
+  const parts = key.split('.');
+  let current: string | Translations | undefined = obj;
+  for (const part of parts) {
+    if (typeof current === 'object' && current !== null && part in current) {
+      current = (current as Record<string, string | Translations>)[part];
+    } else {
+      return undefined;
+    }
+  }
+  return typeof current === 'string' ? current : undefined;
 };
 
 
@@ -84,24 +92,23 @@ export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const t = useCallback((key: TranslationKey, replacements?: Record<string, string>): string => {
     if (typeof key !== 'string') {
-      console.error('Translation key is not a string:', key);
-      return String(key); // Return the key itself as a string or a placeholder
+      console.warn(`Translation key is not a string: Key='${String(key)}', Type='${typeof key}'`);
+      return String(key); 
     }
 
     let translation = getNestedValue(translations, key);
     if (translation === undefined) {
-      console.warn(`Translation key "${key}" not found for language "${settings.language}".`);
-      // Fallback to key or a more descriptive missing string
-      // Check key.includes only if key is confirmed string (already done by the guard above)
+      // console.warn(`Translation key "${key}" not found for language "${settings.language}". Falling back to key or part of key.`);
       translation = key.includes('.') ? key.split('.').pop() || key : key;
     }
+    
     if (replacements && typeof translation === 'string') {
       Object.keys(replacements).forEach(placeholder => {
         translation = (translation as string).replace(new RegExp(`{{${placeholder}}}`, 'g'), replacements[placeholder]);
       });
     }
-    return translation || key;
-  }, [translations, settings.language]);
+    return typeof translation === 'string' ? translation : key; // Final fallback
+  }, [translations, settings.language, getNestedValue]);
 
   return (
     <I18nContext.Provider value={{ language: settings.language, setLanguage, t, dateFnsLocale: currentDateFnsLocale }}>
