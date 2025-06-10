@@ -163,7 +163,8 @@
       "answerReceived": "已收到答案。"
     },
     "info": {
-      "noNewTags": "沒有新的標籤建議或 AI 無法建議標籤。"
+      "noNewTags": "沒有新的標籤建議或 AI 無法建議標籤。",
+      "tagsCannotBeAppliedInViewMode": "建議的標籤無法在查看模式下直接應用。請編輯筆記以添加它們。"
     },
     "processing": "正在處理 {{label}}...",
     "preview": {

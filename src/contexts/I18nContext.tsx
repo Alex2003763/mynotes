@@ -2,12 +2,12 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useSettings } from './SettingsContext';
 import { Language, Translations, TranslationKey } from '../types';
-import type { Locale as DateFnsLocale } from 'date-fns/locale'; // Updated import path for Locale type
+import type { Locale as DateFnsLocale } from 'date-fns/locale/types';
 
-// Dynamically import date-fns locales using full URLs
+// Dynamically import date-fns locales
 const dateFnsLocales: Record<Language, () => Promise<DateFnsLocale>> = {
-  en: () => import('https://esm.sh/date-fns@4.1.0/locale/en-US/index.js').then(mod => mod.default || mod),
-  zh: () => import('https://esm.sh/date-fns@4.1.0/locale/zh-CN/index.js').then(mod => mod.default || mod),
+  en: () => import('date-fns/locale/en-US').then(mod => mod.default || mod),
+  zh: () => import('date-fns/locale/zh-CN').then(mod => mod.default || mod),
 };
 
 interface I18nContextType {
@@ -41,7 +41,7 @@ export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       try {
         const response = await fetch(`/locales/${lang}.json`);
         if (!response.ok) {
-          throw new Error(`Failed to load ${lang}.json. Status: ${response.status}`);
+          throw new Error(`Failed to load ${lang}.json`);
         }
         const data: Translations = await response.json();
         setTranslations(data);
@@ -92,6 +92,7 @@ export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (translation === undefined) {
       console.warn(`Translation key "${key}" not found for language "${settings.language}".`);
       // Fallback to key or a more descriptive missing string
+      // Check key.includes only if key is confirmed string (already done by the guard above)
       translation = key.includes('.') ? key.split('.').pop() || key : key;
     }
     if (replacements && typeof translation === 'string') {

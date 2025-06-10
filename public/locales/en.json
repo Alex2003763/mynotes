@@ -163,7 +163,8 @@
       "answerReceived": "Answer received."
     },
     "info": {
-      "noNewTags": "No new tags suggested or AI could not suggest tags."
+      "noNewTags": "No new tags suggested or AI could not suggest tags.",
+      "tagsCannotBeAppliedInViewMode": "Suggested tags cannot be directly applied in view mode. Edit the note to add them."
     },
     "processing": "Processing {{label}}...",
     "preview": {
