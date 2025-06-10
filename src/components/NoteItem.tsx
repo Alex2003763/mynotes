@@ -14,7 +14,7 @@ interface NoteItemProps {
 
 // Helper function to generate a summary from Markdown string
 const markdownToSummaryText = (markdown: string | undefined): string => {
-  if (!markdown) return '';
+  if (!markdown || typeof markdown !== 'string' || typeof markdown.split !== 'function') return '';
   
   // Basic summary: take the first few lines, remove markdown special chars for display
   let summary = markdown.split('\n').slice(0, 3).join(' '); // Take first 3 lines

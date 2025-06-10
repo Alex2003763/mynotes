@@ -26,12 +26,33 @@ const App: React.FC = () => {
   const [isRightSidebarVisible, setIsRightSidebarVisible] = useState(true);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   
-  const [leftSidebarWidth, setLeftSidebarWidth] = useState<number>(
-    parseInt(localStorage.getItem('leftSidebarWidth') || DEFAULT_LEFT_SIDEBAR_WIDTH.toString())
-  );
-  const [rightSidebarWidth, setRightSidebarWidth] = useState<number>(
-    parseInt(localStorage.getItem('rightSidebarWidth') || DEFAULT_RIGHT_SIDEBAR_WIDTH.toString())
-  );
+  const [leftSidebarWidth, setLeftSidebarWidth] = useState<number>(() => {
+    try {
+      const stored = localStorage.getItem('leftSidebarWidth');
+      if (stored && typeof stored === 'string') {
+        const parsed = parseInt(stored, 10);
+        return isNaN(parsed) ? DEFAULT_LEFT_SIDEBAR_WIDTH : parsed;
+      }
+      return DEFAULT_LEFT_SIDEBAR_WIDTH;
+    } catch (error) {
+      console.warn('Error reading leftSidebarWidth from localStorage:', error);
+      return DEFAULT_LEFT_SIDEBAR_WIDTH;
+    }
+  });
+  
+  const [rightSidebarWidth, setRightSidebarWidth] = useState<number>(() => {
+    try {
+      const stored = localStorage.getItem('rightSidebarWidth');
+      if (stored && typeof stored === 'string') {
+        const parsed = parseInt(stored, 10);
+        return isNaN(parsed) ? DEFAULT_RIGHT_SIDEBAR_WIDTH : parsed;
+      }
+      return DEFAULT_RIGHT_SIDEBAR_WIDTH;
+    } catch (error) {
+      console.warn('Error reading rightSidebarWidth from localStorage:', error);
+      return DEFAULT_RIGHT_SIDEBAR_WIDTH;
+    }
+  });
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -53,8 +74,8 @@ const App: React.FC = () => {
 
     const pathIsNew = location.pathname === '/new';
     const pathIsRoot = location.pathname === '/';
-    const pathNoteId = location.pathname.startsWith('/note/') ? location.pathname.split('/note/')[1] : null;
-    const pathViewId = location.pathname.startsWith('/view/') ? location.pathname.split('/view/')[1] : null;
+    const pathNoteId = location.pathname && typeof location.pathname === 'string' && location.pathname.startsWith('/note/') ? location.pathname.split('/note/')[1] : null;
+    const pathViewId = location.pathname && typeof location.pathname === 'string' && location.pathname.startsWith('/view/') ? location.pathname.split('/view/')[1] : null;
     const currentIdInPath = pathNoteId || pathViewId;
 
     if (pathIsNew) {

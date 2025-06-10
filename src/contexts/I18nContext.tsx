@@ -24,7 +24,7 @@ const getNestedValue = (obj: Translations, keyInput: TranslationKey | string): s
   // Ensure key is a string before attempting to use string methods on it.
   const keyStr = String(keyInput);
 
-  if (typeof keyStr !== 'string') {
+  if (typeof keyStr !== 'string' || keyStr === null || keyStr === undefined) {
     // This case should ideally not be reached if String() works as expected.
     // It's a safeguard or for catching extremely unusual scenarios.
     // console.error('getNestedValue: keyInput did not stringify to a string. Original:', keyInput, 'Stringified:', keyStr);
@@ -32,6 +32,12 @@ const getNestedValue = (obj: Translations, keyInput: TranslationKey | string): s
   }
   if (!keyStr) { // Check for empty string after coercion
     // console.warn('getNestedValue: keyInput stringified to an empty string. Original:', keyInput);
+    return undefined;
+  }
+
+  // Additional safety check before split
+  if (typeof keyStr.split !== 'function') {
+    console.error('getNestedValue: keyStr does not have split method. Value:', keyStr, 'Type:', typeof keyStr);
     return undefined;
   }
 
@@ -143,7 +149,7 @@ export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!translations || Object.keys(translations).length === 0) {
       console.warn(`Translation key "${keyAsString}" not found for language "${settings.language}".`);
       // Return a fallback when translations haven't loaded yet
-      if (typeof keyAsString === 'string' && keyAsString.includes('.')) {
+      if (typeof keyAsString === 'string' && keyAsString.includes('.') && typeof keyAsString.split === 'function') {
         return keyAsString.split('.').pop() || keyAsString;
       }
       return keyAsString;
@@ -155,7 +161,7 @@ export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.warn(`Translation key "${keyAsString}" not found for language "${settings.language}".`);
       // Fallback logic using keyAsString
       // Defensive check for keyAsString before split, even though it should be a string now.
-      if (typeof keyAsString === 'string' && keyAsString.includes('.')) {
+      if (typeof keyAsString === 'string' && keyAsString.includes('.') && typeof keyAsString.split === 'function') {
          // Check if pop() returns undefined (e.g. for key "."), then use keyAsString
         translation = keyAsString.split('.').pop() || keyAsString;
       } else {

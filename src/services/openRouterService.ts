@@ -130,7 +130,7 @@ export const suggestTags = async (noteContent: string, language: 'en' | 'zh' = '
 
   const response = await callOpenRouterAPI<OpenRouterResponse>(requestBody);
   const tagsString = response.choices[0]?.message?.content?.trim();
-  if (tagsString) {
+  if (tagsString && typeof tagsString === 'string' && typeof tagsString.split === 'function') {
     return tagsString.split(/,|，/).map(tag => tag.trim()).filter(tag => tag.length > 0); // Support both English and Chinese commas
   }
   return [];
