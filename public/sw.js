@@ -1,12 +1,10 @@
 
-const CACHE_NAME = 'mynotes-v5'; // Incremented cache version
+const CACHE_NAME = 'mynotes-v6'; // Incremented cache version
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
-  '/src/index.tsx', // In a real build, this would be the bundled JS
   '/locales/en.json',
   '/locales/zh.json',
-  // 'https://cdn.tailwindcss.com', // Removed from pre-caching
   '/pencil.png' // Added app icon
   // Add other static assets like icons, fonts if any
 ];
