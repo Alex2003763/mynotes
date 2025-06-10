@@ -41,7 +41,7 @@ export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       try {
         const response = await fetch(`/locales/${lang}.json`);
         if (!response.ok) {
-          throw new Error(`Failed to load ${lang}.json`);
+          throw new Error(`Failed to load ${lang}.json. Status: ${response.status}`);
         }
         const data: Translations = await response.json();
         setTranslations(data);
@@ -92,7 +92,6 @@ export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (translation === undefined) {
       console.warn(`Translation key "${key}" not found for language "${settings.language}".`);
       // Fallback to key or a more descriptive missing string
-      // Check key.includes only if key is confirmed string (already done by the guard above)
       translation = key.includes('.') ? key.split('.').pop() || key : key;
     }
     if (replacements && typeof translation === 'string') {
