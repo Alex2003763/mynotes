@@ -6,7 +6,7 @@ import { NotesProvider } from './src/contexts/NoteContext';
 import { SettingsProvider } from './src/contexts/SettingsContext';
 import { I18nProvider } from './src/contexts/I18nContext';
 import { EditorInteractionProvider } from './src/contexts/EditorInteractionContext'; // Added import
-import { HashRouter } from 'react-router-dom';
+import { BrowserRouter } from 'react-router-dom';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -16,7 +16,7 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <HashRouter>
+    <BrowserRouter>
       <SettingsProvider>
         <I18nProvider>
           <NotesProvider>
@@ -26,6 +26,6 @@ root.render(
           </NotesProvider>
         </I18nProvider>
       </SettingsProvider>
-    </HashRouter>
+    </BrowserRouter>
   </React.StrictMode>
 );
