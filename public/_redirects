@@ -1,8 +1,12 @@
 # Static assets with proper handling
 /assets/* /assets/:splat 200
 /locales/* /locales/:splat 200
+/locales/*.json /locales/:splat 200
 /pencil.png /pencil.png 200
 /sw.js /sw.js 200
+
+# Ensure JSON files are served with correct content type
+/*.json /:splat 200
 
 # All other routes should serve index.html for SPA routing
 /* /index.html 200

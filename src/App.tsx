@@ -18,9 +18,9 @@ const DEFAULT_LEFT_SIDEBAR_WIDTH = 288; // w-72
 const DEFAULT_RIGHT_SIDEBAR_WIDTH = 320; // w-80
 
 const App: React.FC = () => {
-  const { settings } = useSettings();
+  const { settings, isLoadingSettings } = useSettings();
   const { notes, selectNote, selectedNoteId, loading: notesLoading } = useNotes();
-  const { t } = useI18n(); 
+  const { t } = useI18n();
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 768);
   // Right sidebar is always "open" conceptually on desktop for resizing, its content visibility is handled internally or by `showRightSidebarPanel`
   const [isRightSidebarVisible, setIsRightSidebarVisible] = useState(window.innerWidth > 1024);
@@ -125,11 +125,23 @@ const App: React.FC = () => {
   }, []);
 
 
+  // Show loading screen while settings are being loaded
+  if (isLoadingSettings) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-white dark:bg-slate-800">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-300">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-screen selection:bg-primary/30 selection:text-primary-dark dark:selection:text-primary-light">
-      <Header 
-        onToggleSidebar={toggleSidebar} 
-        onOpenSettings={openSettingsModal} 
+      <Header
+        onToggleSidebar={toggleSidebar}
+        onOpenSettings={openSettingsModal}
         isSidebarOpen={isSidebarOpen}
       />
       <div className="flex flex-1 overflow-hidden">

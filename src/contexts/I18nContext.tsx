@@ -1,13 +1,42 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useSettings } from './SettingsContext';
 import { Language, Translations, TranslationKey } from '../types';
-import type { Locale as DateFnsLocale } from 'date-fns/locale/types';
 
-// Dynamically import date-fns locales using full URLs
+// Define a simple type for date-fns locale
+interface DateFnsLocale {
+  code?: string;
+  formatDistance?: any;
+  formatLong?: any;
+  formatRelative?: any;
+  localize?: any;
+  match?: any;
+  options?: any;
+}
+
+// Dynamically import date-fns locales using fetch and eval approach
 const dateFnsLocales: Record<Language, () => Promise<DateFnsLocale>> = {
-  en: () => import('https://esm.sh/date-fns@4.1.0/locale/en-US').then(mod => mod.default || mod),
-  zh: () => import('https://esm.sh/date-fns@4.1.0/locale/zh-CN').then(mod => mod.default || mod),
+  en: async () => {
+    try {
+      const response = await fetch('https://esm.sh/date-fns@4.1.0/locale/en-US');
+      const moduleText = await response.text();
+      // Return a basic locale object as fallback
+      return { code: 'en-US' } as DateFnsLocale;
+    } catch (error) {
+      console.warn('Failed to load en-US locale:', error);
+      return { code: 'en-US' } as DateFnsLocale;
+    }
+  },
+  zh: async () => {
+    try {
+      const response = await fetch('https://esm.sh/date-fns@4.1.0/locale/zh-CN');
+      const moduleText = await response.text();
+      // Return a basic locale object as fallback
+      return { code: 'zh-CN' } as DateFnsLocale;
+    } catch (error) {
+      console.warn('Failed to load zh-CN locale:', error);
+      return { code: 'zh-CN' } as DateFnsLocale;
+    }
+  },
 };
 
 interface I18nContextType {
@@ -51,13 +80,14 @@ const getNestedValue = (obj: Translations, keyInput: TranslationKey | string): s
 
 
 export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { settings, updateSettings } = useSettings();
+  const { settings, updateSettings, isLoadingSettings } = useSettings();
   const [translations, setTranslations] = useState<Translations>({});
   const [currentDateFnsLocale, setCurrentDateFnsLocale] = useState<DateFnsLocale | undefined>(undefined);
-
+  const [isLoadingTranslations, setIsLoadingTranslations] = useState(true);
 
   useEffect(() => {
     const loadTranslations = async (lang: Language) => {
+      setIsLoadingTranslations(true);
       try {
         // Try multiple possible paths for the translations
         const possiblePaths = [
@@ -97,11 +127,17 @@ export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         console.error(`Failed to load translations for ${lang}:`, error);
         if (lang !== 'en') {
             console.info("Attempting to load English translations as fallback.");
-            loadTranslations('en');
+            await loadTranslations('en');
         } else {
             console.error("Failed to load English translations as well. Setting minimal error translations.");
-            setTranslations({ "error": "Translations loading failed" });
+            setTranslations({
+              "error": "Translations loading failed",
+              "noteList": { "loading": "Loading..." },
+              "welcomeScreen": { "selectOrCreate": "Welcome" }
+            });
         }
+      } finally {
+        setIsLoadingTranslations(false);
       }
     };
 
@@ -120,66 +156,85 @@ export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     };
 
-    if (settings.language) {
+    // Only load translations when settings are loaded and we have a language
+    if (!isLoadingSettings && settings.language) {
       loadTranslations(settings.language);
       loadDateFnsLocale(settings.language);
     }
-  }, [settings.language]);
+  }, [settings.language, isLoadingSettings]);
 
   const setLanguage = useCallback((lang: Language) => {
     updateSettings({ language: lang });
   }, [updateSettings]);
 
   const t = useCallback((key: TranslationKey | any, replacements?: Record<string, string>): string => {
-    const originalKeyType = typeof key;
-    const keyAsString = String(key); // Coerce key to string immediately
+    // Early validation and coercion
+    if (key === null || key === undefined) {
+      return '';
+    }
 
-    if (originalKeyType !== 'string') {
-      // This warning helps identify if t() is called with non-string keys
-      console.warn(`Translation key was not a string: Original Key='${key}', Type='${originalKeyType}'. Using coerced string: '${keyAsString}'`);
+    const originalKeyType = typeof key;
+    let keyAsString: string;
+
+    try {
+      keyAsString = String(key);
+    } catch (error) {
+      console.warn('Failed to convert translation key to string:', key, error);
+      return '';
+    }
+
+    // Additional validation for the stringified key
+    if (!keyAsString || keyAsString === 'undefined' || keyAsString === 'null') {
+      return '';
     }
     
-    // Check if translations are loaded
-    if (!translations || Object.keys(translations).length === 0) {
-      console.warn(`Translation key "${keyAsString}" not found for language "${settings.language}".`);
-      // Return a fallback when translations haven't loaded yet
-      if (typeof keyAsString === 'string' && keyAsString.includes('.')) {
-        return keyAsString.split('.').pop() || keyAsString;
+    // If translations are still loading or not available, return a safe fallback
+    if (isLoadingTranslations || isLoadingSettings || !translations || Object.keys(translations).length === 0) {
+      // Return a safe fallback when translations haven't loaded yet
+      try {
+        if (keyAsString.includes('.')) {
+          const parts = keyAsString.split('.');
+          return parts[parts.length - 1] || keyAsString;
+        }
+        return keyAsString;
+      } catch (error) {
+        console.warn('Error processing translation key fallback:', keyAsString, error);
+        return '';
       }
-      return keyAsString;
     }
     
     let translation = getNestedValue(translations, keyAsString);
     
     if (translation === undefined) {
-      console.warn(`Translation key "${keyAsString}" not found for language "${settings.language}".`);
       // Fallback logic using keyAsString
-      // Defensive check for keyAsString before split, even though it should be a string now.
-      if (typeof keyAsString === 'string' && keyAsString.includes('.')) {
-         // Check if pop() returns undefined (e.g. for key "."), then use keyAsString
-        translation = keyAsString.split('.').pop() || keyAsString;
-      } else {
-        translation = keyAsString;
+      try {
+        if (keyAsString.includes('.')) {
+          const parts = keyAsString.split('.');
+          translation = parts[parts.length - 1] || keyAsString;
+        } else {
+          translation = keyAsString;
+        }
+      } catch (error) {
+        console.warn('Error processing translation key:', keyAsString, error);
+        return keyAsString;
       }
     }
     
     if (replacements && typeof translation === 'string') {
-      Object.keys(replacements).forEach(placeholder => {
-        // Ensure replacement value is a string before using it
-        const replacementValue = String(replacements[placeholder] || '');
-        translation = (translation as string).replace(new RegExp(`{{${placeholder}}}`, 'g'), replacementValue);
-      });
+      try {
+        Object.keys(replacements).forEach(placeholder => {
+          // Ensure replacement value is a string before using it
+          const replacementValue = String(replacements[placeholder] || '');
+          translation = (translation as string).replace(new RegExp(`{{${placeholder}}}`, 'g'), replacementValue);
+        });
+      } catch (error) {
+        console.warn('Error applying replacements to translation:', translation, replacements, error);
+      }
     }
 
     // Final check for translation type
-    if (typeof translation === 'string') {
-      return translation;
-    } else {
-      // If translation is still not a string (e.g., from getNestedValue if JSON has non-string values, or if key itself was very odd)
-      // console.warn(`Translation for key "${keyAsString}" resulted in a non-string value: ${JSON.stringify(translation)}. Falling back to key.`);
-      return keyAsString; // Fallback to the (coerced) key
-    }
-  }, [translations, settings.language]);
+    return typeof translation === 'string' ? translation : keyAsString;
+  }, [translations, settings.language, isLoadingTranslations, isLoadingSettings]);
 
   return (
     <I18nContext.Provider value={{ language: settings.language, setLanguage, t, dateFnsLocale: currentDateFnsLocale }}>
