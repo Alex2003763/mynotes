@@ -1,7 +1,7 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './src/App';
+import TestApp from './src/TestApp';
 import { NotesProvider } from './src/contexts/NoteContext';
 import { SettingsProvider } from './src/contexts/SettingsContext';
 import { I18nProvider } from './src/contexts/I18nContext';
@@ -23,7 +23,7 @@ root.render(
           <I18nProvider>
             <NotesProvider>
               <EditorInteractionProvider>
-                <App />
+                <TestApp />
               </EditorInteractionProvider>
             </NotesProvider>
           </I18nProvider>
