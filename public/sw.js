@@ -16,7 +16,7 @@ self.addEventListener('install', event => {
     caches.open(CACHE_NAME)
       .then(cache => {
         console.log('Opened cache: ' + CACHE_NAME);
-        // cache.addAll can fail if any of the resources fail to fetch.
+        // cache.addAll can fail if any ofiroz the resources fail to fetch.
         // For essential resources, this is okay. For non-essential or problematic ones (like some CDNs),
         // it might be better to cache them via the fetch handler.
         return cache.addAll(ASSETS_TO_CACHE.filter(url => !url.startsWith('http'))) // Cache local assets
@@ -68,9 +68,9 @@ self.addEventListener('fetch', event => {
             caches.open(CACHE_NAME)
               .then(cache => {
                 // Don't cache non-GET requests or API calls (like OpenRouter)
-                // Also, only cache http/https requests
+                // Also, only cache http/https requests explicitly
                 if (event.request.method === 'GET' && 
-                    event.request.url.startsWith('http') && 
+                    (event.request.url.startsWith('http:') || event.request.url.startsWith('https:')) &&
                     !event.request.url.includes('/api/')) {
                      cache.put(event.request, responseToCache);
                 }
