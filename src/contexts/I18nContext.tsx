@@ -108,7 +108,7 @@ export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       });
     }
     return typeof translation === 'string' ? translation : key; // Final fallback
-  }, [translations, settings.language, getNestedValue]);
+  }, [translations, settings.language]);
 
   return (
     <I18nContext.Provider value={{ language: settings.language, setLanguage, t, dateFnsLocale: currentDateFnsLocale }}>
