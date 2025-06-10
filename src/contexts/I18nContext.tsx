@@ -59,17 +59,45 @@ export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const loadTranslations = async (lang: Language) => {
       try {
-        const response = await fetch(`/locales/${lang}.json`);
-        if (!response.ok) {
-          throw new Error(`Failed to load ${lang}.json, status: ${response.status}`);
+        // Try multiple possible paths for the translations
+        const possiblePaths = [
+          `/locales/${lang}.json`,
+          `./locales/${lang}.json`,
+          `/public/locales/${lang}.json`,
+          `./public/locales/${lang}.json`
+        ];
+        
+        let response: Response | null = null;
+        let loadError: Error | null = null;
+        
+        for (const path of possiblePaths) {
+          try {
+            console.log(`Attempting to load translations from: ${path}`);
+            response = await fetch(path);
+            if (response.ok) {
+              console.log(`Successfully loaded translations from: ${path}`);
+              break;
+            } else {
+              console.warn(`Failed to load from ${path}, status: ${response.status}`);
+            }
+          } catch (err) {
+            console.warn(`Error fetching from ${path}:`, err);
+            loadError = err as Error;
+          }
         }
+        
+        if (!response || !response.ok) {
+          throw new Error(`Failed to load ${lang}.json from any path. Last error: ${loadError?.message}`);
+        }
+        
         const data: Translations = await response.json();
         setTranslations(data);
+        console.log(`Translations loaded successfully for ${lang}:`, Object.keys(data));
       } catch (error) {
         console.error(`Failed to load translations for ${lang}:`, error);
         if (lang !== 'en') {
             console.info("Attempting to load English translations as fallback.");
-            loadTranslations('en'); 
+            loadTranslations('en');
         } else {
             console.error("Failed to load English translations as well. Setting minimal error translations.");
             setTranslations({ "error": "Translations loading failed" });
@@ -111,9 +139,20 @@ export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.warn(`Translation key was not a string: Original Key='${key}', Type='${originalKeyType}'. Using coerced string: '${keyAsString}'`);
     }
     
+    // Check if translations are loaded
+    if (!translations || Object.keys(translations).length === 0) {
+      console.warn(`Translation key "${keyAsString}" not found for language "${settings.language}".`);
+      // Return a fallback when translations haven't loaded yet
+      if (typeof keyAsString === 'string' && keyAsString.includes('.')) {
+        return keyAsString.split('.').pop() || keyAsString;
+      }
+      return keyAsString;
+    }
+    
     let translation = getNestedValue(translations, keyAsString);
     
     if (translation === undefined) {
+      console.warn(`Translation key "${keyAsString}" not found for language "${settings.language}".`);
       // Fallback logic using keyAsString
       // Defensive check for keyAsString before split, even though it should be a string now.
       if (typeof keyAsString === 'string' && keyAsString.includes('.')) {
