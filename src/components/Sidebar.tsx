@@ -58,18 +58,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, width }) => {
   
   const sidebarStyle: React.CSSProperties = isMobileView ? {} : { width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px` };
 
-  if (isMobileView && !isOpen) {
-    return null; // Don't render if mobile and closed
-  }
-
+  // Always render, but use CSS classes to control visibility
+  console.log('Sidebar render - isMobileView:', isMobileView, 'isOpen:', isOpen);
+  
   return (
-    <aside 
+    <aside
       className={`
-        ${isMobileView ? 'fixed inset-y-0 left-0 z-30 w-72 transform transition-transform duration-300 ease-in-out shadow-xl' : 'relative z-20 flex flex-col'}
-        flex-shrink-0 bg-slate-50 dark:bg-slate-800 
+        flex-shrink-0 bg-slate-50 dark:bg-slate-800
         border-r border-slate-200 dark:border-slate-700
-        ${isMobileView ? (isOpen ? 'translate-x-0' : '-translate-x-full') : ''}
-        print:hidden
+        print:hidden h-full
+        ${isMobileView
+          ? `fixed inset-y-0 left-0 z-30 w-72 transform transition-transform duration-300 ease-in-out shadow-xl ${isOpen ? 'translate-x-0' : '-translate-x-full'}`
+          : 'relative z-20 flex flex-col'
+        }
       `}
       style={sidebarStyle}
       aria-label={t('sidebar.notesTitle')}
