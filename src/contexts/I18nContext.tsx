@@ -2,12 +2,12 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useSettings } from './SettingsContext';
 import { Language, Translations, TranslationKey } from '../types';
-import type { Locale as DateFnsLocale } from 'date-fns/locale/types'; // Changed import path for Locale
+import type { Locale as DateFnsLocale } from 'date-fns/locale'; // Updated import path for Locale type
 
-// Dynamically import date-fns locales
+// Dynamically import date-fns locales using full URLs
 const dateFnsLocales: Record<Language, () => Promise<DateFnsLocale>> = {
-  en: () => import('date-fns/locale/en-US/index.js').then(mod => mod.default || mod),
-  zh: () => import('date-fns/locale/zh-CN/index.js').then(mod => mod.default || mod),
+  en: () => import('https://esm.sh/date-fns@4.1.0/locale/en-US/index.js').then(mod => mod.default || mod),
+  zh: () => import('https://esm.sh/date-fns@4.1.0/locale/zh-CN/index.js').then(mod => mod.default || mod),
 };
 
 interface I18nContextType {
@@ -63,8 +63,12 @@ export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         } catch (error) {
             console.error(`Failed to load date-fns locale for ${lang}:`, error);
             // Fallback to en-US if current language's locale fails
-            const enLocaleModule = await dateFnsLocales['en']();
-            setCurrentDateFnsLocale(enLocaleModule);
+            try {
+                const enLocaleModule = await dateFnsLocales['en']();
+                setCurrentDateFnsLocale(enLocaleModule);
+            } catch (fallbackError) {
+                console.error(`Failed to load fallback en-US date-fns locale:`, fallbackError);
+            }
         }
     };
 
