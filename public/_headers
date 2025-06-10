@@ -1,14 +1,20 @@
-/src/*.tsx
+# JavaScript and CSS assets
+/assets/*.js
   Content-Type: application/javascript
 
-/src/*.ts
+/assets/*.css
+  Content-Type: text/css
+
+/*.js
   Content-Type: application/javascript
 
-/*.tsx
-  Content-Type: application/javascript
+/*.css
+  Content-Type: text/css
 
-/*.ts
-  Content-Type: application/javascript
-
+# JSON files
 /locales/*.json
   Content-Type: application/json
+
+# Service Worker
+/sw.js
+  Content-Type: application/javascript

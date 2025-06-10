@@ -1,11 +1,8 @@
-# Static assets should be served directly with proper handling
-/src/*.tsx /src/:splat 200
-/src/*.ts /src/:splat 200
-/src/* /src/:splat 200
+# Static assets with proper handling
+/assets/* /assets/:splat 200
 /locales/* /locales/:splat 200
 /pencil.png /pencil.png 200
 /sw.js /sw.js 200
-/index.tsx /index.tsx 200
 
 # All other routes should serve index.html for SPA routing
 /* /index.html 200
