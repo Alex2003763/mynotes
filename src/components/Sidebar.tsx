@@ -22,14 +22,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, width }) => {
   const { t } = useI18n();
   
   const [localSearchQuery, setLocalSearchQuery] = useState(currentSearchQuery);
-  const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768);
+  const [isMobileView, setIsMobileView] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
-      setIsMobileView(window.innerWidth < 768);
+      const isMobile = window.innerWidth < 768;
+      console.log('Sidebar resize check - width:', window.innerWidth, 'isMobile:', isMobile);
+      setIsMobileView(isMobile);
     };
-    window.addEventListener('resize', handleResize);
     handleResize(); // Initial check
+    window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 

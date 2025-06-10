@@ -5,7 +5,8 @@ import App from './src/App';
 import { NotesProvider } from './src/contexts/NoteContext';
 import { SettingsProvider } from './src/contexts/SettingsContext';
 import { I18nProvider } from './src/contexts/I18nContext';
-import { EditorInteractionProvider } from './src/contexts/EditorInteractionContext'; // Added import
+import { EditorInteractionProvider } from './src/contexts/EditorInteractionContext';
+import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { BrowserRouter } from 'react-router-dom';
 
 const rootElement = document.getElementById('root');
@@ -16,16 +17,18 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <BrowserRouter>
-      <SettingsProvider>
-        <I18nProvider>
-          <NotesProvider>
-            <EditorInteractionProvider> {/* Added Provider wrapper */}
-              <App />
-            </EditorInteractionProvider>
-          </NotesProvider>
-        </I18nProvider>
-      </SettingsProvider>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <SettingsProvider>
+          <I18nProvider>
+            <NotesProvider>
+              <EditorInteractionProvider>
+                <App />
+              </EditorInteractionProvider>
+            </NotesProvider>
+          </I18nProvider>
+        </SettingsProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   </React.StrictMode>
 );

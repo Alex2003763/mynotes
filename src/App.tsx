@@ -21,10 +21,10 @@ const App: React.FC = () => {
   const { settings, isLoadingSettings } = useSettings();
   const { notes, selectNote, selectedNoteId, loading: notesLoading } = useNotes();
   const { t } = useI18n();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 768);
-  // Right sidebar is always "open" conceptually on desktop for resizing, its content visibility is handled internally or by `showRightSidebarPanel`
-  const [isRightSidebarVisible, setIsRightSidebarVisible] = useState(window.innerWidth > 1024);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isRightSidebarVisible, setIsRightSidebarVisible] = useState(true);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
   
   const [leftSidebarWidth, setLeftSidebarWidth] = useState<number>(
     parseInt(localStorage.getItem('leftSidebarWidth') || DEFAULT_LEFT_SIDEBAR_WIDTH.toString())
@@ -113,14 +113,21 @@ const App: React.FC = () => {
   // Determine if right sidebar should be shown based on route
   const showRightSidebarPanel = location.pathname.startsWith('/note/') || location.pathname.startsWith('/new') || location.pathname.startsWith('/view/');
 
-  // For responsive handling of right sidebar visibility (toggle on small screens, resizable on large)
+  // For responsive handling of sidebar visibility
   useEffect(() => {
     const handleResize = () => {
-      setIsSidebarOpen(window.innerWidth > 768); // Left sidebar auto-open on larger screens
-      setIsRightSidebarVisible(window.innerWidth > 1024); // Right sidebar auto-visible on larger screens
+      const width = window.innerWidth;
+      console.log('Window width:', width);
+      setWindowWidth(width);
+      const shouldShowLeftSidebar = width > 768;
+      const shouldShowRightSidebar = width > 1024;
+      console.log('Left sidebar should show:', shouldShowLeftSidebar, 'Right sidebar should show:', shouldShowRightSidebar);
+      setIsSidebarOpen(shouldShowLeftSidebar);
+      setIsRightSidebarVisible(shouldShowRightSidebar);
     };
-    window.addEventListener('resize', handleResize);
+    
     handleResize(); // Initial check
+    window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
@@ -151,7 +158,7 @@ const App: React.FC = () => {
           width={leftSidebarWidth}
         />
         {/* Resizer for left sidebar, only shown on desktop where sidebar is not transformed */}
-        {! (window.innerWidth < 768) && <Resizer onResize={handleLeftResize} />}
+        {windowWidth >= 768 && <Resizer onResize={handleLeftResize} />}
         
         <main className="flex-1 flex flex-col px-1 sm:px-2 md:px-3 lg:px-4 py-3 sm:py-4 md:py-5 lg:py-6 overflow-auto bg-white dark:bg-slate-800 shadow-inner">
           <Routes>
