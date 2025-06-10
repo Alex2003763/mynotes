@@ -6,8 +6,8 @@ import type { Locale as DateFnsLocale } from 'date-fns/locale/types'; // Changed
 
 // Dynamically import date-fns locales
 const dateFnsLocales: Record<Language, () => Promise<DateFnsLocale>> = {
-  en: () => import('date-fns/locale/en-US').then(mod => mod.default || mod),
-  zh: () => import('date-fns/locale/zh-CN').then(mod => mod.default || mod),
+  en: () => import('date-fns/locale/en-US/index.js').then(mod => mod.default || mod),
+  zh: () => import('date-fns/locale/zh-CN/index.js').then(mod => mod.default || mod),
 };
 
 interface I18nContextType {
