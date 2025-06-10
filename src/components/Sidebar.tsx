@@ -22,16 +22,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, width }) => {
   const { t } = useI18n();
   
   const [localSearchQuery, setLocalSearchQuery] = useState(currentSearchQuery);
-  const [isMobileView, setIsMobileView] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768);
 
   useEffect(() => {
     const handleResize = () => {
-      const isMobile = window.innerWidth < 768;
-      console.log('Sidebar resize check - width:', window.innerWidth, 'isMobile:', isMobile);
-      setIsMobileView(isMobile);
+      setIsMobileView(window.innerWidth < 768);
     };
-    handleResize(); // Initial check
     window.addEventListener('resize', handleResize);
+    handleResize(); // Initial check
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
@@ -58,19 +56,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, width }) => {
   
   const sidebarStyle: React.CSSProperties = isMobileView ? {} : { width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px` };
 
-  // Always render, but use CSS classes to control visibility
-  console.log('Sidebar render - isMobileView:', isMobileView, 'isOpen:', isOpen);
-  
+  if (isMobileView && !isOpen) {
+    return null; // Don't render if mobile and closed
+  }
+
   return (
-    <aside
+    <aside 
       className={`
-        flex-shrink-0 bg-slate-50 dark:bg-slate-800
+        ${isMobileView ? 'fixed inset-y-0 left-0 z-30 w-72 transform transition-transform duration-300 ease-in-out shadow-xl' : 'relative z-20 flex flex-col'}
+        flex-shrink-0 bg-slate-50 dark:bg-slate-800 
         border-r border-slate-200 dark:border-slate-700
-        print:hidden h-full
-        ${isMobileView
-          ? `fixed inset-y-0 left-0 z-30 w-72 transform transition-transform duration-300 ease-in-out shadow-xl ${isOpen ? 'translate-x-0' : '-translate-x-full'}`
-          : 'relative z-20 flex flex-col'
-        }
+        ${isMobileView ? (isOpen ? 'translate-x-0' : '-translate-x-full') : ''}
+        print:hidden
       `}
       style={sidebarStyle}
       aria-label={t('sidebar.notesTitle')}
