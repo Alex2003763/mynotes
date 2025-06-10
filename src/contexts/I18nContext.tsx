@@ -49,16 +49,17 @@ export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       try {
         const response = await fetch(`/locales/${lang}.json`);
         if (!response.ok) {
-          throw new Error(`Failed to load ${lang}.json`);
+          throw new Error(`Failed to load ${lang}.json, status: ${response.status}`);
         }
         const data: Translations = await response.json();
         setTranslations(data);
       } catch (error) {
-        console.error("Failed to load translations:", error);
-        // Fallback to English if current language fails, or load a minimal default
+        console.error(`Failed to load translations for ${lang}:`, error);
         if (lang !== 'en') {
-            loadTranslations('en'); // Attempt to load English as a fallback
+            console.info("Attempting to load English translations as fallback.");
+            loadTranslations('en'); 
         } else {
+            console.error("Failed to load English translations as well. Setting minimal error translations.");
             setTranslations({ "error": "Translations loading failed" });
         }
       }
@@ -70,7 +71,6 @@ export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             setCurrentDateFnsLocale(localeModule);
         } catch (error) {
             console.error(`Failed to load date-fns locale for ${lang}:`, error);
-            // Fallback to en-US if current language's locale fails
             try {
                 const enLocaleModule = await dateFnsLocales['en']();
                 setCurrentDateFnsLocale(enLocaleModule);
@@ -90,16 +90,26 @@ export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     updateSettings({ language: lang });
   }, [updateSettings]);
 
-  const t = useCallback((key: TranslationKey, replacements?: Record<string, string>): string => {
-    if (typeof key !== 'string') {
-      console.warn(`Translation key is not a string: Key='${String(key)}', Type='${typeof key}'`);
-      return String(key); 
-    }
+  const t = useCallback((key: TranslationKey | any, replacements?: Record<string, string>): string => {
+    const originalKeyType = typeof key;
+    const keyAsString = String(key); // Coerce key to string immediately
 
-    let translation = getNestedValue(translations, key);
+    if (originalKeyType !== 'string') {
+      // This warning helps identify if t() is called with non-string keys
+      console.warn(`Translation key was not a string: Original Key='${key}', Type='${originalKeyType}'. Using coerced string: '${keyAsString}'`);
+    }
+    
+    let translation = getNestedValue(translations, keyAsString);
+    
     if (translation === undefined) {
-      // console.warn(`Translation key "${key}" not found for language "${settings.language}". Falling back to key or part of key.`);
-      translation = key.includes('.') ? key.split('.').pop() || key : key;
+      // Fallback logic using keyAsString
+      // Defensive check for keyAsString before split, even though it should be a string now.
+      if (typeof keyAsString === 'string' && keyAsString.includes('.')) {
+         // Check if pop() returns undefined (e.g. for key "."), then use keyAsString
+        translation = keyAsString.split('.').pop() || keyAsString;
+      } else {
+        translation = keyAsString;
+      }
     }
     
     if (replacements && typeof translation === 'string') {
@@ -107,7 +117,15 @@ export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         translation = (translation as string).replace(new RegExp(`{{${placeholder}}}`, 'g'), replacements[placeholder]);
       });
     }
-    return typeof translation === 'string' ? translation : key; // Final fallback
+
+    // Final check for translation type
+    if (typeof translation === 'string') {
+      return translation;
+    } else {
+      // If translation is still not a string (e.g., from getNestedValue if JSON has non-string values, or if key itself was very odd)
+      // console.warn(`Translation for key "${keyAsString}" resulted in a non-string value: ${JSON.stringify(translation)}. Falling back to key.`);
+      return keyAsString; // Fallback to the (coerced) key
+    }
   }, [translations, settings.language]);
 
   return (
