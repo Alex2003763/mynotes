@@ -53,7 +53,7 @@ export const Resizer: React.FC<ResizerProps> = ({ onResize, className }) => {
 
   return (
     <div
-      className={`sidebar-resizer ${className || ''} hidden md:flex`} // Only flex on md and up
+      className={`sidebar-resizer ${typeof className === 'string' ? className : ''} hidden md:flex`} // Only flex on md and up
       onMouseDown={handleMouseDown}
       role="separator"
       aria-orientation="vertical"
