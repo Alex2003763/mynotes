@@ -6,8 +6,8 @@ import type { Locale as DateFnsLocale } from 'date-fns/locale/types';
 
 // Dynamically import date-fns locales using full URLs
 const dateFnsLocales: Record<Language, () => Promise<DateFnsLocale>> = {
-  en: () => import('public/locale/en-US').then(mod => mod.default || mod),
-  zh: () => import('public/locale/zh-CN').then(mod => mod.default || mod),
+  en: () => import('https://esm.sh/date-fns@4.1.0/locale/en-US').then(mod => mod.default || mod),
+  zh: () => import('https://esm.sh/date-fns@4.1.0/locale/zh-CN').then(mod => mod.default || mod),
 };
 
 interface I18nContextType {
