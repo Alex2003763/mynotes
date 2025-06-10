@@ -126,7 +126,9 @@ export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     if (replacements && typeof translation === 'string') {
       Object.keys(replacements).forEach(placeholder => {
-        translation = (translation as string).replace(new RegExp(`{{${placeholder}}}`, 'g'), replacements[placeholder]);
+        // Ensure replacement value is a string before using it
+        const replacementValue = String(replacements[placeholder] || '');
+        translation = (translation as string).replace(new RegExp(`{{${placeholder}}}`, 'g'), replacementValue);
       });
     }
 
