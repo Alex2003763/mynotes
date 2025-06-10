@@ -20,17 +20,29 @@ interface I18nContextType {
 const I18nContext = createContext<I18nContextType | undefined>(undefined);
 
 // Helper to get nested values from translation object
-const getNestedValue = (obj: Translations, key: TranslationKey): string | undefined => {
-  if (typeof key !== 'string' || !key) { // Ensure key is a non-empty string
-    // console.warn('getNestedValue called with invalid key:', key);
+const getNestedValue = (obj: Translations, keyInput: TranslationKey | string): string | undefined => {
+  // Ensure key is a string before attempting to use string methods on it.
+  const keyStr = String(keyInput);
+
+  if (typeof keyStr !== 'string') {
+    // This case should ideally not be reached if String() works as expected.
+    // It's a safeguard or for catching extremely unusual scenarios.
+    // console.error('getNestedValue: keyInput did not stringify to a string. Original:', keyInput, 'Stringified:', keyStr);
     return undefined;
   }
-  const parts = key.split('.');
+  if (!keyStr) { // Check for empty string after coercion
+    // console.warn('getNestedValue: keyInput stringified to an empty string. Original:', keyInput);
+    return undefined;
+  }
+
+  // At this point, keyStr is confirmed to be a non-empty string.
+  const parts = keyStr.split('.');
   let current: string | Translations | undefined = obj;
   for (const part of parts) {
     if (typeof current === 'object' && current !== null && part in current) {
       current = (current as Record<string, string | Translations>)[part];
     } else {
+      // console.warn(`getNestedValue: Path part "${part}" not found in translations for key "${keyStr}". Current object:`, current);
       return undefined;
     }
   }
