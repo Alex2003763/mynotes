@@ -21,7 +21,7 @@ mynotes is a modern note-taking application built with React and TypeScript. It 
 
 ## Live Demo
 
-Check out the live demo here: [mynotes Demo](https://mynotes.usefultools.dpdns.org/)
+Check out the live demo here: [mynotes Demo](https://mynotess.usefultools.dpdns.org/)
 
 ## Key Features
 
