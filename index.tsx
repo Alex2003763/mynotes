@@ -1,12 +1,11 @@
-
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './src/App';
 import { NotesProvider } from './src/contexts/NoteContext';
 import { SettingsProvider } from './src/contexts/SettingsContext';
 import { I18nProvider } from './src/contexts/I18nContext';
-import { EditorInteractionProvider } from './src/contexts/EditorInteractionContext'; // Added import
-import { BrowserRouter } from 'react-router-dom';
+import { EditorInteractionProvider } from './src/contexts/EditorInteractionContext';
+import { HashRouter } from 'react-router-dom';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -16,16 +15,16 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <BrowserRouter>
+    <HashRouter>
       <SettingsProvider>
         <I18nProvider>
           <NotesProvider>
-            <EditorInteractionProvider> {/* Added Provider wrapper */}
+            <EditorInteractionProvider>
               <App />
             </EditorInteractionProvider>
           </NotesProvider>
         </I18nProvider>
       </SettingsProvider>
-    </BrowserRouter>
+    </HashRouter>
   </React.StrictMode>
 );

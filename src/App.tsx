@@ -1,65 +1,30 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
-import { NoteEditor } from './components/NoteEditor';
-import { ViewNote } from './components/ViewNote';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Header } from './components/Header';
-import { Sidebar } from './components/Sidebar';
+import { MainContent } from './components/MainContent';
 import { RightSidebar } from './components/RightSidebar';
 import { SettingsModal } from './components/SettingsModal';
 import { useSettings } from './contexts/SettingsContext';
 import { useNotes } from './contexts/NoteContext';
-import { WelcomeScreen } from './components/WelcomeScreen';
-import { useI18n } from './contexts/I18nContext';
-import { Resizer } from './components/Resizer'; // Import Resizer
+import { Resizer } from './components/Resizer';
 
 const MIN_SIDEBAR_WIDTH = 200; // px
 const MAX_SIDEBAR_WIDTH = 500; // px
-const DEFAULT_LEFT_SIDEBAR_WIDTH = 288; // w-72
 const DEFAULT_RIGHT_SIDEBAR_WIDTH = 320; // w-80
 
 const App: React.FC = () => {
   const { settings } = useSettings();
-  const { notes, selectNote, selectedNoteId, loading: notesLoading } = useNotes();
-  const { t } = useI18n(); 
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const { notes, selectNote, selectedNoteId, loading } = useNotes();
   // Right sidebar is always "open" conceptually on desktop for resizing, its content visibility is handled internally or by `showRightSidebarPanel`
-  const [isRightSidebarVisible, setIsRightSidebarVisible] = useState(true);
+  const [isRightSidebarVisible, setIsRightSidebarVisible] = useState(window.innerWidth > 1024);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   
-  const [leftSidebarWidth, setLeftSidebarWidth] = useState<number>(() => {
-    try {
-      const stored = localStorage.getItem('leftSidebarWidth');
-      if (stored && typeof stored === 'string') {
-        const parsed = parseInt(stored, 10);
-        return isNaN(parsed) ? DEFAULT_LEFT_SIDEBAR_WIDTH : parsed;
-      }
-      return DEFAULT_LEFT_SIDEBAR_WIDTH;
-    } catch (error) {
-      console.warn('Error reading leftSidebarWidth from localStorage:', error);
-      return DEFAULT_LEFT_SIDEBAR_WIDTH;
-    }
-  });
-  
-  const [rightSidebarWidth, setRightSidebarWidth] = useState<number>(() => {
-    try {
-      const stored = localStorage.getItem('rightSidebarWidth');
-      if (stored && typeof stored === 'string') {
-        const parsed = parseInt(stored, 10);
-        return isNaN(parsed) ? DEFAULT_RIGHT_SIDEBAR_WIDTH : parsed;
-      }
-      return DEFAULT_RIGHT_SIDEBAR_WIDTH;
-    } catch (error) {
-      console.warn('Error reading rightSidebarWidth from localStorage:', error);
-      return DEFAULT_RIGHT_SIDEBAR_WIDTH;
-    }
-  });
+  const [rightSidebarWidth, setRightSidebarWidth] = useState<number>(
+    parseInt(localStorage.getItem('rightSidebarWidth') || DEFAULT_RIGHT_SIDEBAR_WIDTH.toString())
+  );
 
   const navigate = useNavigate();
   const location = useLocation();
-
-  useEffect(() => {
-    localStorage.setItem('leftSidebarWidth', leftSidebarWidth.toString());
-  }, [leftSidebarWidth]);
 
   useEffect(() => {
     localStorage.setItem('rightSidebarWidth', rightSidebarWidth.toString());
@@ -70,12 +35,12 @@ const App: React.FC = () => {
   }, [settings.theme, settings.language]);
 
   useEffect(() => {
-    if (notesLoading) return;
+    if (loading) return;
 
     const pathIsNew = location.pathname === '/new';
     const pathIsRoot = location.pathname === '/';
-    const pathNoteId = location.pathname && typeof location.pathname === 'string' && location.pathname.startsWith('/note/') ? location.pathname.split('/note/')[1] : null;
-    const pathViewId = location.pathname && typeof location.pathname === 'string' && location.pathname.startsWith('/view/') ? location.pathname.split('/view/')[1] : null;
+    const pathNoteId = location.pathname.startsWith('/note/') ? location.pathname.split('/note/')[1] : null;
+    const pathViewId = location.pathname.startsWith('/view/') ? location.pathname.split('/view/')[1] : null;
     const currentIdInPath = pathNoteId || pathViewId;
 
     if (pathIsNew) {
@@ -108,19 +73,10 @@ const App: React.FC = () => {
         navigate('/', { replace: true });
       }
     }
-  }, [notesLoading, location.pathname, selectedNoteId, notes, selectNote, navigate, location.state]);
+  }, [loading, location.pathname, selectedNoteId, notes, selectNote, navigate, location.state]);
   
-  // Sidebar toggle functionality removed for desktop-only mode
-  // const toggleRightSidebar = () => setIsRightSidebarVisible(!isRightSidebarVisible); 
   const openSettingsModal = () => setIsSettingsModalOpen(true);
   const closeSettingsModal = () => setIsSettingsModalOpen(false);
-
-  const handleLeftResize = useCallback((deltaX: number) => {
-    setLeftSidebarWidth(prevWidth => {
-      const newWidth = prevWidth + deltaX;
-      return Math.max(MIN_SIDEBAR_WIDTH, Math.min(MAX_SIDEBAR_WIDTH, newWidth));
-    });
-  }, []);
 
   const handleRightResize = useCallback((deltaX: number) => {
     setRightSidebarWidth(prevWidth => {
@@ -134,7 +90,15 @@ const App: React.FC = () => {
   // Determine if right sidebar should be shown based on route
   const showRightSidebarPanel = location.pathname.startsWith('/note/') || location.pathname.startsWith('/new') || location.pathname.startsWith('/view/');
 
-  // Responsive handling removed - desktop-only mode
+  // For responsive handling of right sidebar visibility (toggle on small screens, resizable on large)
+  useEffect(() => {
+    const handleResize = () => {
+      setIsRightSidebarVisible(window.innerWidth > 1024); // Right sidebar auto-visible on larger screens
+    };
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Initial check
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
 
   return (
@@ -143,33 +107,11 @@ const App: React.FC = () => {
         onOpenSettings={openSettingsModal}
       />
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar
-          width={leftSidebarWidth}
-        />
-        {/* Resizer for left sidebar */}
-        <Resizer onResize={handleLeftResize} />
+        <MainContent />
         
-        <main className="flex-1 flex flex-col px-1 sm:px-2 md:px-3 lg:px-4 py-3 sm:py-4 md:py-5 lg:py-6 overflow-auto bg-white dark:bg-slate-800 shadow-inner">
-          <Routes>
-            <Route path="/" element={
-              notesLoading ? <p className="text-center py-10">{t('noteList.loading')}</p> : 
-              (notes && notes.length > 0) ? <WelcomeScreen message={t('welcomeScreen.selectOrCreate')} /> :
-              <WelcomeScreen showCreateButton={true} />
-            } />
-            <Route path="/note/:noteId" element={<NoteEditor />} />
-            <Route path="/new" element={<NoteEditor isNewNote={true} />} />
-            <Route path="/view/:noteId" element={<ViewNote />} />
-            <Route path="*" element={ // Fallback for unknown routes
-                 notesLoading ? <p className="text-center py-10">{t('noteList.loading')}</p> : 
-                 (notes && notes.length > 0) ? <WelcomeScreen message={t('welcomeScreen.selectOrCreate')} /> :
-                 <WelcomeScreen showCreateButton={true} />
-            } />
-          </Routes>
-        </main>
-        
-        {/* Right sidebar and its resizer, only shown on relevant routes */}
-        {showRightSidebarPanel && <Resizer onResize={handleRightResize} />}
-        {showRightSidebarPanel && (
+        {/* Right sidebar and its resizer, only shown on relevant routes and desktop */}
+        {showRightSidebarPanel && isRightSidebarVisible && <Resizer onResize={handleRightResize} />}
+        {showRightSidebarPanel && isRightSidebarVisible && (
           <RightSidebar
             width={rightSidebarWidth}
           />

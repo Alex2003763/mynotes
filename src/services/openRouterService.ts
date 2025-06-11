@@ -3,9 +3,14 @@ import { OPENROUTER_API_BASE_URL, DEFAULT_AI_MODEL_ID } from '../constants';
 import { OpenRouterMessage, OpenRouterRequestBody, OpenRouterResponse } from '../types';
 
 let currentApiKey = '';
+let isCurrentKeyKnownValid = false;
 
 export const updateOpenRouterApiKey = (key: string): void => {
-  currentApiKey = key;
+  // If the key is different from the current one, reset validation status
+  if (currentApiKey !== key) {
+    currentApiKey = key;
+    isCurrentKeyKnownValid = false;
+  }
 };
 
 const callOpenRouterAPI = async <T,>(requestBody: OpenRouterRequestBody): Promise<T> => {
@@ -130,7 +135,7 @@ export const suggestTags = async (noteContent: string, language: 'en' | 'zh' = '
 
   const response = await callOpenRouterAPI<OpenRouterResponse>(requestBody);
   const tagsString = response.choices[0]?.message?.content?.trim();
-  if (tagsString && typeof tagsString === 'string' && typeof tagsString.split === 'function') {
+  if (tagsString) {
     return tagsString.split(/,|，/).map(tag => tag.trim()).filter(tag => tag.length > 0); // Support both English and Chinese commas
   }
   return [];
@@ -160,7 +165,18 @@ export const answerQuestionFromNote = async (question: string, noteContent: stri
 };
 
 export const checkApiKeyValidity = async (): Promise<boolean> => {
-  if (!currentApiKey) return false;
+  // If no API key is set, mark as invalid and return false
+  if (!currentApiKey) {
+    isCurrentKeyKnownValid = false;
+    return false;
+  }
+  
+  // If we already know this key is valid, return true without making an API call
+  if (isCurrentKeyKnownValid) {
+    return true;
+  }
+  
+  // Perform actual validation with API call
   try {
     const messages: OpenRouterMessage[] = [{ role: 'user', content: 'Hello' }];
     const requestBody: OpenRouterRequestBody = {
@@ -169,8 +185,13 @@ export const checkApiKeyValidity = async (): Promise<boolean> => {
       max_tokens: 5,
     };
     await callOpenRouterAPI<OpenRouterResponse>(requestBody);
+    
+    // Mark the current key as valid since the API call succeeded
+    isCurrentKeyKnownValid = true;
     return true;
   } catch (error) {
+    // Mark the current key as invalid since the API call failed
+    isCurrentKeyKnownValid = false;
     return false;
   }
 };
