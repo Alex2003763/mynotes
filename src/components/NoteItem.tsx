@@ -1,10 +1,10 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Note } from '../types'; // EditorJsOutputData removed
 import { formatDistanceToNow } from 'date-fns';
 import { useI18n } from '../contexts/I18nContext';
-import { EyeIcon } from './Icons'; 
+import { EyeIcon } from './Icons';
 
 interface NoteItemProps {
   note: Note;
@@ -12,34 +12,45 @@ interface NoteItemProps {
   onSelect: () => void;
 }
 
-// Helper function to generate a summary from Markdown string
+// Optimized helper function to generate a summary from Markdown string
 const markdownToSummaryText = (markdown: string | undefined): string => {
   if (!markdown) return '';
   
-  // Basic summary: take the first few lines, remove markdown special chars for display
-  let summary = markdown.split('\n').slice(0, 3).join(' '); // Take first 3 lines
-  summary = summary.replace(/^[#>\s*-]+/gm, ''); // Remove leading markdown syntax
-  summary = summary.replace(/(\*\*|__|\*|_|~~|`)/g, ''); // Remove formatting characters
-  summary = summary.replace(/\[(.*?)\]\(.*?\)/g, '$1'); // Keep link text
-  summary = summary.replace(/!\[(.*?)\]\(.*?\)/g, '$1'); // Keep alt text
+  // More efficient processing with early returns
+  const lines = markdown.split('\n', 4); // Only process first 4 lines for performance
+  let summary = lines.slice(0, 3).join(' ');
   
-  return summary.trim();
+  if (summary.length === 0) return '';
+  
+  // Optimized regex operations
+  summary = summary
+    .replace(/^[#>\s*-]+/gm, '') // Remove leading markdown syntax
+    .replace(/(\*\*|__|\*|_|~~|`)/g, '') // Remove formatting characters
+    .replace(/\[(.*?)\]\(.*?\)/g, '$1') // Keep link text
+    .replace(/!\[(.*?)\]\(.*?\)/g, '$1') // Keep alt text
+    .trim();
+  
+  return summary;
 };
 
-
-export const NoteItem: React.FC<NoteItemProps> = ({ note, isSelected, onSelect }) => {
+const NoteItemComponent: React.FC<NoteItemProps> = ({ note, isSelected, onSelect }) => {
   const { t } = useI18n(); 
   const navigate = useNavigate();
 
   const MAX_SUMMARY_LENGTH = 90;
   
-  // note.content is now a string (Markdown)
-  const contentSummary = markdownToSummaryText(note.content);
-  const summary = contentSummary.length > MAX_SUMMARY_LENGTH 
-    ? `${contentSummary.substring(0, MAX_SUMMARY_LENGTH)}...` 
-    : contentSummary;
+  // Memoize expensive computations
+  const summary = useMemo(() => {
+    const contentSummary = markdownToSummaryText(note.content);
+    return contentSummary.length > MAX_SUMMARY_LENGTH
+      ? `${contentSummary.substring(0, MAX_SUMMARY_LENGTH)}...`
+      : contentSummary;
+  }, [note.content]);
   
-  const formattedDate = formatDistanceToNow(new Date(note.updatedAt), { addSuffix: true });
+  const formattedDate = useMemo(() =>
+    formatDistanceToNow(new Date(note.updatedAt), { addSuffix: true }),
+    [note.updatedAt]
+  );
 
   const handleViewNote = (e: React.MouseEvent) => {
     e.stopPropagation(); 
@@ -97,3 +108,19 @@ export const NoteItem: React.FC<NoteItemProps> = ({ note, isSelected, onSelect }
     </div>
   );
 };
+
+// Memoize the component to prevent unnecessary re-renders
+export const NoteItem = React.memo(NoteItemComponent, (prevProps, nextProps) => {
+  // Custom comparison function for better performance
+  return (
+    prevProps.note.id === nextProps.note.id &&
+    prevProps.note.title === nextProps.note.title &&
+    prevProps.note.content === nextProps.note.content &&
+    prevProps.note.updatedAt === nextProps.note.updatedAt &&
+    prevProps.note.tags.length === nextProps.note.tags.length &&
+    prevProps.note.tags.every((tag, index) => tag === nextProps.note.tags[index]) &&
+    prevProps.isSelected === nextProps.isSelected
+  );
+});
+
+NoteItem.displayName = 'NoteItem';

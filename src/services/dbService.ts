@@ -98,8 +98,14 @@ export const deleteNote = async (id: string): Promise<void> => {
   const db = await getDb();
   await db.delete(NOTES_STORE_NAME, id);
 };
+// Optimized version - filtering and sorting now handled in memory by the context
+export const getAllNotes = async (): Promise<Note[]> => {
+  const db = await getDb();
+  return db.getAll(NOTES_STORE_NAME);
+};
 
-export const getAllNotes = async (sortBy: SortOption = SortOption.UpdatedAtDesc, filterTags: string[] = [], searchQuery: string = ''): Promise<Note[]> => {
+// Keep the old function for backward compatibility but mark as deprecated
+export const getAllNotesWithFilter = async (sortBy: SortOption = SortOption.UpdatedAtDesc, filterTags: string[] = [], searchQuery: string = ''): Promise<Note[]> => {
   const db = await getDb();
   let notes = await db.getAll(NOTES_STORE_NAME);
 
@@ -110,8 +116,8 @@ export const getAllNotes = async (sortBy: SortOption = SortOption.UpdatedAtDesc,
   if (searchQuery.trim() !== '') {
     const lowerQuery = searchQuery.toLowerCase();
     notes = notes.filter(note => {
-      const contentText = markdownToPlainText(note.content); // Use new helper
-      return note.title.toLowerCase().includes(lowerQuery) || 
+      const contentText = markdownToPlainText(note.content);
+      return note.title.toLowerCase().includes(lowerQuery) ||
              contentText.toLowerCase().includes(lowerQuery);
     });
   }

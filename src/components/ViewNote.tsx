@@ -8,7 +8,7 @@ import { Note, ApiFeedback } from '../types';
 import { useI18n } from '../contexts/I18nContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useEditorInteraction } from '../contexts/EditorInteractionContext';
-import { PencilSquareIcon, TagIcon, CalendarDaysIcon, ClockIcon, CheckCircleIcon, ExclamationCircleIcon, InformationCircleIcon } from './Icons';
+import { PencilSquareIcon, TagIcon, CalendarDaysIcon, ClockIcon, CheckCircleIcon, ExclamationCircleIcon, InformationCircleIcon, ArrowLeftIcon } from './Icons';
 import { sanitizeMarkdownString, createEmptyMarkdown } from './NoteEditor'; 
 import { format } from 'date-fns';
 
@@ -216,9 +216,19 @@ export const ViewNote: React.FC = () => {
       {renderApiMessage()}
       <div className="mb-4 pb-4 border-b border-slate-200 dark:border-slate-700">
         <div className="flex justify-between items-start">
-            <h1 className="text-3xl sm:text-4xl font-bold text-slate-800 dark:text-slate-100 break-words flex-grow mr-4">
-              {noteToView.title || t('noteItem.untitled')}
-            </h1>
+            <div className="flex items-start gap-3 flex-grow">
+              <button
+                onClick={() => navigate('/')}
+                className="mt-1 p-2 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors flex-shrink-0"
+                title={t('noteEditor.backButton')}
+                aria-label={t('noteEditor.backButton')}
+              >
+                <ArrowLeftIcon className="w-5 h-5" />
+              </button>
+              <h1 className="text-3xl sm:text-4xl font-bold text-slate-800 dark:text-slate-100 break-words flex-grow">
+                {noteToView.title || t('noteItem.untitled')}
+              </h1>
+            </div>
             <button
               onClick={() => navigate(`/note/${noteToView.id}`)}
               className="mt-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-light focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-900 focus:ring-primary-dark transition-colors flex items-center text-sm font-medium flex-shrink-0"

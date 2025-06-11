@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { NoteList } from './NoteList';
-import { SearchBar } from './SearchBar';
-import { TagFilter } from './TagFilter';
 import { SortOptions } from './SortOptions';
 import { useNotes } from '../contexts/NoteContext';
 import { useI18n } from '../contexts/I18nContext';
 import { XIcon } from './Icons';
+import { UnifiedFilterInput } from './UnifiedFilterInput';
 
 interface SidebarProps {
   isOpen: boolean; // For mobile toggle
@@ -16,12 +15,9 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, width }) => {
   const { 
     currentSort, setCurrentSort,
-    currentFilterTags, setCurrentFilterTags,
-    currentSearchQuery, setCurrentSearchQuery 
   } = useNotes();
   const { t } = useI18n();
   
-  const [localSearchQuery, setLocalSearchQuery] = useState(currentSearchQuery);
   const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768);
 
   useEffect(() => {
@@ -33,25 +29,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, width }) => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  useEffect(() => {
-    setLocalSearchQuery(currentSearchQuery);
-  }, [currentSearchQuery]);
-
-  const handleSearch = (query: string) => {
-    setLocalSearchQuery(query);
-    // Debounce or search on enter/blur can be added here
-    setCurrentSearchQuery(query); 
-  };
-
   const handleSortChange = (sortKey: string) => {
     setCurrentSort(sortKey as any);
-  };
-
-  const handleTagToggle = (tag: string) => {
-    const newTags = currentFilterTags.includes(tag)
-      ? currentFilterTags.filter(t => t !== tag)
-      : [...currentFilterTags, tag];
-    setCurrentFilterTags(newTags);
   };
   
   const sidebarStyle: React.CSSProperties = isMobileView ? {} : { width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px` };
@@ -86,14 +65,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, width }) => {
             </div>
         )}
 
-        <div className="p-4 space-y-5"> 
-          <SearchBar 
-            value={localSearchQuery} 
-            onChange={handleSearch} 
-            onSearch={() => setCurrentSearchQuery(localSearchQuery)} 
-          />
+        <div className="p-4 flex items-center gap-2"> 
+          <div className="flex-1">
+            <UnifiedFilterInput />
+          </div>
           <SortOptions currentSort={currentSort} onSortChange={handleSortChange} />
-          <TagFilter selectedTags={currentFilterTags} onTagToggle={handleTagToggle} />
         </div>
         
         <div className="flex-1 overflow-y-auto scroll-smooth">

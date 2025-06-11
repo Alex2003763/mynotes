@@ -10,7 +10,7 @@ import { useSettings } from '../contexts/SettingsContext';
 import { useI18n } from '../contexts/I18nContext';
 import { useEditorInteraction } from '../contexts/EditorInteractionContext';
 import { exportNoteAsMarkdown, exportNoteAsTXT, exportNotesAsJSON } from '../services/fileService';
-import { TrashIcon, DownloadIcon, CheckCircleIcon, ExclamationCircleIcon, InformationCircleIcon, SaveIcon, ChevronDownIcon } from './Icons';
+import { TrashIcon, DownloadIcon, CheckCircleIcon, ExclamationCircleIcon, InformationCircleIcon, SaveIcon, ChevronDownIcon, ArrowLeftIcon } from './Icons';
 import { EDITOR_HOLDER_ID } from '../constants';
 
 
@@ -439,14 +439,24 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ isNewNote = false }) => 
     <div className="flex flex-col h-full"> 
       {renderApiMessage()}
       <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <input
-          type="text"
-          placeholder={t('noteEditor.titlePlaceholder')}
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="flex-grow text-2xl font-semibold p-2 border-b-2 border-slate-300 dark:border-slate-600 focus:border-primary dark:focus:border-primary-light bg-transparent focus:outline-none"
-          aria-label={t('noteEditor.titlePlaceholder')}
-        />
+        <div className="flex items-center gap-3 flex-grow">
+          <button
+            onClick={() => navigate('/')}
+            className="p-2 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors flex-shrink-0"
+            title={t('noteEditor.backButton')}
+            aria-label={t('noteEditor.backButton')}
+          >
+            <ArrowLeftIcon className="w-5 h-5" />
+          </button>
+          <input
+            type="text"
+            placeholder={t('noteEditor.titlePlaceholder')}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="flex-grow text-2xl font-semibold p-2 border-b-2 border-slate-300 dark:border-slate-600 focus:border-primary dark:focus:border-primary-light bg-transparent focus:outline-none"
+            aria-label={t('noteEditor.titlePlaceholder')}
+          />
+        </div>
         <div className="flex items-center space-x-2 shrink-0">
           <button
             onClick={handleManualSave}

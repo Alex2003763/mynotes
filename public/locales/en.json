@@ -12,6 +12,7 @@
   "sidebar": {
     "notesTitle": "Notes",
     "searchPlaceholder": "Search notes...",
+"searchOrTagPlaceholder": "Search content or type # to add a tag",
     "sortTitle": "Sort by",
     "filterTagsTitle": "Filter by Tags",
     "noTagsAvailable": "No tags available."
@@ -59,7 +60,8 @@
       "keyInvalid": "(Key Invalid)",
       "keyMissing": "(Key Missing)",
       "keyNotSet": "OpenRouter API Key not valid or not set"
-    }
+    },
+    "backButton": "Back"
   },
   "tagInput": {
     "label": "Tags",
@@ -142,6 +144,17 @@
     "qnaButton": "Ask",
     "qnaAnswerPrefix": "Answer:",
     "loadingContext": "Initializing AI tools...",
+    "ready": "Ready",
+    "streaming": "Generating...",
+    "frequentTools": "Frequent Tools",
+    "quickTools": "Quick Tools",
+    "quickImprove": "Quick Improve",
+    "makeFormal": "Make Formal",
+    "makeCasual": "Make Casual",
+    "summarizeInline": "Inline Summary",
+    "quickImprove.instruction": "Improve this text's expression and structure to make it clearer and more persuasive",
+    "makeFormal.instruction": "Rewrite this text in a more formal tone and wording",
+    "makeCasual.instruction": "Rewrite this text in a more relaxed, conversational style",
     "error": {
       "noTextSelected": "No text selected or available.",
       "noContentToProcess": "No content in the note to process.",
@@ -160,7 +173,10 @@
       "correctionApplied": "Grammar and spelling corrections applied to note.",
       "expansionApplied": "Content processed and applied to note.",
       "tagsSuggested": "Suggested tags: {{tags}}.",
-      "answerReceived": "Answer received."
+      "answerReceived": "Answer received.",
+      "quickImproveGenerated": "Quick improvement generated and ready for review.",
+      "formalGenerated": "Formal version generated and ready for review.",
+      "casualGenerated": "Casual version generated and ready for review."
     },
     "info": {
       "noNewTags": "No new tags suggested or AI could not suggest tags.",
@@ -196,5 +212,46 @@
     "editButton": "Edit Note",
     "createdAt": "Created",
     "updatedAt": "Last Updated"
+  },
+  "noteCard": {
+    "title": "Note Card",
+    "view": "View",
+    "edit": "Edit",
+    "delete": "Delete",
+    "favorite": "Favorite",
+    "unfavorite": "Unfavorite",
+    "createdAgo": "Created {{time}}",
+    "updatedAgo": "Updated {{time}}",
+    "moreTags": "+{{count}} more",
+    "loading": "Loading...",
+    "deleting": "Deleting...",
+    "noContent": "No content yet...",
+    "untitled": "Untitled Note"
+  },
+  "noteGrid": {
+    "title": "Notes ({{count}})",
+    "viewModes": {
+      "grid": "Grid",
+      "list": "List",
+      "compact": "Compact"
+    },
+    "sortModes": {
+      "updated": "Recently Updated",
+      "created": "Created Time",
+      "title": "Title",
+      "tags": "Tag Count"
+    },
+    "newNote": "New Note",
+    "filters": "Filter Options",
+    "noNotes": {
+      "title": "No notes yet",
+      "message": "Start creating your first note to record important ideas and information.",
+      "createButton": "Create Your First Note"
+    },
+    "loadError": {
+      "title": "Failed to Load",
+      "message": "Unable to load notes. Please try again."
+    },
+    "filtersComingSoon": "Filter features coming soon..."
   }
 }

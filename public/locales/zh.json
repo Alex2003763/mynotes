@@ -12,6 +12,7 @@
   "sidebar": {
     "notesTitle": "筆記",
     "searchPlaceholder": "搜尋筆記...",
+    "searchOrTagPlaceholder": "搜尋內容或輸入 # 新增標籤",
     "sortTitle": "排序方式",
     "filterTagsTitle": "按標籤篩選",
     "noTagsAvailable": "沒有可用的標籤。"
@@ -59,7 +60,8 @@
       "keyInvalid": "（金鑰無效）",
       "keyMissing": "（缺少金鑰）",
       "keyNotSet": "OpenRouter API 金鑰無效或未設定"
-    }
+    },
+    "backButton": "返回"
   },
   "tagInput": {
     "label": "標籤",
@@ -142,6 +144,17 @@
     "qnaButton": "提問",
     "qnaAnswerPrefix": "答案：",
     "loadingContext": "正在初始化 AI 工具...",
+    "ready": "就緒",
+    "streaming": "生成中...",
+    "frequentTools": "常用工具",
+    "quickTools": "快速工具",
+    "quickImprove": "快速改進",
+    "makeFormal": "正式化",
+    "makeCasual": "口語化",
+    "summarizeInline": "內嵌摘要",
+    "quickImprove.instruction": "改進這段文字的表達和結構，使其更清晰、更有說服力",
+    "makeFormal.instruction": "將這段文字改寫為更正式的語調和措辭",
+    "makeCasual.instruction": "將這段文字改寫為更輕鬆、口語化的表達方式",
     "error": {
       "noTextSelected": "未選取文字或無可用文字。",
       "noContentToProcess": "筆記中沒有可處理的內容。",
@@ -160,7 +173,10 @@
       "correctionApplied": "文法和拼寫校正已套用於筆記。",
       "expansionApplied": "內容已處理並套用於筆記。",
       "tagsSuggested": "建議標籤：{{tags}}。",
-      "answerReceived": "已收到答案。"
+      "answerReceived": "已收到答案。",
+      "quickImproveGenerated": "快速改進內容已產生並可供檢閱。",
+      "formalGenerated": "正式化內容已產生並可供檢閱。",
+      "casualGenerated": "口語化內容已產生並可供檢閱。"
     },
     "info": {
       "noNewTags": "沒有新的標籤建議或 AI 無法建議標籤。",
@@ -196,5 +212,46 @@
     "editButton": "編輯筆記",
     "createdAt": "建立時間",
     "updatedAt": "最後更新"
+  },
+  "noteCard": {
+    "title": "筆記卡片",
+    "view": "查看",
+    "edit": "編輯",
+    "delete": "刪除",
+    "favorite": "收藏",
+    "unfavorite": "取消收藏",
+    "createdAgo": "建立於 {{time}}",
+    "updatedAgo": "更新於 {{time}}",
+    "moreTags": "+{{count}} 個更多",
+    "loading": "載入中...",
+    "deleting": "正在刪除...",
+    "noContent": "尚無內容...",
+    "untitled": "無標題筆記"
+  },
+  "noteGrid": {
+    "title": "筆記 ({{count}})",
+    "viewModes": {
+      "grid": "網格",
+      "list": "列表",
+      "compact": "緊湊"
+    },
+    "sortModes": {
+      "updated": "最近更新",
+      "created": "建立時間",
+      "title": "標題",
+      "tags": "標籤數量"
+    },
+    "newNote": "新筆記",
+    "filters": "篩選選項",
+    "noNotes": {
+      "title": "還沒有筆記",
+      "message": "開始創建您的第一篇筆記，記錄重要的想法和資訊。",
+      "createButton": "建立您的第一篇筆記"
+    },
+    "loadError": {
+      "title": "載入失敗",
+      "message": "無法載入筆記，請重試。"
+    },
+    "filtersComingSoon": "篩選功能即將推出..."
   }
 }

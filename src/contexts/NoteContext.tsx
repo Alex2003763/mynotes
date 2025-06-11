@@ -1,15 +1,16 @@
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { Note, SortOption } from '../types';
-import { 
-  getAllNotes as dbGetAllNotes, 
-  addNote as dbAddNote, 
-  updateNote as dbUpdateNote, 
+import {
+  getAllNotes as dbGetAllNotes,
+  addNote as dbAddNote,
+  updateNote as dbUpdateNote,
   deleteNote as dbDeleteNote,
   getNote as dbGetNote,
   getAllTags as dbGetAllTags
 } from '../services/dbService';
 import { useSettings } from './SettingsContext';
+import { useFilteredNotes, useDebouncedCallback } from '../utils/performance';
 
 interface NotesContextType {
   notes: Note[];
@@ -18,7 +19,7 @@ interface NotesContextType {
   currentNote: Note | null;
   loading: boolean;
   error: string | null;
-  fetchNotes: (sortBy?: SortOption, filterTags?: string[], searchQuery?: string) => Promise<void>;
+  fetchNotes: () => Promise<void>;
   fetchTags: () => Promise<void>;
   addNote: (noteData: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Note | null>;
   updateNote: (note: Note) => Promise<void>;
@@ -37,7 +38,7 @@ const NotesContext = createContext<NotesContextType | undefined>(undefined);
 
 export const NotesProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { settings } = useSettings();
-  const [notes, setNotes] = useState<Note[]>([]);
+  const [allNotes, setAllNotes] = useState<Note[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [currentNote, setCurrentNote] = useState<Note | null>(null);
@@ -52,23 +53,65 @@ export const NotesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setCurrentSort(settings.defaultSort);
   }, [settings.defaultSort]);
 
-  const fetchNotes = useCallback(async (
-    sortBy: SortOption = currentSort, 
-    filterTags: string[] = currentFilterTags, 
-    searchQuery: string = currentSearchQuery
-  ) => {
+  // Memoized filtered and sorted notes
+  const notes = useMemo(() => {
+    let filtered = allNotes;
+
+    // Apply tag filtering
+    if (currentFilterTags.length > 0) {
+      filtered = filtered.filter(note =>
+        currentFilterTags.every(tag => note.tags.includes(tag))
+      );
+    }
+
+    // Apply search filtering
+    if (currentSearchQuery.trim() !== '') {
+      const lowerQuery = currentSearchQuery.toLowerCase();
+      filtered = filtered.filter(note => {
+        const titleMatch = note.title.toLowerCase().includes(lowerQuery);
+        const contentMatch = note.content?.toLowerCase().includes(lowerQuery);
+        return titleMatch || contentMatch;
+      });
+    }
+
+    // Apply sorting
+    const sorted = [...filtered].sort((a, b) => {
+      switch (currentSort) {
+        case SortOption.CreatedAtAsc:
+          return a.createdAt - b.createdAt;
+        case SortOption.CreatedAtDesc:
+          return b.createdAt - a.createdAt;
+        case SortOption.UpdatedAtAsc:
+          return a.updatedAt - b.updatedAt;
+        case SortOption.UpdatedAtDesc:
+          return b.updatedAt - a.updatedAt;
+        case SortOption.TitleAsc:
+          return a.title.localeCompare(b.title);
+        case SortOption.TitleDesc:
+          return b.title.localeCompare(a.title);
+        default:
+          return b.updatedAt - a.updatedAt;
+      }
+    });
+
+    return sorted;
+  }, [allNotes, currentSort, currentFilterTags, currentSearchQuery]);
+
+  // Optimized fetch function that only fetches from DB when necessary
+  const fetchNotes = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const fetchedNotes = await dbGetAllNotes(sortBy, filterTags, searchQuery);
-      setNotes(fetchedNotes);
+      // Fetch all notes without filtering - filtering is now done in memory
+      const fetchedNotes = await dbGetAllNotes();
+      setAllNotes(fetchedNotes);
     } catch (e) {
       console.error("Failed to fetch notes:", e);
       setError(e instanceof Error ? e.message : 'Failed to fetch notes');
     } finally {
       setLoading(false);
     }
-  }, [currentSort, currentFilterTags, currentSearchQuery]);
+  }, []);
 
   const fetchTags = useCallback(async () => {
     try {
@@ -83,8 +126,7 @@ export const NotesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   useEffect(() => {
     fetchNotes();
     fetchTags();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSort, currentFilterTags, currentSearchQuery]); // Removed fetchNotes, fetchTags to avoid loop
+  }, []); // Only fetch once on mount - filtering/sorting now handled in memory
 
   const addNote = async (noteData: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>): Promise<Note | null> => {
     setLoading(true);

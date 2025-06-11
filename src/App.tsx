@@ -4,6 +4,7 @@ import { Header } from './components/Header';
 import { MainContent } from './components/MainContent';
 import { RightSidebar } from './components/RightSidebar';
 import { SettingsModal } from './components/SettingsModal';
+import { PerformanceMonitor } from './components/PerformanceMonitor';
 import { useSettings } from './contexts/SettingsContext';
 import { useNotes } from './contexts/NoteContext';
 import { Resizer } from './components/Resizer';
@@ -100,13 +101,13 @@ const App: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-
   return (
     <div className="flex flex-col h-screen selection:bg-primary/30 selection:text-primary-dark dark:selection:text-primary-light">
+      <PerformanceMonitor />
       <Header
         onOpenSettings={openSettingsModal}
       />
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 min-h-0">
         <MainContent />
         
         {/* Right sidebar and its resizer, only shown on relevant routes and desktop */}
