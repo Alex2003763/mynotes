@@ -5,7 +5,7 @@ export const DB_NAME = 'MyNotesDB';
 export const NOTES_STORE_NAME = 'notes';
 export const TAGS_STORE_NAME = 'tags'; 
 export const SETTINGS_STORE_NAME = 'settings';
-export const DB_VERSION = 1; 
+export const DB_VERSION = 2;
 
 
 export const OPENROUTER_API_BASE_URL = 'https://openrouter.ai/api/v1';

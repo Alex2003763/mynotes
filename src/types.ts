@@ -1,8 +1,15 @@
 
+export interface NotePage {
+  id: string;
+  title: string;
+  content: string;
+}
+
 export interface Note {
   id: string;
   title: string;
-  content: string; // Changed from EditorJsOutputData to string for Markdown
+  content?: string; // For backward compatibility, will be migrated to pages
+  pages: NotePage[];
   tags: string[];
   createdAt: number;
   updatedAt: number;

@@ -6,11 +6,13 @@ interface MyNotesDB extends DBSchema {
   [NOTES_STORE_NAME]: {
     key: string;
     value: Note;
-    indexes: { 
-      title: string; 
-      createdAt: number; 
+    indexes: {
+      title: string;
+      createdAt: number;
       updatedAt: number;
-      tags: string[]; 
+      tags: string[];
+      isPinned: number;
+      isFavorite: number;
     };
   };
   [SETTINGS_STORE_NAME]: {
@@ -25,16 +27,27 @@ const getDb = (): Promise<IDBPDatabase<MyNotesDB>> => {
   if (!dbPromise) {
     dbPromise = openDB<MyNotesDB>(DB_NAME, DB_VERSION, {
       upgrade(db, oldVersion, newVersion, transaction) {
-        if (!db.objectStoreNames.contains(NOTES_STORE_NAME)) {
-          const store = db.createObjectStore(NOTES_STORE_NAME, { keyPath: 'id' });
-          store.createIndex('title', 'title', { unique: false });
-          store.createIndex('createdAt', 'createdAt', { unique: false });
-          store.createIndex('updatedAt', 'updatedAt', { unique: false });
-          store.createIndex('tags', 'tags', { multiEntry: true });
-        }
-        if (!db.objectStoreNames.contains(SETTINGS_STORE_NAME)) {
-          db.createObjectStore(SETTINGS_STORE_NAME, { keyPath: 'key' });
-        }
+       if (oldVersion < 1) {
+         if (!db.objectStoreNames.contains(NOTES_STORE_NAME)) {
+           const store = db.createObjectStore(NOTES_STORE_NAME, { keyPath: 'id' });
+           store.createIndex('title', 'title', { unique: false });
+           store.createIndex('createdAt', 'createdAt', { unique: false });
+           store.createIndex('updatedAt', 'updatedAt', { unique: false });
+           store.createIndex('tags', 'tags', { multiEntry: true });
+         }
+         if (!db.objectStoreNames.contains(SETTINGS_STORE_NAME)) {
+           db.createObjectStore(SETTINGS_STORE_NAME, { keyPath: 'key' });
+         }
+       }
+       if (oldVersion < 2) {
+         const notesStore = transaction.objectStore(NOTES_STORE_NAME);
+         if (!notesStore.indexNames.contains('isPinned')) {
+           notesStore.createIndex('isPinned', 'isPinned', { unique: false });
+         }
+         if (!notesStore.indexNames.contains('isFavorite')) {
+           notesStore.createIndex('isFavorite', 'isFavorite', { unique: false });
+         }
+       }
       },
     });
   }

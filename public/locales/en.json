@@ -1,4 +1,3 @@
-
 {
   "appName": "MyNotes",
   "header": {
@@ -12,10 +11,16 @@
   "sidebar": {
     "notesTitle": "Notes",
     "searchPlaceholder": "Search notes...",
-"searchOrTagPlaceholder": "Search content or type # to add a tag",
+    "searchOrTagPlaceholder": "Search content or type # to add a tag",
+    "searchInFiltered": "Search in filtered notes...",
+    "availableTags": "Available Tags",
+    "andMoreTags": "and {{count}} more...",
     "sortTitle": "Sort by",
+    "filterTitle": "Filter by",
     "filterTagsTitle": "Filter by Tags",
-    "noTagsAvailable": "No tags available."
+    "noTagsAvailable": "No tags available.",
+    "tagsTitle": "Tags",
+    "addTag": "Add tag"
   },
   "noteList": {
     "loading": "Loading notes...",
@@ -76,6 +81,10 @@
     "createdAtAsc": "Date Created (Oldest)",
     "titleAsc": "Title (A-Z)",
     "titleDesc": "Title (Z-A)"
+  },
+  "filterOptions": {
+    "all": "All Notes",
+    "favorites": "Favorites"
   },
   "settingsModal": {
     "title": "Application Settings",
@@ -195,13 +204,30 @@
       "editCurrent": "Edit Current Note",
       "newNoteTitlePrefix": "AI: ",
       "applied": "Content applied"
-    }
+    },
+    "statsTitle": "Note Statistics",
+    "totalNotes": "Total Notes",
+    "wordsToday": "Words Today",
+    "weeklyAvg": "Weekly Avg",
+    "tagsUsed": "Tags Used"
   },
   "welcomeScreen": {
     "title": "Welcome to MyNotes",
     "defaultMessage": "Your personal, offline-first, AI-powered notebook.",
     "selectOrCreate": "Select a note from the sidebar to start editing, or create a new one.",
-    "createFirstNote": "Create Your First Note"
+    "createFirstNote": "Create Your First Note",
+    "feature1": {
+      "title": "Quick Notes",
+      "description": "Write and organize your thoughts instantly"
+    },
+    "feature2": {
+      "title": "Smart Search",
+      "description": "Find any note with powerful search and tags"
+    },
+    "feature3": {
+      "title": "AI Powered",
+      "description": "Get help with writing and organizing content"
+    }
   },
   "general":{
     "error": "Error",
@@ -222,18 +248,24 @@
     "unfavorite": "Unfavorite",
     "createdAgo": "Created {{time}}",
     "updatedAgo": "Updated {{time}}",
+    "edited": "Edited",
     "moreTags": "+{{count}} more",
     "loading": "Loading...",
     "deleting": "Deleting...",
     "noContent": "No content yet...",
     "untitled": "Untitled Note"
   },
+  "mainContent": {
+    "welcome": "Welcome to Your Notes",
+    "yourNotes": "Your Notes",
+    "welcomeSubtitle": "Start organizing your thoughts with a powerful, AI-enhanced note-taking experience.",
+    "notesSubtitle": "Manage and organize your {{count}} notes with smart search and filtering."
+  },
   "noteGrid": {
     "title": "Notes ({{count}})",
     "viewModes": {
       "grid": "Grid",
-      "list": "List",
-      "compact": "Compact"
+      "list": "List"
     },
     "sortModes": {
       "updated": "Recently Updated",

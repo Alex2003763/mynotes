@@ -1,22 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { NoteList } from './NoteList';
-import { SortOptions } from './SortOptions';
+import { useLocation } from 'react-router-dom';
+import { FilterAndSortOptions } from './FilterAndSortOptions';
 import { useNotes } from '../contexts/NoteContext';
 import { useI18n } from '../contexts/I18nContext';
-import { XIcon } from './Icons';
+import { CogIcon, StatItem, XIcon } from './Icons';
 import { UnifiedFilterInput } from './UnifiedFilterInput';
 
 interface SidebarProps {
   isOpen: boolean; // For mobile toggle
   onClose: () => void; // For mobile toggle
   width: number; // For desktop resizable width
+  onOpenSettings: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, width }) => {
-  const { 
+export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, width, onOpenSettings }) => {
+  const {
+    notes,
     currentSort, setCurrentSort,
+    currentFilter, setCurrentFilter,
   } = useNotes();
   const { t } = useI18n();
+  const location = useLocation();
   
   const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768);
 
@@ -31,6 +35,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, width }) => {
 
   const handleSortChange = (sortKey: string) => {
     setCurrentSort(sortKey as any);
+  };
+
+  const handleFilterChange = (filter: string) => {
+    setCurrentFilter(filter as any);
   };
   
   const sidebarStyle: React.CSSProperties = isMobileView ? {} : { width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px` };
@@ -65,15 +73,40 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, width }) => {
             </div>
         )}
 
-        <div className="p-4 flex items-center gap-2"> 
-          <div className="flex-1">
-            <UnifiedFilterInput />
+        { !location.pathname.startsWith('/note/') && !location.pathname.startsWith('/view/') && (
+          <div className="p-4 space-y-3">
+            <div className="w-full">
+              <UnifiedFilterInput />
+            </div>
+            <div className="w-full">
+              <FilterAndSortOptions
+                currentSort={currentSort}
+                onSortChange={handleSortChange}
+                currentFilter={currentFilter}
+                onFilterChange={handleFilterChange}
+              />
+            </div>
           </div>
-          <SortOptions currentSort={currentSort} onSortChange={handleSortChange} />
+        )}
+
+        {/* 統計數據面板 */}
+        <div className="p-4 border-t border-slate-200 dark:border-slate-700">
+          <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">{t('aiPanel.statsTitle')}</h3>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <StatItem label={t('aiPanel.totalNotes')} value={notes.length.toString()} />
+            <StatItem label={t('aiPanel.tagsUsed')} value={new Set(notes.flatMap(n => n.tags)).size.toString()} />
+          </div>
         </div>
-        
-        <div className="flex-1 overflow-y-auto scroll-smooth">
-          <NoteList />
+
+        {/* 底部設定按鈕 */}
+        <div className="mt-auto p-2 border-t border-slate-200 dark:border-slate-700">
+          <button 
+            onClick={onOpenSettings}
+            className="w-full flex items-center justify-center p-2 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+          >
+            <CogIcon className="w-5 h-5 mr-2 dark:fill-white" />
+            <span className="text-sm font-medium">{t('header.settings')}</span>
+          </button>
         </div>
       </div>
     </aside>

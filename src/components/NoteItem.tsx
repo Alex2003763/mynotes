@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { Note } from '../types'; // EditorJsOutputData removed
 import { formatDistanceToNow } from 'date-fns';
 import { useI18n } from '../contexts/I18nContext';
-import { EyeIcon } from './Icons';
+import { useNotes } from '../contexts/NoteContext';
+import { EyeIcon, PinIcon, StarIcon } from './Icons';
 
 interface NoteItemProps {
   note: Note;
@@ -34,8 +35,9 @@ const markdownToSummaryText = (markdown: string | undefined): string => {
 };
 
 const NoteItemComponent: React.FC<NoteItemProps> = ({ note, isSelected, onSelect }) => {
-  const { t } = useI18n(); 
+  const { t } = useI18n();
   const navigate = useNavigate();
+  const { toggleNoteAttribute } = useNotes();
 
   const MAX_SUMMARY_LENGTH = 90;
   
@@ -53,8 +55,18 @@ const NoteItemComponent: React.FC<NoteItemProps> = ({ note, isSelected, onSelect
   );
 
   const handleViewNote = (e: React.MouseEvent) => {
-    e.stopPropagation(); 
+    e.stopPropagation();
     navigate(`/view/${note.id}`);
+  };
+
+  const handleTogglePin = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    toggleNoteAttribute(note.id, 'isPinned');
+  };
+
+  const handleToggleFavorite = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    toggleNoteAttribute(note.id, 'isFavorite');
   };
 
   return (
@@ -71,9 +83,12 @@ const NoteItemComponent: React.FC<NoteItemProps> = ({ note, isSelected, onSelect
       aria-current={isSelected ? "page" : undefined}
     >
       <div className="flex-grow overflow-hidden mr-2">
-        <h3 className={`font-semibold truncate text-sm ${isSelected ? 'text-primary dark:text-primary-light' : 'text-slate-800 dark:text-slate-100'}`}>
-          {note.title || t('noteItem.untitled')}
-        </h3>
+        <div className="flex items-center">
+          <h3 className={`font-semibold truncate text-sm ${isSelected ? 'text-primary dark:text-primary-light' : 'text-slate-800 dark:text-slate-100'}`}>
+            {note.title || t('noteItem.untitled')}
+          </h3>
+          {(note as any).isPinned && <PinIcon className="w-3 h-3 ml-2 text-slate-500 flex-shrink-0" />}
+        </div>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">
           {summary || t('noteItem.noContent')}
         </p>
@@ -95,6 +110,14 @@ const NoteItemComponent: React.FC<NoteItemProps> = ({ note, isSelected, onSelect
               )}
             </div>
           )}
+          <div className="flex items-center space-x-1">
+            <button onClick={handleToggleFavorite} className="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-600">
+              <StarIcon className={`w-4 h-4 ${(note as any).isFavorite ? 'text-yellow-400 fill-yellow-400' : 'text-slate-400 hover:text-slate-500'}`} />
+            </button>
+            <button onClick={handleTogglePin} className="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-600">
+              <PinIcon className={`w-4 h-4 ${(note as any).isPinned ? 'text-blue-500' : 'text-slate-400 hover:text-slate-500'}`} />
+            </button>
+          </div>
         </div>
       </div>
       <button
@@ -119,6 +142,8 @@ export const NoteItem = React.memo(NoteItemComponent, (prevProps, nextProps) => 
     prevProps.note.updatedAt === nextProps.note.updatedAt &&
     prevProps.note.tags.length === nextProps.note.tags.length &&
     prevProps.note.tags.every((tag, index) => tag === nextProps.note.tags[index]) &&
+    (prevProps.note as any).isPinned === (nextProps.note as any).isPinned &&
+    (prevProps.note as any).isFavorite === (nextProps.note as any).isFavorite &&
     prevProps.isSelected === nextProps.isSelected
   );
 });

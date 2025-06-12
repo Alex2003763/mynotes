@@ -15,7 +15,7 @@ interface NoteGridLayoutProps {
   onNoteSelect?: (noteId: string) => void;
 }
 
-type ViewMode = 'grid' | 'list' | 'compact';
+type ViewMode = 'grid' | 'list';
 type SortMode = 'updated' | 'created' | 'title' | 'tags';
 
 const NoteGridLayoutComponent: React.FC<NoteGridLayoutProps> = ({ onNoteSelect }) => {
@@ -63,13 +63,14 @@ const NoteGridLayoutComponent: React.FC<NoteGridLayoutProps> = ({ onNoteSelect }
                 id: `skeleton-${index}`,
                 title: '',
                 content: '',
+                pages: [],
                 tags: [],
                 createdAt: Date.now(),
                 updatedAt: Date.now()
               }}
               isSelected={false}
               onSelect={() => {}}
-              viewMode={viewMode === 'compact' ? 'list' : viewMode}
+              viewMode={viewMode}
               isLoading={true}
             />
           ))}
@@ -136,15 +137,13 @@ const NoteGridLayoutComponent: React.FC<NoteGridLayoutProps> = ({ onNoteSelect }
             
             {/* 視圖模式切換 */}
             <div className="hidden sm:flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
-              {(['grid', 'list', 'compact'] as ViewMode[]).map((mode) => {
+              {(['grid', 'list'] as ViewMode[]).map((mode) => {
                 const getIcon = () => {
                   switch (mode) {
                     case 'grid':
                       return <Squares2X2Icon className="w-4 h-4" />;
                     case 'list':
                       return <ListBulletIcon className="w-4 h-4" />;
-                    case 'compact':
-                      return <Bars3Icon className="w-4 h-4" />;
                   }
                 };
                 
@@ -194,7 +193,7 @@ const NoteGridLayoutComponent: React.FC<NoteGridLayoutProps> = ({ onNoteSelect }
             note={note}
             isSelected={note.id === selectedNoteId}
             onSelect={() => handleSelectNote(note.id)}
-            viewMode={viewMode === 'compact' ? 'list' : viewMode}
+            viewMode={viewMode}
             isLoading={loadingStates[note.id] || false}
           />
         ))}

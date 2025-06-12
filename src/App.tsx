@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Header } from './components/Header';
 import { MainContent } from './components/MainContent';
+import { Sidebar } from './components/Sidebar';
 import { RightSidebar } from './components/RightSidebar';
 import { SettingsModal } from './components/SettingsModal';
 import { PerformanceMonitor } from './components/PerformanceMonitor';
@@ -11,21 +12,31 @@ import { Resizer } from './components/Resizer';
 
 const MIN_SIDEBAR_WIDTH = 200; // px
 const MAX_SIDEBAR_WIDTH = 500; // px
+const DEFAULT_LEFT_SIDEBAR_WIDTH = 300; // px
 const DEFAULT_RIGHT_SIDEBAR_WIDTH = 320; // w-80
 
 const App: React.FC = () => {
   const { settings } = useSettings();
   const { notes, selectNote, selectedNoteId, loading } = useNotes();
-  // Right sidebar is always "open" conceptually on desktop for resizing, its content visibility is handled internally or by `showRightSidebarPanel`
+  // Sidebar states
+  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(window.innerWidth > 768);
   const [isRightSidebarVisible, setIsRightSidebarVisible] = useState(window.innerWidth > 1024);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   
+  // Sidebar widths
+  const [leftSidebarWidth, setLeftSidebarWidth] = useState<number>(
+    parseInt(localStorage.getItem('leftSidebarWidth') || DEFAULT_LEFT_SIDEBAR_WIDTH.toString())
+  );
   const [rightSidebarWidth, setRightSidebarWidth] = useState<number>(
     parseInt(localStorage.getItem('rightSidebarWidth') || DEFAULT_RIGHT_SIDEBAR_WIDTH.toString())
   );
 
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    localStorage.setItem('leftSidebarWidth', leftSidebarWidth.toString());
+  }, [leftSidebarWidth]);
 
   useEffect(() => {
     localStorage.setItem('rightSidebarWidth', rightSidebarWidth.toString());
@@ -79,11 +90,20 @@ const App: React.FC = () => {
   const openSettingsModal = () => setIsSettingsModalOpen(true);
   const closeSettingsModal = () => setIsSettingsModalOpen(false);
 
+  const handleLeftResize = useCallback((deltaX: number) => {
+    setLeftSidebarWidth(prevWidth => {
+      // DeltaX is from left edge of resizer. If dragging right, deltaX is positive.
+      // For left sidebar, dragging resizer right *increases* its width.
+      const newWidth = prevWidth + deltaX;
+      return Math.max(MIN_SIDEBAR_WIDTH, Math.min(MAX_SIDEBAR_WIDTH, newWidth));
+    });
+  }, []);
+
   const handleRightResize = useCallback((deltaX: number) => {
     setRightSidebarWidth(prevWidth => {
       // DeltaX is from left edge of resizer. If dragging left, deltaX is negative.
       // For right sidebar, dragging resizer left *decreases* its width.
-      const newWidth = prevWidth - deltaX; 
+      const newWidth = prevWidth - deltaX;
       return Math.max(MIN_SIDEBAR_WIDTH, Math.min(MAX_SIDEBAR_WIDTH, newWidth));
     });
   }, []);
@@ -91,9 +111,10 @@ const App: React.FC = () => {
   // Determine if right sidebar should be shown based on route
   const showRightSidebarPanel = location.pathname.startsWith('/note/') || location.pathname.startsWith('/new') || location.pathname.startsWith('/view/');
 
-  // For responsive handling of right sidebar visibility (toggle on small screens, resizable on large)
+  // For responsive handling of sidebar visibility
   useEffect(() => {
     const handleResize = () => {
+      // setIsLeftSidebarOpen(window.innerWidth > 768); // We now control this manually
       setIsRightSidebarVisible(window.innerWidth > 1024); // Right sidebar auto-visible on larger screens
     };
     window.addEventListener('resize', handleResize);
@@ -105,9 +126,22 @@ const App: React.FC = () => {
     <div className="flex flex-col h-screen selection:bg-primary/30 selection:text-primary-dark dark:selection:text-primary-light">
       <PerformanceMonitor />
       <Header
-        onOpenSettings={openSettingsModal}
+        onToggleLeftSidebar={() => setIsLeftSidebarOpen(!isLeftSidebarOpen)}
       />
       <div className="flex flex-1 min-h-0">
+        {/* Left sidebar with search and sort */}
+        <Sidebar
+          isOpen={isLeftSidebarOpen}
+          onClose={() => setIsLeftSidebarOpen(false)}
+          width={leftSidebarWidth}
+          onOpenSettings={openSettingsModal}
+        />
+        
+        {/* Left sidebar resizer - only shown on desktop when sidebar is visible */}
+        {isLeftSidebarOpen && (
+          <Resizer onResize={handleLeftResize} />
+        )}
+        
         <MainContent />
         
         {/* Right sidebar and its resizer, only shown on relevant routes and desktop */}

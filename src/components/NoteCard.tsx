@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Note } from '../types';
 import { formatDistanceToNow } from 'date-fns';
@@ -11,7 +11,9 @@ import {
   ClockIcon,
   TagIcon,
   HeartIcon,
-  DocumentTextIcon
+  DocumentTextIcon,
+  PinIcon,
+  StarIcon
 } from './Icons';
 
 interface NoteCardProps {
@@ -68,19 +70,39 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
 }) => {
   const { t } = useI18n();
   const navigate = useNavigate();
-  const { deleteNote } = useNotes();
+  const { deleteNote, toggleNoteAttribute } = useNotes();
   const [isHovered, setIsHovered] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // 點擊外部關閉下拉菜單
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+
+    if (showDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showDropdown]);
 
   const MAX_SUMMARY_LENGTH = viewMode === 'grid' ? 120 : 150;
   
   const summary = useMemo(() => {
-    const contentSummary = markdownToSummaryText(note.content);
+    const fullContent = note.pages?.map(p => p.content).join('\n') || note.content || '';
+    const contentSummary = markdownToSummaryText(fullContent);
     return contentSummary.length > MAX_SUMMARY_LENGTH
       ? `${contentSummary.substring(0, MAX_SUMMARY_LENGTH)}...`
       : contentSummary || t('noteCard.noContent');
-  }, [note.content, MAX_SUMMARY_LENGTH, t]);
+  }, [note.pages, note.content, MAX_SUMMARY_LENGTH, t]);
   
   const formattedDate = useMemo(() =>
     formatDistanceToNow(new Date(note.updatedAt), { addSuffix: true }),
@@ -94,16 +116,19 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
 
   const handleViewNote = (e: React.MouseEvent) => {
     e.stopPropagation();
+    setShowDropdown(false);
     navigate(`/view/${note.id}`);
   };
 
   const handleEditNote = (e: React.MouseEvent) => {
     e.stopPropagation();
-    navigate(`/edit/${note.id}`);
+    setShowDropdown(false);
+    navigate(`/note/${note.id}`);
   };
 
   const handleDeleteNote = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    setShowDropdown(false);
     if (window.confirm(t('noteEditor.deleteConfirmation'))) {
       setIsDeleting(true);
       try {
@@ -116,28 +141,41 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
     }
   };
 
-  const handleToggleFavorite = (e: React.MouseEvent) => {
+  const toggleDropdown = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsFavorited(!isFavorited);
+    setShowDropdown(!showDropdown);
   };
 
+  const handleToggleFavorite = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    toggleNoteAttribute(note.id, 'isFavorite');
+  };
+
+  const handleTogglePin = (e: React.MouseEvent) => {
+   e.stopPropagation();
+   toggleNoteAttribute(note.id, 'isPinned');
+ };
+
   const cardClasses = `
-    group relative bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700
-    shadow-sm hover:shadow-lg hover:shadow-slate-900/10 dark:hover:shadow-slate-900/20
-    transition-all duration-300 ease-out cursor-pointer
-    ${isSelected ? 'ring-2 ring-primary ring-offset-2 dark:ring-offset-slate-900' : ''}
-    ${isLoading || isDeleting ? 'opacity-50 pointer-events-none' : ''}
-    ${viewMode === 'list' ? 'flex flex-row w-full max-w-3xl max-h-40' : 'flex flex-col'}
-    ${isHovered ? 'transform hover:-translate-y-1 hover:scale-[1.02]' : ''}
+    group relative overflow-visible
+    bg-gradient-to-br from-white via-white to-slate-50 dark:from-slate-800 dark:via-slate-800 dark:to-slate-900
+    rounded-2xl border border-slate-200/60 dark:border-slate-700/60
+    shadow-lg hover:shadow-xl
+    transition-all duration-200 ease-out cursor-pointer
+    backdrop-blur-sm
+    ${isSelected ? 'ring-2 ring-primary ring-offset-4 dark:ring-offset-slate-900 shadow-primary/20' : ''}
+    ${isLoading || isDeleting ? 'opacity-60 pointer-events-none' : ''}
+    ${viewMode === 'list' ? 'flex flex-row w-full max-w-4xl max-h-32' : 'flex flex-col w-64 h-64'}
+    hover:border-primary/30 dark:hover:border-primary-light/30
   `;
 
   const contentClasses = viewMode === 'list'
-    ? 'flex-1 p-3'  // Reduced padding for list view
-    : 'flex-1 p-5';
+    ? 'flex-1 p-2.5 bg-gradient-to-r from-transparent to-slate-50/30 dark:to-slate-800/30'
+    : 'p-3 bg-gradient-to-b from-transparent to-slate-50/20 dark:to-slate-800/20';
 
   const actionsClasses = viewMode === 'list'
-    ? 'flex flex-row items-center justify-center p-3 bg-slate-50 dark:bg-slate-800/50 border-l border-slate-200 dark:border-slate-700' // Reduced padding for list view
-    : 'flex flex-row items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-700';
+    ? 'flex flex-row items-center justify-center p-4 bg-gradient-to-t from-slate-100/80 to-transparent dark:from-slate-700/50 dark:to-transparent border-l border-slate-200/60 dark:border-slate-600/60 backdrop-blur-sm'
+    : 'flex flex-row items-center justify-between p-4 bg-gradient-to-t from-slate-100/80 to-transparent dark:from-slate-700/50 dark:to-transparent border-t border-slate-200/60 dark:border-slate-600/60 backdrop-blur-sm';
 
   if (isLoading) {
     return (
@@ -159,9 +197,10 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       className={cardClasses}
+      style={{ zIndex: showDropdown ? 9999 : 'auto' }}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => { 
+      onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           onSelect();
@@ -182,55 +221,79 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
 
       {/* 卡片頭部 */}
       <div className={contentClasses}>
-        <header className="flex items-start justify-between mb-3">
-          <div className="flex-1 min-w-0">
+        <header className="flex items-start justify-between mb-1.5">
+          <div className="flex-1 min-w-0 pr-2">
             <h3 className={`
-              font-semibold ${viewMode === 'list' ? 'text-base' : 'text-lg'} leading-tight truncate
+              font-medium ${viewMode === 'list' ? 'text-sm' : 'text-sm'} leading-tight truncate
               ${isSelected
                 ? 'text-primary dark:text-primary-light'
                 : 'text-slate-900 dark:text-slate-100 group-hover:text-primary dark:group-hover:text-primary-light'
               }
               transition-colors duration-200
+              ${note.title ? '' : 'italic text-slate-500 dark:text-slate-400'}
             `}>
               {note.title || t('noteCard.untitled')}
             </h3>
-            <div className={`flex items-center gap-2 ${viewMode === 'list' ? 'mt-0.5' : 'mt-1'} text-xs text-slate-500 dark:text-slate-400`}>
-              <span className="flex items-center gap-1">
-                <ClockIcon className="w-3 h-3" />
-                {formattedDate}
-              </span>
-              {note.createdAt !== note.updatedAt && (
-                <span className="flex items-center gap-1">
-                  <DocumentTextIcon className="w-3 h-3" />
-                  {t('noteCard.createdAgo', { time: createdDate })}
-                </span>
-              )}
+            <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+              {formattedDate}
             </div>
           </div>
           
-          {/* 收藏按鈕 */}
-          <button
-            onClick={handleToggleFavorite}
-            className={`
-              p-2 rounded-full transition-all duration-200 
-              ${isFavorited 
-                ? 'text-red-500 hover:text-red-600 bg-red-50 dark:bg-red-900/20' 
-                : 'text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'
-              }
-              ${isHovered ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}
-            `}
-            title={isFavorited ? t('noteCard.unfavorite') : t('noteCard.favorite')}
-            aria-label={isFavorited ? t('noteCard.unfavorite') : t('noteCard.favorite')}
-          >
-            <HeartIcon className={`w-4 h-4 ${isFavorited ? 'fill-current' : ''}`} />
-          </button>
+          <div className="absolute top-2 right-2 flex items-center space-x-1 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+           <button onClick={handleToggleFavorite} className="p-1.5 rounded-full bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-700">
+             <StarIcon className={`w-4 h-4 ${(note as any).isFavorite ? 'text-yellow-400 fill-yellow-400' : 'text-slate-500'}`} />
+           </button>
+           <button onClick={handleTogglePin} className="p-1.5 rounded-full bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-700">
+             <PinIcon className={`w-4 h-4 ${(note as any).isPinned ? 'text-blue-500' : 'text-slate-500'}`} />
+           </button>
+           {/* 三點下拉菜單 */}
+           <div className="relative" ref={dropdownRef}>
+             <button
+               onClick={toggleDropdown}
+               className="p-1.5 rounded-full bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-700 transition-colors duration-200"
+             >
+               <svg className="w-4 h-4 text-slate-500 dark:text-slate-400" fill="currentColor" viewBox="0 0 20 20">
+                 <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+               </svg>
+             </button>
+             
+             {/* 下拉菜單 */}
+             {showDropdown && (
+               <div className="note-card-dropdown absolute right-0 top-8 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl py-2 z-50 min-w-[140px] max-w-[200px] animate-in slide-in-from-top-2 duration-150">
+                 <button
+                   onClick={handleViewNote}
+                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors duration-150 text-left"
+                 >
+                   <EyeIcon className="w-4 h-4 flex-shrink-0" />
+                   <span className="truncate">{t('noteCard.view')}</span>
+                 </button>
+                 <button
+                   onClick={handleEditNote}
+                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors duration-150 text-left"
+                 >
+                   <PencilSquareIcon className="w-4 h-4 flex-shrink-0" />
+                   <span className="truncate">{t('noteCard.edit')}</span>
+                 </button>
+                 <div className="border-t border-slate-200 dark:border-slate-600 my-1"></div>
+                 <button
+                   onClick={handleDeleteNote}
+                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-150 text-left"
+                   disabled={isDeleting}
+                 >
+                   <TrashIcon className="w-4 h-4 flex-shrink-0" />
+                   <span className="truncate">{isDeleting ? t('noteCard.deleting') : t('noteCard.delete')}</span>
+                 </button>
+               </div>
+             )}
+           </div>
+          </div>
         </header>
 
         {/* 內容預覽 */}
-        <div className="mb-4">
+        <div className="mb-2 flex-1">
           <p className={`
-            text-sm text-slate-600 dark:text-slate-300 leading-relaxed
-            ${viewMode === 'grid' ? 'line-clamp-3' : 'line-clamp-2'}
+            text-xs leading-relaxed text-slate-600 dark:text-slate-400
+            ${viewMode === 'grid' ? 'line-clamp-3' : 'line-clamp-1'}
           `}>
             {summary}
           </p>
@@ -238,79 +301,28 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
 
         {/* 標籤區域 */}
         {note.tags && note.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-2.5"> {/* Adjusted gap and margin for list view */}
-            {note.tags.slice(0, viewMode === 'grid' ? 3 : (viewMode === 'list' ? 3 : 5)).map((tag, index) => ( // Reduced tags in list view to 3
+          <div className="flex flex-wrap gap-1 mt-auto">
+            {note.tags.slice(0, viewMode === 'grid' ? 2 : 3).map((tag, index) => (
               <span
                 key={`${tag}-${index}`}
                 className={`
-                  inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium {/* Adjusted padding for tags */}
+                  inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium
                   ${getTagColor(tag)}
                   transition-all duration-200 hover:scale-105
                 `}
               >
-                <TagIcon className="w-2.5 h-2.5" /> {/* Slightly smaller tag icon */}
                 {tag}
               </span>
             ))}
-            {note.tags.length > (viewMode === 'grid' ? 3 : (viewMode === 'list' ? 3 : 5)) && (
+            {note.tags.length > (viewMode === 'grid' ? 2 : 3) && (
               <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
-                {t('noteCard.moreTags', { count: (note.tags.length - (viewMode === 'grid' ? 3 : (viewMode === 'list' ? 3 : 5))).toString() })}
+                +{note.tags.length - (viewMode === 'grid' ? 2 : 3)}
               </span>
             )}
           </div>
         )}
       </div>
 
-      {/* 卡片底部操作區 */}
-      <footer className={actionsClasses}>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleViewNote}
-            className="
-              flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium
-              text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary-light
-              hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200
-              focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-slate-800
-            "
-            title={t('noteItem.viewNote', { title: note.title || t('noteCard.untitled') })}
-            aria-label={t('noteItem.viewNote', { title: note.title || t('noteCard.untitled') })}
-          >
-            <EyeIcon className="w-4 h-4" />
-            <span className="hidden sm:inline">{t('noteCard.view')}</span>
-          </button>
-
-          <button
-            onClick={handleEditNote}
-            className="
-              flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium
-              text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary-light
-              hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200
-              focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-slate-800
-            "
-            title={t('viewNote.editButton')}
-            aria-label={t('viewNote.editButton')}
-          >
-            <PencilSquareIcon className="w-4 h-4" />
-            <span className="hidden sm:inline">{t('noteCard.edit')}</span>
-          </button>
-        </div>
-
-        <button
-          onClick={handleDeleteNote}
-          className="
-            flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium
-            text-slate-600 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400
-            hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200
-            focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800
-          "
-          title={t('noteEditor.deleteButtonTitle')}
-          aria-label={t('noteEditor.deleteButtonTitle')}
-          disabled={isDeleting}
-        >
-          <TrashIcon className="w-4 h-4" />
-          <span className="hidden sm:inline">{t('noteCard.delete')}</span>
-        </button>
-      </footer>
     </article>
   );
 };
@@ -320,10 +332,12 @@ export const NoteCard = React.memo(NoteCardComponent, (prevProps, nextProps) => 
   return (
     prevProps.note.id === nextProps.note.id &&
     prevProps.note.title === nextProps.note.title &&
-    prevProps.note.content === nextProps.note.content &&
+    JSON.stringify(prevProps.note.pages) === JSON.stringify(nextProps.note.pages) &&
     prevProps.note.updatedAt === nextProps.note.updatedAt &&
     prevProps.note.tags.length === nextProps.note.tags.length &&
     prevProps.note.tags.every((tag, index) => tag === nextProps.note.tags[index]) &&
+    (prevProps.note as any).isPinned === (nextProps.note as any).isPinned &&
+    (prevProps.note as any).isFavorite === (nextProps.note as any).isFavorite &&
     prevProps.isSelected === nextProps.isSelected &&
     prevProps.viewMode === nextProps.viewMode &&
     prevProps.isLoading === nextProps.isLoading

@@ -1,6 +1,10 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
-import { Note, SortOption } from '../types';
+import { Note, NotePage, SortOption } from '../types';
+
+export enum FilterOption {
+  All = 'all',
+  Favorites = 'favorites',
+}
 import {
   getAllNotes as dbGetAllNotes,
   addNote as dbAddNote,
@@ -21,7 +25,7 @@ interface NotesContextType {
   error: string | null;
   fetchNotes: () => Promise<void>;
   fetchTags: () => Promise<void>;
-  addNote: (noteData: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Note | null>;
+  addNote: (noteData: Omit<Note, 'id' | 'createdAt' | 'updatedAt' | 'pages' | 'isPinned' | 'isFavorite'> & { pages?: NotePage[] }) => Promise<Note | null>;
   updateNote: (note: Note) => Promise<void>;
   deleteNote: (id: string) => Promise<void>;
   selectNote: (id: string | null) => void;
@@ -32,6 +36,9 @@ interface NotesContextType {
   setCurrentFilterTags: (tags: string[]) => void;
   currentSearchQuery: string;
   setCurrentSearchQuery: (query: string) => void;
+  toggleNoteAttribute: (id: string, attribute: 'isPinned' | 'isFavorite') => Promise<void>;
+  currentFilter: FilterOption;
+  setCurrentFilter: (filter: FilterOption) => void;
 }
 
 const NotesContext = createContext<NotesContextType | undefined>(undefined);
@@ -48,6 +55,7 @@ export const NotesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [currentSort, setCurrentSort] = useState<SortOption>(settings.defaultSort);
   const [currentFilterTags, setCurrentFilterTags] = useState<string[]>([]);
   const [currentSearchQuery, setCurrentSearchQuery] = useState<string>('');
+  const [currentFilter, setCurrentFilter] = useState<FilterOption>(FilterOption.All);
 
   useEffect(() => {
     setCurrentSort(settings.defaultSort);
@@ -56,6 +64,11 @@ export const NotesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   // Memoized filtered and sorted notes
   const notes = useMemo(() => {
     let filtered = allNotes;
+
+    // Apply favorite filtering
+    if (currentFilter === FilterOption.Favorites) {
+      filtered = filtered.filter(note => (note as any).isFavorite);
+    }
 
     // Apply tag filtering
     if (currentFilterTags.length > 0) {
@@ -69,13 +82,16 @@ export const NotesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       const lowerQuery = currentSearchQuery.toLowerCase();
       filtered = filtered.filter(note => {
         const titleMatch = note.title.toLowerCase().includes(lowerQuery);
-        const contentMatch = note.content?.toLowerCase().includes(lowerQuery);
+        const contentMatch = note.pages.some(page => page.content.toLowerCase().includes(lowerQuery));
         return titleMatch || contentMatch;
       });
     }
 
     // Apply sorting
     const sorted = [...filtered].sort((a, b) => {
+      if ((a as any).isPinned && !(b as any).isPinned) return -1;
+      if (!(a as any).isPinned && (b as any).isPinned) return 1;
+
       switch (currentSort) {
         case SortOption.CreatedAtAsc:
           return a.createdAt - b.createdAt;
@@ -95,7 +111,18 @@ export const NotesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     });
 
     return sorted;
-  }, [allNotes, currentSort, currentFilterTags, currentSearchQuery]);
+  }, [allNotes, currentSort, currentFilterTags, currentSearchQuery, currentFilter]);
+
+  const migrateNote = (note: Note): Note => {
+    if ((!note.pages || note.pages.length === 0) && note.content) {
+      return {
+        ...note,
+        pages: [{ id: crypto.randomUUID(), title: 'Page 1', content: note.content as any }],
+        content: undefined as any,
+      };
+    }
+    return note;
+  };
 
   // Optimized fetch function that only fetches from DB when necessary
   const fetchNotes = useCallback(async () => {
@@ -104,7 +131,7 @@ export const NotesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     try {
       // Fetch all notes without filtering - filtering is now done in memory
       const fetchedNotes = await dbGetAllNotes();
-      setAllNotes(fetchedNotes);
+      setAllNotes(fetchedNotes.map(migrateNote));
     } catch (e) {
       console.error("Failed to fetch notes:", e);
       setError(e instanceof Error ? e.message : 'Failed to fetch notes');
@@ -128,15 +155,18 @@ export const NotesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     fetchTags();
   }, []); // Only fetch once on mount - filtering/sorting now handled in memory
 
-  const addNote = async (noteData: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>): Promise<Note | null> => {
+  const addNote = async (noteData: Omit<Note, 'id' | 'createdAt' | 'updatedAt' | 'pages' | 'isPinned' | 'isFavorite'> & { pages?: NotePage[] }): Promise<Note | null> => {
     setLoading(true);
     try {
       const newNote: Note = {
         ...noteData,
         id: crypto.randomUUID(),
+        pages: noteData.pages || [{ id: crypto.randomUUID(), title: 'Page 1', content: '' }],
         createdAt: Date.now(),
         updatedAt: Date.now(),
-      };
+        isPinned: false,
+        isFavorite: false,
+      } as Note;
       await dbAddNote(newNote);
       await fetchNotes(); // Refresh notes list
       await fetchTags(); // Refresh tags list
@@ -189,7 +219,7 @@ export const NotesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     if (id) {
       setLoading(true);
       const note = await dbGetNote(id);
-      setCurrentNote(note || null);
+      setCurrentNote(note ? migrateNote(note) : null);
       setLoading(false);
     } else {
       setCurrentNote(null);
@@ -197,8 +227,22 @@ export const NotesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   }, []);
 
   const getNoteById = useCallback(async (id: string): Promise<Note | undefined> => {
-    return dbGetNote(id);
+    const note = await dbGetNote(id);
+    return note ? migrateNote(note) : undefined;
   }, []);
+
+  const toggleNoteAttribute = useCallback(async (id: string, attribute: 'isPinned' | 'isFavorite') => {
+    const note = allNotes.find((n) => n.id === id);
+    if (note) {
+      const updatedNote: Note = {
+        ...note,
+        [attribute]: !(note as any)[attribute],
+        updatedAt: Date.now(),
+      };
+      await dbUpdateNote(updatedNote);
+      setAllNotes(prevNotes => prevNotes.map((n) => n.id === id ? updatedNote : n));
+    }
+  }, [allNotes]);
 
   return (
     <NotesContext.Provider value={{ 
@@ -220,7 +264,10 @@ export const NotesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       currentFilterTags,
       setCurrentFilterTags,
       currentSearchQuery,
-      setCurrentSearchQuery
+      setCurrentSearchQuery,
+      toggleNoteAttribute,
+      currentFilter,
+      setCurrentFilter
     }}>
       {children}
     </NotesContext.Provider>

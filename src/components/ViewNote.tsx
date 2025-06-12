@@ -23,6 +23,7 @@ export const ViewNote: React.FC = () => {
   const { setActiveEditorInteraction, activeEditor } = useEditorInteraction();
 
   const [noteToView, setNoteToView] = useState<Note | null>(null);
+  const [activePageId, setActivePageId] = useState<string | null>(null);
   const editorInstanceRef = useRef<Cherry | null>(null);
   const editorHolderRef = useRef<HTMLDivElement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -38,11 +39,10 @@ export const ViewNote: React.FC = () => {
   }, []);
 
   const getNoteContentAsTextForAI = useCallback(async (): Promise<string> => {
-    if (editorInstanceRef.current) {
-        return editorInstanceRef.current.getMarkdown();
-    }
-    return sanitizeMarkdownString(noteToView?.content || '');
-  }, [noteToView]);
+    if (!noteToView || !activePageId) return '';
+    const activePage = noteToView.pages.find(p => p.id === activePageId);
+    return activePage?.content || '';
+  }, [noteToView, activePageId]);
 
   const applyAiChangesFromView = useCallback((newMarkdown: string) => {
     if (noteToView) {
@@ -100,7 +100,9 @@ export const ViewNote: React.FC = () => {
       
       if (noteData) {
         setNoteToView(noteData);
-        // console.log("[ViewNote] Loaded note data:", noteData); // Keep this one as it's safe
+        if (noteData && noteData.pages.length > 0) {
+          setActivePageId(noteData.pages[0].id);
+        }
       } else {
         console.warn(`Note ${noteId} not found for viewing. Navigating to home.`);
         setNoteToView(null); 
@@ -130,29 +132,32 @@ export const ViewNote: React.FC = () => {
     }
 
     const holder = editorHolderRef.current;
-    const sanitizedContent = sanitizeMarkdownString(noteToView.content || createEmptyMarkdown());
-    
-    // console.log('[ViewNote] Initializing Cherry with content:', sanitizedContent); // Keep this one
+    const activePage = noteToView.pages.find(p => p.id === activePageId);
+    const contentToRender = sanitizeMarkdownString(activePage?.content || createEmptyMarkdown());
+
+    const editor = editorInstanceRef.current;
+    if (editor) {
+      // @ts-ignore
+      if (editor.getMarkdown() !== contentToRender) {
+        // @ts-ignore
+        editor.setMarkdown(contentToRender);
+      }
+      return;
+    }
+
     try {
         const cherryConfig = {
-            el: holder, 
-            value: sanitizedContent,
-            toolbars: { 
-                theme: 'light', 
-                showToolbar: false 
-            }, 
+            el: holder,
+            value: contentToRender,
+            toolbars: {
+                theme: settings.theme,
+                showToolbar: false
+            },
             editor: {
-              defaultModel: 'previewOnly', 
+              defaultModel: 'previewOnly' as const,
               height: '100%',
             },
         };
-        // Log a safe version of the config
-        const { el, ...loggableConfigParts } = cherryConfig;
-        console.log('[ViewNote] Cherry Markdown config for view mode (el property represented descriptively):', {
-          ...loggableConfigParts,
-          el: el ? `[HTMLDivElement: ${el.id || 'No ID on element'}]` : 'null'
-        });
-        
         const cherryInstance = new Cherry(cherryConfig);
         editorInstanceRef.current = cherryInstance;
     } catch (e) { 
@@ -166,7 +171,7 @@ export const ViewNote: React.FC = () => {
       }
       editorInstanceRef.current = null;
     };
-  }, [noteToView, isLoading, displayApiMessage]); // Depend on noteToView and isLoading
+  }, [noteToView, isLoading, displayApiMessage, activePageId, settings.theme]);
 
   const renderApiMessage = () => {
     if (!apiMessage) return null;
@@ -209,10 +214,10 @@ export const ViewNote: React.FC = () => {
   }
   
   const dateFormat = language === 'zh' ? 'yyyy年M月d日 HH:mm' : 'MMMM d, yyyy HH:mm';
-  const editorKey = noteToView.id || 'view-note-fallback';
+  const editorKey = `${noteToView.id}-${activePageId}` || 'view-note-fallback';
   
   return (
-    <div className="flex flex-col h-full"> 
+    <div className="flex flex-col h-full">
       {renderApiMessage()}
       <div className="mb-4 pb-4 border-b border-slate-200 dark:border-slate-700">
         <div className="flex justify-between items-start">
@@ -260,10 +265,31 @@ export const ViewNote: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Pages Tab UI */}
+      {noteToView.pages.length > 1 && (
+        <div className="mb-4 border-b border-slate-200 dark:border-slate-700">
+          <div className="flex items-center space-x-2">
+            {noteToView.pages.map(page => (
+              <button
+                key={page.id}
+                onClick={() => setActivePageId(page.id)}
+                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                  activePageId === page.id
+                    ? 'border-primary text-primary dark:text-primary-light'
+                    : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-600'
+                }`}
+              >
+                {page.title}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       
-      <div 
+      <div
         id={EDITOR_VIEW_HOLDER_ID}
-        key={editorKey} 
+        key={editorKey}
         ref={editorHolderRef}
         contentEditable={false} // Reinforce non-editable nature
         className="flex-1 overflow-hidden max-w-none w-full" // Removed prose classes

@@ -4,13 +4,13 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Cherry from 'cherry-markdown';
 
 import { useNotes } from '../contexts/NoteContext';
-import { Note, ApiFeedback } from '../types';
+import { Note, NotePage, ApiFeedback } from '../types';
 import { TagInput } from './TagInput';
 import { useSettings } from '../contexts/SettingsContext';
 import { useI18n } from '../contexts/I18nContext';
 import { useEditorInteraction } from '../contexts/EditorInteractionContext';
 import { exportNoteAsMarkdown, exportNoteAsTXT, exportNotesAsJSON } from '../services/fileService';
-import { TrashIcon, DownloadIcon, CheckCircleIcon, ExclamationCircleIcon, InformationCircleIcon, SaveIcon, ChevronDownIcon, ArrowLeftIcon } from './Icons';
+import { TrashIcon, DownloadIcon, CheckCircleIcon, ExclamationCircleIcon, InformationCircleIcon, SaveIcon, ChevronDownIcon, ArrowLeftIcon, PlusIcon, XMarkIcon } from './Icons';
 import { EDITOR_HOLDER_ID } from '../constants';
 
 
@@ -45,9 +45,9 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ isNewNote = false }) => 
   const [localNote, setLocalNote] = useState<Note | null>(null);
   const [title, setTitle] = useState('');
   const [tags, setTags] = useState<string[]>([]);
+  const [activePageId, setActivePageId] = useState<string | null>(null);
   
   const [initialMarkdownForEditor, setInitialMarkdownForEditor] = useState<string | null>(null);
-  const [currentMarkdownContent, setCurrentMarkdownContent] = useState<string | null>(null);
   
   const editorInstanceRef = useRef<Cherry | null>(null);
   const editorHolderRef = useRef<HTMLDivElement | null>(null); 
@@ -77,113 +77,85 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ isNewNote = false }) => 
     const passedState = location.state as { initialContentText?: string; initialTitle?: string, replaceExistingContent?: boolean };
 
     const loadNote = async () => {
-      let markdownForEditorInit: string | undefined = undefined;
-      let noteTitle = '';
-      let noteTags: string[] = [];
       let noteToSetAsLocal: Note | null = null;
 
       if (isNewNote) {
-        if (passedState?.initialContentText) {
-          markdownForEditorInit = sanitizeMarkdownString(passedState.initialContentText);
-          noteTitle = passedState.initialTitle || '';
-          navigate(location.pathname, { replace: true, state: null });
-        } else if (lastInitializedNoteIdOrNewFlagRef.current !== 'new' || !editorInstanceRef.current) {
-          markdownForEditorInit = createEmptyMarkdown();
-        }
-        lastInitializedNoteIdOrNewFlagRef.current = 'new';
-        const tempNoteContent = markdownForEditorInit || currentMarkdownContent || createEmptyMarkdown();
+        const firstPage: NotePage = { id: crypto.randomUUID(), title: 'Page 1', content: passedState?.initialContentText || '' };
         noteToSetAsLocal = {
-          id: `temp-${Date.now()}`, title: noteTitle, content: tempNoteContent,
-          tags: noteTags, createdAt: Date.now(), updatedAt: Date.now(),
+          id: `temp-${Date.now()}`,
+          title: passedState?.initialTitle || '',
+          pages: [firstPage],
+          tags: [],
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
         };
-        if (noteId && noteId !== 'new' && selectedNoteId !== null) selectNote(null); 
-
+        if (passedState) navigate(location.pathname, { replace: true, state: null });
+        if (noteId && noteId !== 'new' && selectedNoteId !== null) selectNote(null);
       } else if (noteId) {
-        let noteToLoad: Note | undefined | null = null;
-        if (passedState?.replaceExistingContent && passedState?.initialContentText) {
-            noteToLoad = await getNoteById(noteId);
-            if (noteToLoad) {
-                markdownForEditorInit = sanitizeMarkdownString(passedState.initialContentText);
-                noteTitle = noteToLoad.title; 
-                noteTags = noteToLoad.tags; 
-                noteToSetAsLocal = {...noteToLoad, content: markdownForEditorInit};
-                navigate(location.pathname, { replace: true, state: null });
-            } else { 
-                 markdownForEditorInit = sanitizeMarkdownString(passedState.initialContentText);
-                 noteTitle = ''; 
-                 noteTags = [];
-                 noteToSetAsLocal = {
-                     id: noteId, 
-                     title: noteTitle, content: markdownForEditorInit, tags: noteTags, 
-                     createdAt: Date.now(), updatedAt: Date.now()
-                 };
-                 navigate(location.pathname, { replace: true, state: null });
-            }
-        } else if (contextNote && contextNote.id === noteId) {
-          noteToLoad = contextNote;
-        } else {
-          noteToLoad = await getNoteById(noteId);
-        }
+        let noteToLoad: Note | undefined | null = contextNote && contextNote.id === noteId ? contextNote : await getNoteById(noteId);
 
         if (noteToLoad) {
-          noteToSetAsLocal = noteToLoad;
-          noteTitle = noteTitle || noteToLoad.title; 
-          noteTags = noteTags.length > 0 ? noteTags : noteToLoad.tags;
-
-          if (!markdownForEditorInit && (!editorInstanceRef.current || lastInitializedNoteIdOrNewFlagRef.current !== noteId)) {
-            markdownForEditorInit = sanitizeMarkdownString(noteToLoad.content);
+          if (passedState?.replaceExistingContent && passedState?.initialContentText) {
+            const updatedPage: NotePage = { ...noteToLoad.pages[0], content: sanitizeMarkdownString(passedState.initialContentText) };
+            noteToLoad = { ...noteToLoad, pages: [updatedPage, ...noteToLoad.pages.slice(1)] };
+            navigate(location.pathname, { replace: true, state: null });
           }
-          lastInitializedNoteIdOrNewFlagRef.current = noteId;
-        } else if (!passedState?.initialContentText) { 
+          noteToSetAsLocal = noteToLoad;
+        } else {
           console.warn(`Note ${noteId} not found. Navigating to home.`);
           navigate('/');
-          lastInitializedNoteIdOrNewFlagRef.current = null;
-          setIsLoadingEditor(false);
           return;
         }
-      } else { 
-        if (lastInitializedNoteIdOrNewFlagRef.current !== 'empty' || !editorInstanceRef.current) {
-          markdownForEditorInit = createEmptyMarkdown();
-          lastInitializedNoteIdOrNewFlagRef.current = 'empty';
-        }
-         noteToSetAsLocal = null; 
-         noteTitle = ''; 
-         noteTags = [];
       }
-      
-      setLocalNote(noteToSetAsLocal);
-      setTitle(noteTitle);
-      setTags(noteTags);
 
-      if (markdownForEditorInit !== undefined) {
-        setInitialMarkdownForEditor(markdownForEditorInit);
-        setCurrentMarkdownContent(markdownForEditorInit); 
+      setLocalNote(noteToSetAsLocal);
+      if (noteToSetAsLocal) {
+        setTitle(noteToSetAsLocal.title);
+        setTags(noteToSetAsLocal.tags);
+        const firstPageId = noteToSetAsLocal.pages[0]?.id || null;
+        setActivePageId(firstPageId);
+        setInitialMarkdownForEditor(noteToSetAsLocal.pages[0]?.content || '');
+      } else {
+        setTitle('');
+        setTags([]);
+        setActivePageId(null);
+        setInitialMarkdownForEditor('');
       }
       setIsLoadingEditor(false);
     };
 
     loadNote();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [noteId, isNewNote, getNoteById, navigate, contextNote, selectNote, location.state]); 
+  }, [noteId, isNewNote, getNoteById, navigate, contextNote, selectNote, location.state]);
 
   const getFullContentAsTextInternal = useCallback(async (): Promise<string> => {
+    if (!localNote || !activePageId) return '';
+    
+    // If the editor is active, get fresh content from it
     if (editorInstanceRef.current) {
       return editorInstanceRef.current.getMarkdown();
     }
-    return currentMarkdownContent || '';
-  }, [currentMarkdownContent]);
+
+    // Otherwise, return the content from the state
+    const activePage = localNote.pages.find(p => p.id === activePageId);
+    return activePage?.content || '';
+  }, [localNote, activePageId]);
 
   const applyAiChangesToEditorInternal = useCallback((newMarkdown: string) => {
     const sanitizedMarkdown = sanitizeMarkdownString(newMarkdown);
     if (editorInstanceRef.current) {
-      editorInstanceRef.current.setMarkdown(sanitizedMarkdown); 
-      setCurrentMarkdownContent(sanitizedMarkdown); 
+      editorInstanceRef.current.setMarkdown(sanitizedMarkdown);
     } else {
-        console.warn("Attempting to apply AI suggestion but editor instance is not fully available. Setting as initial data for next render.");
-        setInitialMarkdownForEditor(sanitizedMarkdown); 
-        setCurrentMarkdownContent(sanitizedMarkdown);
+      setInitialMarkdownForEditor(sanitizedMarkdown);
     }
-  }, []);
+    // Also update the localNote state
+    setLocalNote(prevNote => {
+      if (!prevNote || !activePageId) return prevNote;
+      const newPages = prevNote.pages.map(p =>
+        p.id === activePageId ? { ...p, content: sanitizedMarkdown } : p
+      );
+      return { ...prevNote, pages: newPages };
+    });
+  }, [activePageId]);
 
   const getTitleInternal = useCallback(() => title, [title]);
   const setTagsFromAIInternal = useCallback((newTags: string[]) => {
@@ -223,52 +195,39 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ isNewNote = false }) => 
     }
   
     if (editorInstanceRef.current) {
-      try {
-        editorInstanceRef.current.destroy();
-      } catch (e) {
-         console.warn("Error destroying previous Cherry instance:", e);
+      // If instance exists, just update content to avoid full re-initialization
+      if (editorInstanceRef.current.getMarkdown() !== initialMarkdownForEditor) {
+        editorInstanceRef.current.setMarkdown(initialMarkdownForEditor);
       }
-    }
-    editorInstanceRef.current = null;
-  
-    const holder = editorHolderRef.current;
-  
-    // Direct initialization
-    if (!editorHolderRef.current || initialMarkdownForEditor === null) {
-      console.warn("Editor holder or initial markdown became null before initialization. Aborting editor setup.");
       return;
     }
-
+  
+    const holder = editorHolderRef.current;
     try {
       const cherryConfig = {
-        el: holder, // Use the current ref
+        el: holder,
         value: initialMarkdownForEditor,
-        toolbars: {
-          theme: 'light', 
-          showToolbar: true,
-        },
-        editor: {
-          height: '100%', 
-          defaultModel: 'editOnly',
-          // placeholder: editorPlaceholderText.current, // Cherry Markdown might not support placeholder this way
-        },
+        toolbars: { theme: settings.theme, showToolbar: true },
+        editor: { height: '100%', defaultModel: 'editOnly' as const },
         fileUpload: (file: File, callback: (url: string, params?: Record<string, any>) => void) => {
           const reader = new FileReader();
-          reader.onload = (e) => {
-            const base64Str = e.target?.result as string;
-            callback(base64Str, { name: file.name }); 
-          };
+          reader.onload = (e) => callback(e.target?.result as string, { name: file.name });
           reader.readAsDataURL(file);
         },
         callback: {
-          afterChange: (markdown: string, html: string) => {
-            setCurrentMarkdownContent(markdown);
+          afterChange: (markdown: string) => {
+            setLocalNote(prevNote => {
+              if (!prevNote || !activePageId) return prevNote;
+              const newPages = prevNote.pages.map(p =>
+                p.id === activePageId ? { ...p, content: markdown } : p
+              );
+              return { ...prevNote, pages: newPages };
+            });
           },
         },
       };
       const cherryInstance = new Cherry(cherryConfig);
       editorInstanceRef.current = cherryInstance;
-
     } catch (e) {
       console.error("Failed to initialize Cherry Markdown editor:", e);
       displayApiMessage({type: 'error', text: 'Editor failed to load. Try refreshing.'});
@@ -278,50 +237,48 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ isNewNote = false }) => 
       if (editorInstanceRef.current) {
         try {
           editorInstanceRef.current.destroy();
-        } catch (e) { /* console.error("Error destroying Cherry on cleanup:", e); */ }
+        } catch (e) { /* ignore */ }
+        editorInstanceRef.current = null;
       }
-      editorInstanceRef.current = null;
     };
-  // The key prop on the holder div handles major re-initialization.
-  // This useEffect handles the initial setup and changes to initialMarkdownForEditor if the key doesn't change.
-  }, [initialMarkdownForEditor, isLoadingEditor, displayApiMessage]); 
+  }, [initialMarkdownForEditor, isLoadingEditor, displayApiMessage, activePageId]);
   
-  const isContentTrulyEmpty = (content: string | null): boolean => {
-    return !content || content.trim() === '';
+  const isNoteTrulyEmpty = (note: Note | null): boolean => {
+    if (!note) return true;
+    const hasContent = note.pages.some(p => p.content.trim() !== '');
+    return note.title.trim() === '' && !hasContent;
   };
 
   const handleManualSave = async () => {
-    if (!localNote && !isNewNote) {
-        displayApiMessage({ type: 'error', text: t('noteEditor.saveError') + ' (No local note context)' });
-        return;
-    }
-    
-    let contentFromEditor = currentMarkdownContent; 
-    if (editorInstanceRef.current) {
-        contentFromEditor = editorInstanceRef.current.getMarkdown();
+    if (!localNote) {
+      displayApiMessage({ type: 'error', text: t('noteEditor.saveError') + ' (No local note context)' });
+      return;
     }
 
-    const sanitizedContentForSave = sanitizeMarkdownString(contentFromEditor);
-    setCurrentMarkdownContent(sanitizedContentForSave); 
-    setApiMessage(null);
+    // Ensure latest content from editor is in localNote state before saving
+    let noteToSave = localNote;
+    if (editorInstanceRef.current && activePageId) {
+      const currentMarkdown = editorInstanceRef.current.getMarkdown();
+      const newPages = localNote.pages.map(p => p.id === activePageId ? { ...p, content: currentMarkdown } : p);
+      noteToSave = { ...localNote, pages: newPages };
+      setLocalNote(noteToSave); // Update state to reflect final content
+    }
     
-    const noteDataToSave = { title, content: sanitizedContentForSave, tags };
+    const finalNoteData = { ...noteToSave, title, tags };
 
     try {
-      if (isNewNote || (localNote && localNote.id.startsWith('temp-'))) {
-        const isTrulyEmpty = title.trim() === '' && isContentTrulyEmpty(sanitizedContentForSave);
-        if (isTrulyEmpty) {
-            displayApiMessage({ type: 'error', text: t('noteEditor.emptyNoteError') });
-            return;
+      if (isNewNote || finalNoteData.id.startsWith('temp-')) {
+        if (isNoteTrulyEmpty(finalNoteData)) {
+          displayApiMessage({ type: 'error', text: t('noteEditor.emptyNoteError') });
+          return;
         }
-        const newNote = await addNote(noteDataToSave);
+        const newNote = await addNote(finalNoteData);
         if (newNote) {
           navigate(`/note/${newNote.id}`, { replace: true });
           displayApiMessage({ type: 'success', text: t('noteEditor.createSuccess') });
         }
-      } else if (localNote) { 
-        const noteToUpdate = { ...localNote, ...noteDataToSave };
-        await updateNote(noteToUpdate); 
+      } else {
+        await updateNote(finalNoteData);
         displayApiMessage({ type: 'success', text: t('noteEditor.saveSuccess') });
       }
     } catch (err) {
@@ -336,9 +293,14 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ isNewNote = false }) => 
         navigate('/');
       }
     } else { 
-        setTitle(''); setTags([]);   
-        setInitialMarkdownForEditor(createEmptyMarkdown()); 
-        setCurrentMarkdownContent(createEmptyMarkdown());
+        setTitle(''); setTags([]);
+        const firstPage: NotePage = { id: crypto.randomUUID(), title: 'Page 1', content: '' };
+        setLocalNote({
+          id: `temp-${Date.now()}`, title: '', pages: [firstPage], tags: [],
+          createdAt: Date.now(), updatedAt: Date.now(),
+        });
+        setActivePageId(firstPage.id);
+        setInitialMarkdownForEditor('');
         if (editorInstanceRef.current) editorInstanceRef.current.setMarkdown('');
         
         if (localNote && contextNote && localNote.id === contextNote.id) selectNote(null);
@@ -351,36 +313,35 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ isNewNote = false }) => 
   };
 
   const handleExport = (format: 'json' | 'md' | 'txt') => {
-    let contentForExport = sanitizeMarkdownString(currentMarkdownContent || localNote?.content);
-    if (editorInstanceRef.current) { // Prefer content directly from editor if available
-        contentForExport = editorInstanceRef.current.getMarkdown();
+    if (!localNote) return;
+    
+    let noteToExport = { ...localNote, title, tags };
+    if (editorInstanceRef.current && activePageId) {
+      const currentMarkdown = editorInstanceRef.current.getMarkdown();
+      const newPages = noteToExport.pages.map(p => p.id === activePageId ? { ...p, content: currentMarkdown } : p);
+      noteToExport = { ...noteToExport, pages: newPages };
     }
 
-
-    if (!localNote || localNote.id.startsWith('temp-')) { 
-      if (title.trim() === '' && isContentTrulyEmpty(contentForExport)) {
-        displayApiMessage({type: 'info', text: t('noteEditor.saveBeforeExport') + " (Note is empty)"});
-        return;
-      }
-      const tempNoteForExport: Note = { 
-          id: localNote?.id || `temp-${Date.now()}`, title, content: contentForExport, tags,
-          createdAt: localNote?.createdAt || Date.now(), updatedAt: localNote?.updatedAt || Date.now()
-      };
-      const filenameBase = title.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'note';
-      switch (format) {
-          case 'json': exportNotesAsJSON([tempNoteForExport], settings, `${filenameBase}.json`); break;
-          case 'md': exportNoteAsMarkdown(tempNoteForExport, `${filenameBase}.md`); break;
-          case 'txt': exportNoteAsTXT(tempNoteForExport, `${filenameBase}.txt`); break;
-      }
+    if (isNoteTrulyEmpty(noteToExport)) {
+      displayApiMessage({type: 'info', text: t('noteEditor.saveBeforeExport') + " (Note is empty)"});
       return;
     }
 
-    const noteToExport: Note = { ...localNote, title, content: contentForExport, tags };
     const filenameBase = title.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'note';
     switch (format) {
       case 'json': exportNotesAsJSON([noteToExport], settings, `${filenameBase}.json`); break;
-      case 'md': exportNoteAsMarkdown(noteToExport, `${filenameBase}.md`); break;
-      case 'txt': exportNoteAsTXT(noteToExport, `${filenameBase}.txt`); break;
+      // For md/txt, we might want to export the active page or all pages concatenated
+      // For now, let's export the active page
+      case 'md': {
+        const activePage = noteToExport.pages.find(p => p.id === activePageId);
+        if (activePage) exportNoteAsMarkdown({ ...noteToExport, content: activePage.content }, `${filenameBase}.md`);
+        break;
+      }
+      case 'txt': {
+        const activePage = noteToExport.pages.find(p => p.id === activePageId);
+        if (activePage) exportNoteAsTXT({ ...noteToExport, content: activePage.content }, `${filenameBase}.txt`);
+        break;
+      }
     }
     setShowExportOptions(false);
   };
@@ -427,12 +388,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ isNewNote = false }) => 
   };
   
   // Determine a unique key for the editor container
-  let editorKey = 'empty-editor';
-  if (isNewNote) {
-    editorKey = localNote?.id || 'new-note-editor-temp'; // Use temp ID if available, else a generic new key
-  } else if (noteId) {
-    editorKey = noteId;
-  }
+  let editorKey = localNote ? `${localNote.id}-${activePageId}` : 'empty-editor';
 
 
   return (
@@ -498,19 +454,79 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ isNewNote = false }) => 
       </div>
 
       <TagInput tags={tags} setTags={setTags} />
+
+      {/* Pages Tab UI */}
+      <div className="mt-4 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex items-center space-x-2">
+          {localNote?.pages.map((page, index) => (
+            <div key={page.id} className="relative group">
+              <button
+                onClick={() => setActivePageId(page.id)}
+                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                  activePageId === page.id
+                    ? 'border-primary text-primary dark:text-primary-light'
+                    : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-600'
+                }`}
+              >
+                {page.title}
+              </button>
+              {localNote.pages.length > 1 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (window.confirm(t('noteEditor.deletePageConfirmation', { pageTitle: page.title }))) {
+                      setLocalNote(prev => {
+                        if (!prev) return null;
+                        const newPages = prev.pages.filter(p => p.id !== page.id);
+                        if (activePageId === page.id) {
+                          const newActiveId = newPages[index] ? newPages[index].id : newPages[index - 1]?.id;
+                          setActivePageId(newActiveId);
+                          setInitialMarkdownForEditor(newPages.find(p => p.id === newActiveId)?.content || '');
+                        }
+                        return { ...prev, pages: newPages };
+                      });
+                    }
+                  }}
+                  className="absolute top-0 right-0 p-0.5 bg-slate-200 dark:bg-slate-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label={t('noteEditor.deletePageButton')}
+                >
+                  <XMarkIcon className="w-3 h-3 text-slate-600 dark:text-slate-300" />
+                </button>
+              )}
+            </div>
+          ))}
+          <button
+            onClick={() => {
+              if (!localNote) return;
+              const newPage: NotePage = {
+                id: crypto.randomUUID(),
+                title: `Page ${localNote.pages.length + 1}`,
+                content: '',
+              };
+              const newPages = [...localNote.pages, newPage];
+              setLocalNote({ ...localNote, pages: newPages });
+              setActivePageId(newPage.id);
+              setInitialMarkdownForEditor('');
+            }}
+            className="p-2 text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-primary-light rounded-md"
+            aria-label={t('noteEditor.addPageButton')}
+          >
+            <PlusIcon className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
       
       <div className="flex-1 flex flex-col mt-1 overflow-hidden">
-        <div 
-            id={EDITOR_HOLDER_ID} 
-            key={editorKey} // Added key here
-            ref={editorHolderRef} 
-            className="w-full h-full" 
+        <div
+            id={EDITOR_HOLDER_ID}
+            key={editorKey}
+            ref={editorHolderRef}
+            className="w-full h-full"
         >
-        {/* Conditional loading placeholder can be added here if Cherry takes time to init after key change */}
-        { (isLoadingEditor || (initialMarkdownForEditor === null && (noteId || isNewNote) && !editorHolderRef.current?.hasChildNodes() )) && 
+        { (isLoadingEditor || (initialMarkdownForEditor === null && (noteId || isNewNote))) &&
             <div className="w-full h-full flex items-center justify-center text-slate-400 p-4 bg-white dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-600">
                 {t('noteEditor.loading')}
-            </div> 
+            </div>
         }
         </div>
       </div>

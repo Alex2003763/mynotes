@@ -1,4 +1,3 @@
-
 {
   "appName": "我的筆記",
   "header": {
@@ -13,9 +12,15 @@
     "notesTitle": "筆記",
     "searchPlaceholder": "搜尋筆記...",
     "searchOrTagPlaceholder": "搜尋內容或輸入 # 新增標籤",
+    "searchInFiltered": "在已篩選的筆記中搜尋...",
+    "availableTags": "可用標籤",
+    "andMoreTags": "還有 {{count}} 個...",
     "sortTitle": "排序方式",
+    "filterTitle": "篩選方式",
     "filterTagsTitle": "按標籤篩選",
-    "noTagsAvailable": "沒有可用的標籤。"
+    "noTagsAvailable": "沒有可用的標籤。",
+    "tagsTitle": "標籤",
+    "addTag": "新增標籤"
   },
   "noteList": {
     "loading": "正在載入筆記...",
@@ -76,6 +81,10 @@
     "createdAtAsc": "建立日期 (最舊)",
     "titleAsc": "標題 (A-Z)",
     "titleDesc": "標題 (Z-A)"
+  },
+  "filterOptions": {
+    "all": "所有筆記",
+    "favorites": "收藏"
   },
   "settingsModal": {
     "title": "應用程式設定",
@@ -195,13 +204,30 @@
       "editCurrent": "編輯目前筆記",
       "newNoteTitlePrefix": "AI: ",
       "applied": "內容已套用"
-    }
+    },
+    "statsTitle": "筆記統計",
+    "totalNotes": "總筆記數",
+    "wordsToday": "今日字數",
+    "weeklyAvg": "每週平均",
+    "tagsUsed": "已用標籤"
   },
   "welcomeScreen": {
     "title": "歡迎使用 我的筆記",
     "defaultMessage": "您的個人化、離線優先、AI 驅動的筆記本。",
     "selectOrCreate": "從側邊欄選取一篇筆記開始編輯，或建立一篇新筆記。",
-    "createFirstNote": "建立您的第一篇筆記"
+    "createFirstNote": "建立您的第一篇筆記",
+    "feature1": {
+      "title": "快速筆記",
+      "description": "立即記錄和整理您的想法"
+    },
+    "feature2": {
+      "title": "智能搜尋",
+      "description": "透過強大的搜尋和標籤功能找到任何筆記"
+    },
+    "feature3": {
+      "title": "AI 驅動",
+      "description": "獲得寫作和內容整理的智能協助"
+    }
   },
   "general":{
     "error": "錯誤",
@@ -222,18 +248,24 @@
     "unfavorite": "取消收藏",
     "createdAgo": "建立於 {{time}}",
     "updatedAgo": "更新於 {{time}}",
+    "edited": "已編輯",
     "moreTags": "+{{count}} 個更多",
     "loading": "載入中...",
     "deleting": "正在刪除...",
     "noContent": "尚無內容...",
     "untitled": "無標題筆記"
   },
+  "mainContent": {
+    "welcome": "歡迎使用您的筆記",
+    "yourNotes": "您的筆記",
+    "welcomeSubtitle": "開始使用強大的 AI 增強筆記體驗整理您的想法。",
+    "notesSubtitle": "透過智能搜尋和篩選功能管理您的 {{count}} 篇筆記。"
+  },
   "noteGrid": {
     "title": "筆記 ({{count}})",
     "viewModes": {
       "grid": "網格",
-      "list": "列表",
-      "compact": "緊湊"
+      "list": "列表"
     },
     "sortModes": {
       "updated": "最近更新",

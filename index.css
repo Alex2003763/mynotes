@@ -1,3 +1,142 @@
+/* =================== 新增現代化主頁樣式 =================== */
+
+/* 漸變背景動畫 */
+.gradient-bg {
+  background: linear-gradient(-45deg, #f8fafc, #f1f5f9, #e2e8f0, #f8fafc);
+  background-size: 400% 400%;
+  animation: gradientShift 15s ease infinite;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.dark .gradient-bg {
+  background: linear-gradient(-45deg, #0f172a, #1e293b, #334155, #0f172a);
+  background-size: 400% 400%;
+}
+
+/* 玻璃效果 */
+.glass-effect {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.dark .glass-effect {
+  background: rgba(15, 23, 42, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 現代化卡片陰影 */
+.modern-shadow {
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.12),
+    0 1px 2px rgba(0, 0, 0, 0.24);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.modern-shadow:hover {
+  box-shadow:
+    0 14px 28px rgba(0, 0, 0, 0.25),
+    0 10px 10px rgba(0, 0, 0, 0.22);
+}
+
+.dark .modern-shadow {
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.3),
+    0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.dark .modern-shadow:hover {
+  box-shadow:
+    0 14px 28px rgba(0, 0, 0, 0.5),
+    0 10px 10px rgba(0, 0, 0, 0.4);
+}
+
+/* 3D 變換效果 */
+.transform-3d {
+  transform-style: preserve-3d;
+  perspective: 1000px;
+}
+
+.card-3d {
+  transition: transform 0.6s;
+}
+
+.card-3d:hover {
+  transform: rotateY(5deg) rotateX(5deg) translateZ(20px);
+}
+
+/* 彩色邊框動畫 */
+.rainbow-border {
+  position: relative;
+  background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #ffeaa7, #dda0dd);
+  background-size: 400% 400%;
+  animation: rainbowShift 8s ease infinite;
+  border-radius: 1rem;
+  padding: 2px;
+}
+
+.rainbow-border::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  background: white;
+  border-radius: calc(1rem - 2px);
+  z-index: -1;
+}
+
+.dark .rainbow-border::before {
+  background: #1e293b;
+}
+
+@keyframes rainbowShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* 文字漸變效果 */
+.text-gradient {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.dark .text-gradient {
+  background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* 浮動動畫 */
+.float-animation {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+  100% { transform: translateY(0px); }
+}
+
+/* 脈衝光暈效果 */
+.pulse-glow {
+  animation: pulseGlow 2s infinite;
+}
+
+@keyframes pulseGlow {
+  0% { box-shadow: 0 0 5px rgba(59, 130, 246, 0.5); }
+  50% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.8), 0 0 30px rgba(59, 130, 246, 0.6); }
+  100% { box-shadow: 0 0 5px rgba(59, 130, 246, 0.5); }
+}
+
 /* 響應式 AI 按鈕網格樣式 */
 .ai-button-grid {
   display: grid;
@@ -355,8 +494,12 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  max-height: 100vh; /* 確保不會超出視窗高度 */
   padding: 1rem;
   gap: 1.5rem;
+  overflow: hidden; /* 防止整個容器滾動 */
+  /* 確保容器有固定高度，子元素才能正確滾動 */
+  
 }
 
 /* 標題區域 */
@@ -403,13 +546,64 @@
   gap: 1.5rem;
   padding-bottom: 2rem; /* 保持底部間距，以便滾動到底部時內容不被遮擋 */
   overflow-y: auto; /* 添加垂直滾動 */
+  overflow-x: hidden; /* 隱藏水平滾動 */
   flex: 1; /* 讓它佔用剩餘空間 */
   min-height: 0; /* 修復 flexbox 在某些情況下的問題 */
+  max-height: 100%; /* 確保不會超出容器高度 */
+  position: relative; /* 為子元素的 z-index 提供層疊上下文 */
 }
 
-/* 網格視圖 - 響應式網格 */
+/* 網格視圖和列表視圖的滾動容器 */
+.note-grid-grid,
+.note-grid-list {
+  height: 100%; /* 佔滿可用高度 */
+  overflow-y: auto; /* 啟用垂直滾動 */
+  overflow-x: hidden; /* 隱藏水平滾動 */
+  /* 在移動設備上啟用動量滾動 */
+  -webkit-overflow-scrolling: touch;
+  /* 自定義滾動條樣式 */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.5) transparent;
+}
+
+/* Webkit 瀏覽器的滾動條樣式 */
+.note-grid-grid::-webkit-scrollbar,
+.note-grid-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.note-grid::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.note-grid::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.5);
+  border-radius: 3px;
+}
+
+.note-grid::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.7);
+}
+
+/* 深色模式下的滾動條樣式 */
+.dark .note-grid {
+  scrollbar-color: rgba(71, 85, 105, 0.5) transparent;
+}
+
+.dark .note-grid::-webkit-scrollbar-thumb {
+  background: rgba(71, 85, 105, 0.5);
+}
+
+.dark .note-grid::-webkit-scrollbar-thumb:hover {
+  background: rgba(71, 85, 105, 0.7);
+}
+/* 網格視圖 - 固定尺寸網格 */
 .note-grid-grid {
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, 16rem);
+  justify-content: center;
+  align-items: start;
+  gap: 1.5rem;
+  max-height: 68vh;
 }
 
 /* 列表視圖 - 單列 */
@@ -417,6 +611,7 @@
   grid-template-columns: 1fr;
   justify-items: center; /* Center items horizontally */
   gap: 1rem;
+  max-height: 68vh;
 }
 
 /* 緊湊視圖 - 更小的間距 */
@@ -431,34 +626,46 @@
   .note-grid-container {
     padding: 0.75rem;
     gap: 1rem;
+    max-height: calc(100vh - 4rem); /* 考慮到 header 高度 */
   }
   
   .note-grid-grid {
     grid-template-columns: 1fr;
     gap: 1rem;
+    align-items: start;
   }
   
   .note-grid {
     gap: 1rem;
+    /* 在移動設備上啟用動量滾動 */
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (min-width: 768px) {
+  .note-grid-grid {
+    grid-template-columns: repeat(auto-fill, 16rem);
+    gap: 1.5rem;
   }
 }
 
 @media (min-width: 1024px) {
   .note-grid-grid {
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fill, 16rem);
+    gap: 2rem;
   }
 }
 
 @media (min-width: 1440px) {
   .note-grid-grid {
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    grid-template-columns: repeat(auto-fill, 16rem);
     gap: 2rem;
   }
 }
 
 @media (min-width: 1920px) {
   .note-grid-grid {
-    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    grid-template-columns: repeat(auto-fill, 16rem);
     gap: 2.5rem;
   }
 }
@@ -480,18 +687,73 @@
   overflow: hidden;
 }
 
+/* 三點選單樣式 */
+.note-card-dropdown {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 9999;
+  min-width: 100px;
+  max-width: 180px;
+  background: white;
+  border: 1px solid rgba(203, 213, 225, 1);
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  padding: 0.5rem 0;
+  transform-origin: top right;
+  animation: dropdown-enter 0.15s ease-out;
+}
+
+.dark .note-card-dropdown {
+  background: rgb(30, 41, 59);
+  border-color: rgba(71, 85, 105, 1);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+}
+
+@keyframes dropdown-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* 確保卡片容器有適當的層疊上下文 */
+.note-card-container {
+  position: relative;
+  z-index: 1;
+}
+
+.note-card-container:hover {
+  z-index: 10;
+}
+
+/* 網格項目基本層疊 */
+.note-grid > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* 當卡片有活動的下拉選單時提升層級 */
+.note-grid > *:has(.note-card-dropdown) {
+  z-index: 9999;
+}
+
 /* 卡片懸停效果 */
 .note-card-hover {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s ease-out;
 }
 
 .note-card-hover:hover {
-  transform: translateY(-4px) scale(1.02);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
 .dark .note-card-hover:hover {
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 15px -3px rgba(0, 0, 0, 0.25), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
 }
 
 /* 標籤動畫 */
@@ -671,8 +933,9 @@
 /* 2K 屏幕優化 */
 @media (min-width: 2560px) {
   .note-grid-grid {
-    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-    gap: 2.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2rem;
+    align-items: start;
   }
 }
 
