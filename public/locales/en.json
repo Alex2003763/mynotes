@@ -129,7 +129,8 @@
       "importSuccessFull": "{{count}} notes and application settings imported successfully!",
       "importSuccessNotesSkippedSettings": "{{count}} notes imported. Settings import was skipped.",
       "importFailed": "Import failed: {{message}}",
-      "confirmImportSettings": "The imported file also contains application settings (including API key and theme). Do you want to apply these settings? Your current settings will be overwritten."
+      "confirmImportSettings": "The imported file also contains application settings (including API key and theme). Do you want to apply these settings? Your current settings will be overwritten.",
+      "confirmImportSettingsTitle": "Import Settings"
     },
     "customTheme": {
         "title": "Theme Color",
@@ -285,5 +286,16 @@
       "message": "Unable to load notes. Please try again."
     },
     "filtersComingSoon": "Filter features coming soon..."
-  }
+  },
+ "confirmationDialog": {
+   "confirm": "Confirm",
+   "cancel": "Cancel"
+ },
+ "conflictResolutionModal": {
+   "title": "Import Conflict",
+   "message": "A note titled \"{{title}}\" already exists. What would you like to do?",
+   "overwrite": "Overwrite",
+   "skip": "Skip",
+   "keepBoth": "Keep Both (New Note)"
+ }
 }

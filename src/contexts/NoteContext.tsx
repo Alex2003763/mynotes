@@ -27,6 +27,7 @@ interface NotesContextType {
   fetchTags: () => Promise<void>;
   addNote: (noteData: Omit<Note, 'id' | 'createdAt' | 'updatedAt' | 'pages' | 'isPinned' | 'isFavorite'> & { pages?: NotePage[] }) => Promise<Note | null>;
   updateNote: (note: Note) => Promise<void>;
+  addOrUpdateNote: (note: Note) => Promise<void>;
   deleteNote: (id: string) => Promise<void>;
   selectNote: (id: string | null) => void;
   getNoteById: (id: string) => Promise<Note | undefined>;
@@ -181,6 +182,20 @@ export const NotesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }
   };
 
+  const addOrUpdateNote = async (note: Note): Promise<void> => {
+    setLoading(true);
+    try {
+      await dbAddNote(note); // dbAddNote is just a put, so it works for both
+      await fetchNotes();
+      await fetchTags();
+    } catch (e) {
+      console.error("Failed to add or update note:", e);
+      setError(e instanceof Error ? e.message : 'Failed to add or update note');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const updateNote = async (note: Note): Promise<void> => {
     setLoading(true);
     try {
@@ -254,9 +269,10 @@ export const NotesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       error, 
       fetchNotes, 
       fetchTags,
-      addNote, 
-      updateNote, 
-      deleteNote, 
+      addNote,
+      updateNote,
+      addOrUpdateNote,
+      deleteNote,
       selectNote,
       getNoteById,
       currentSort,

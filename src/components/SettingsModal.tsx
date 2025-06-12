@@ -5,9 +5,13 @@ import { useSettings } from '../contexts/SettingsContext';
 import { AppSettings, SortOption, Language, AvailableAIModel } from '../types';
 import { useNotes } from '../contexts/NoteContext';
 import { useI18n } from '../contexts/I18nContext';
-import { exportNotesAsJSON, importNotesFromJSON } from '../services/fileService';
+import { exportNotesAsJSON } from '../services/fileService';
 import { PREDEFINED_THEME_COLORS, AVAILABLE_AI_MODELS } from '../constants';
 import { CheckCircleIcon, ExclamationCircleIcon, InformationCircleIcon, ChevronDownIcon, ColorSwatchIcon } from './Icons';
+import { useImport } from '../hooks/useImport';
+import { ConfirmationDialog } from './dialogs/ConfirmationDialog';
+import { ConflictResolutionModal, ConflictResolution } from './dialogs/ConflictResolutionModal';
+import { Note } from '../types';
 
 interface SettingsModalProps {
   onClose: () => void;
@@ -15,16 +19,33 @@ interface SettingsModalProps {
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
   const { settings, updateSettings, isLoadingSettings, verifyApiKey } = useSettings();
-  const { notes, addNote: addImportedNote, fetchNotes, fetchTags } = useNotes();
+  const { notes, fetchNotes, fetchTags } = useNotes();
   const { t, setLanguage: i18nSetLanguage, language: currentLanguage } = useI18n();
   
   const [localApiKey, setLocalApiKey] = useState(settings.openRouterApiKey);
-  // const [localAutosaveDelaySeconds, setLocalAutosaveDelaySeconds] = useState<number>((settings.autosaveDelay || DEFAULT_AUTOSAVE_DELAY_MS) / 1000); // REMOVED
   const [importStatus, setImportStatus] = useState<{ type: 'info' | 'success' | 'error'; message: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [customColor, setCustomColor] = useState(settings.primaryColor);
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [dialogState, setDialogState] = useState<
+    { type: 'confirm_settings'; settings: AppSettings; resolve: (value: boolean) => void; } |
+    { type: 'resolve_conflict'; note: Note; resolve: (value: ConflictResolution) => void; } |
+    null
+  >(null);
 
+  const onConfirmSettings = (settingsToImport: AppSettings): Promise<boolean> => {
+    return new Promise((resolve) => {
+      setDialogState({ type: 'confirm_settings', settings: settingsToImport, resolve });
+    });
+  };
+
+  const onResolveConflict = (noteToImport: Note): Promise<ConflictResolution> => {
+    return new Promise((resolve) => {
+      setDialogState({ type: 'resolve_conflict', note: noteToImport, resolve });
+    });
+  };
+
+  const { isImporting, importData } = useImport({ onConfirmSettings, onResolveConflict });
 
   useEffect(() => {
     setLocalApiKey(settings.openRouterApiKey);
@@ -76,62 +97,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     const file = event.target.files?.[0];
     if (file) {
       setImportStatus({ type: 'info', message: t('settingsModal.dataManagement.importing') });
-      try {
-        const importedData = await importNotesFromJSON(file);
-        
-        // Import Notes
-        for (const note of importedData.notes) {
-          const noteData = { title: note.title, content: note.content, tags: note.tags };
-          // Consider checking for duplicate IDs if importing into existing dataset
-          await addImportedNote(noteData); 
-        }
-        await fetchNotes(); // Refresh notes
-        await fetchTags();  // Refresh tags
-
-        let importMessageKey = 'settingsModal.dataManagement.importSuccessNotesOnly';
-        let importMessageParams = { count: importedData.notes.length.toString() };
-
-        // Handle imported settings
-        if (importedData.settings) {
-          if (window.confirm(t('settingsModal.dataManagement.confirmImportSettings'))) {
-            const validSettingsToApply: Partial<AppSettings> = {};
-            // Basic validation for imported settings
-            if (typeof importedData.settings.theme === 'string' && ['light', 'dark'].includes(importedData.settings.theme)) 
-                validSettingsToApply.theme = importedData.settings.theme as 'light' | 'dark';
-            if (typeof importedData.settings.fontSize === 'string' && ['small', 'medium', 'large'].includes(importedData.settings.fontSize))
-                validSettingsToApply.fontSize = importedData.settings.fontSize as 'small' | 'medium' | 'large';
-            if (typeof importedData.settings.defaultSort === 'string' && Object.values(SortOption).includes(importedData.settings.defaultSort as SortOption))
-                validSettingsToApply.defaultSort = importedData.settings.defaultSort as SortOption;
-            if (typeof importedData.settings.language === 'string' && ['en', 'zh'].includes(importedData.settings.language))
-                validSettingsToApply.language = importedData.settings.language as Language;
-            if (typeof importedData.settings.primaryColor === 'string' && /^#[0-9A-F]{6}$/i.test(importedData.settings.primaryColor))
-                 validSettingsToApply.primaryColor = importedData.settings.primaryColor;
-            if (typeof importedData.settings.aiModel === 'string') 
-                validSettingsToApply.aiModel = importedData.settings.aiModel;
-            // REMOVED autosaveDelay import logic
-            //  if (typeof importedData.settings.autosaveDelay === 'number' && importedData.settings.autosaveDelay >= 1000 && importedData.settings.autosaveDelay <= 60000)
-            //     validSettingsToApply.autosaveDelay = importedData.settings.autosaveDelay;
-            
-            if (typeof importedData.settings.openRouterApiKey === 'string') {
-                 validSettingsToApply.openRouterApiKey = importedData.settings.openRouterApiKey;
-                 setLocalApiKey(importedData.settings.openRouterApiKey); // Update local state for API key input
-            }
-
-            await updateSettings(validSettingsToApply);
-            importMessageKey = 'settingsModal.dataManagement.importSuccessFull';
-          } else {
-             importMessageKey = 'settingsModal.dataManagement.importSuccessNotesSkippedSettings';
-          }
-        }
-        setImportStatus({ type: 'success', message: t(importMessageKey, importMessageParams) });
-
-      } catch (error) {
-        setImportStatus({ type: 'error', message: t('settingsModal.dataManagement.importFailed', { message: error instanceof Error ? error.message : String(error) }) });
-      }
+      await importData(file);
+      await fetchNotes();
+      await fetchTags();
+      setImportStatus({ type: 'success', message: t('settingsModal.dataManagement.importSuccessFull') });
       if (fileInputRef.current) {
-        fileInputRef.current.value = ""; // Reset file input
+        fileInputRef.current.value = "";
       }
-      setTimeout(() => setImportStatus(null), 7000); // Increased timeout
+      setTimeout(() => setImportStatus(null), 5000);
     }
   };
 
@@ -392,6 +365,31 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
           )}
         </section>
       </div>
-    </Modal>
-  );
+     {dialogState?.type === 'confirm_settings' && (
+       <ConfirmationDialog
+         isOpen={true}
+         title={t('settingsModal.dataManagement.confirmImportSettingsTitle')}
+         message={t('settingsModal.dataManagement.confirmImportSettings')}
+         onConfirm={() => {
+           dialogState.resolve(true);
+           setDialogState(null);
+         }}
+         onCancel={() => {
+           dialogState.resolve(false);
+           setDialogState(null);
+         }}
+       />
+     )}
+     {dialogState?.type === 'resolve_conflict' && (
+       <ConflictResolutionModal
+         isOpen={true}
+         conflictingNote={dialogState.note}
+         onResolve={(resolution) => {
+           dialogState.resolve(resolution);
+           setDialogState(null);
+         }}
+       />
+     )}
+   </Modal>
+ );
 };

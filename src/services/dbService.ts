@@ -111,6 +111,14 @@ export const deleteNote = async (id: string): Promise<void> => {
   const db = await getDb();
   await db.delete(NOTES_STORE_NAME, id);
 };
+
+export const bulkPutNotes = async (notes: Note[]): Promise<void> => {
+  const db = await getDb();
+  const tx = db.transaction(NOTES_STORE_NAME, 'readwrite');
+  await Promise.all(notes.map(note => tx.store.put(note)));
+  await tx.done;
+};
+
 // Optimized version - filtering and sorting now handled in memory by the context
 export const getAllNotes = async (): Promise<Note[]> => {
   const db = await getDb();

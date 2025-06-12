@@ -129,7 +129,8 @@
       "importSuccessFull": "成功匯入 {{count}} 篇筆記及應用程式設定！",
       "importSuccessNotesSkippedSettings": "成功匯入 {{count}} 篇筆記。設定匯入已略過。",
       "importFailed": "匯入失敗：{{message}}",
-      "confirmImportSettings": "匯入的檔案同時包含應用程式設定（包括 API 金鑰和主題）。您想要套用這些設定嗎？您目前的設定將被覆寫。"
+      "confirmImportSettings": "匯入的檔案同時包含應用程式設定（包括 API 金鑰和主題）。您想要套用這些設定嗎？您目前的設定將被覆寫。",
+      "confirmImportSettingsTitle": "匯入設定"
     },
     "customTheme": {
         "title": "主題顏色",
@@ -285,5 +286,16 @@
       "message": "無法載入筆記，請重試。"
     },
     "filtersComingSoon": "篩選功能即將推出..."
-  }
+  },
+ "confirmationDialog": {
+   "confirm": "確認",
+   "cancel": "取消"
+ },
+ "conflictResolutionModal": {
+   "title": "匯入衝突",
+   "message": "一篇標題為「{{title}}」的筆記已存在。您希望如何處理？",
+   "overwrite": "覆蓋",
+   "skip": "略過",
+   "keepBoth": "保留兩者 (新增筆記)"
+ }
 }
