@@ -69,7 +69,7 @@ export const exportNoteAsMarkdown = (note: Note, filename?: string): void => {
 export const exportNoteAsTXT = (note: Note, filename?: string): void => {
   const titleHeader = `Title: ${note.title}\n\n`;
   const tagsHeader = note.tags.length > 0 ? `Tags: ${note.tags.join(', ')}\n\n` : '';
-  const plainTextContent = markdownToPlainTextForTxtExport(note.content);
+  const plainTextContent = markdownToPlainTextForTxtExport(note.content || '');
   const txtContent = titleHeader + tagsHeader + plainTextContent;
   const blob = new Blob([txtContent], { type: 'text/plain;charset=utf-8' });
   const url = URL.createObjectURL(blob);
@@ -94,7 +94,7 @@ export const importNotesFromJSON = (file: File): Promise<{ notes: Note[]; settin
         let notesToImport: Note[] = [];
         let settingsToImport: AppSettings | undefined = undefined;
         // Expect rawNotesArray to have 'content' as string (Markdown)
-        let rawNotesArray: Array<Partial<Note> & { content: string | any }> = []; 
+        let rawNotesArray: Array<Partial<Note> & { content: string | any, isPinned?: boolean, isFavorite?: boolean }> = [];
 
         if (Array.isArray(parsedJson)) { 
           rawNotesArray = parsedJson;
@@ -125,14 +125,18 @@ export const importNotesFromJSON = (file: File): Promise<{ notes: Note[]; settin
           // If n.content is old EditorJS format, sanitizeMarkdownString will try to convert it.
           const processedContent = sanitizeMarkdownString(n.content);
 
-          return {
-            id: n.id as string, 
-            title: n.title as string, 
-            content: processedContent, // Content is now Markdown string
+          const note: Note = {
+            id: n.id as string,
+            title: n.title as string,
+            content: processedContent,
+            pages: n.pages || [], // Ensure pages exist
             tags: Array.isArray(n.tags) ? n.tags.filter(t => typeof t === 'string') : [],
             createdAt: typeof n.createdAt === 'number' ? n.createdAt : Date.now(),
             updatedAt: typeof n.updatedAt === 'number' ? n.updatedAt : Date.now(),
-          };
+            isPinned: !!n.isPinned,
+            isFavorite: !!n.isFavorite,
+          } as Note;
+          return note;
         });
         resolve({ notes: notesToImport, settings: settingsToImport });
 

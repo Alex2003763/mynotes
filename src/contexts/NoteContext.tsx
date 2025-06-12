@@ -115,14 +115,15 @@ export const NotesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   }, [allNotes, currentSort, currentFilterTags, currentSearchQuery, currentFilter]);
 
   const migrateNote = (note: Note): Note => {
-    if ((!note.pages || note.pages.length === 0) && note.content) {
+    if ((!note.pages || note.pages.length === 0) && typeof note.content === 'string') {
       return {
         ...note,
-        pages: [{ id: crypto.randomUUID(), title: 'Page 1', content: note.content as any }],
-        content: undefined as any,
+        pages: [{ id: crypto.randomUUID(), title: 'Page 1', content: note.content }],
+        content: undefined,
       };
     }
-    return note;
+    // Ensure pages is always an array
+    return { ...note, pages: note.pages || [] };
   };
 
   // Optimized fetch function that only fetches from DB when necessary
