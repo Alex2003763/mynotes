@@ -43,12 +43,11 @@ const NoteItemComponent: React.FC<NoteItemProps> = ({ note, isSelected, onSelect
   
   // Memoize expensive computations
   const summary = useMemo(() => {
-    const fullContent = note.pages?.map(p => p.content).join('\n') || '';
-    const contentSummary = markdownToSummaryText(fullContent);
+    const contentSummary = markdownToSummaryText(note.content);
     return contentSummary.length > MAX_SUMMARY_LENGTH
       ? `${contentSummary.substring(0, MAX_SUMMARY_LENGTH)}...`
       : contentSummary;
-  }, [note.pages]);
+  }, [note.content]);
   
   const formattedDate = useMemo(() =>
     formatDistanceToNow(new Date(note.updatedAt), { addSuffix: true }),
@@ -139,7 +138,7 @@ export const NoteItem = React.memo(NoteItemComponent, (prevProps, nextProps) => 
   return (
     prevProps.note.id === nextProps.note.id &&
     prevProps.note.title === nextProps.note.title &&
-    JSON.stringify(prevProps.note.pages) === JSON.stringify(nextProps.note.pages) &&
+    prevProps.note.content === nextProps.note.content &&
     prevProps.note.updatedAt === nextProps.note.updatedAt &&
     prevProps.note.tags.length === nextProps.note.tags.length &&
     prevProps.note.tags.every((tag, index) => tag === nextProps.note.tags[index]) &&

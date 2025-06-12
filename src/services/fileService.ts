@@ -32,9 +32,7 @@ const markdownToPlainTextForTxtExport = (markdown: string): string => {
   return text;
 };
 
-export const exportNotesAsJSON = (notes: Note[], settings: AppSettings): void => {
-  const date = new Date().toISOString().split('T')[0];
-  const filename = `mynotes_export_${date}.json`;
+export const exportNotesAsJSON = (notes: Note[], settings: AppSettings, filename: string = 'mynotes_export.json'): void => {
   const exportData: MyNotesExportData = {
     version: 2, // Keep version, format now implies Markdown content
     notes, 
@@ -56,8 +54,7 @@ export const exportNoteAsMarkdown = (note: Note, filename?: string): void => {
   // Note.content is already Markdown. Prepend title and tags.
   const titleHeader = `# ${note.title}\n\n`;
   const tagsHeader = note.tags.length > 0 ? `Tags: ${note.tags.join(', ')}\n\n` : '';
-  const pagesContent = note.pages.map(page => `## ${page.title}\n\n${page.content}`).join('\n\n---\n\n');
-  const markdownContent = titleHeader + tagsHeader + pagesContent;
+  const markdownContent = titleHeader + tagsHeader + note.content;
   const blob = new Blob([markdownContent], { type: 'text/markdown;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -72,8 +69,8 @@ export const exportNoteAsMarkdown = (note: Note, filename?: string): void => {
 export const exportNoteAsTXT = (note: Note, filename?: string): void => {
   const titleHeader = `Title: ${note.title}\n\n`;
   const tagsHeader = note.tags.length > 0 ? `Tags: ${note.tags.join(', ')}\n\n` : '';
-  const pagesContent = note.pages.map(page => `--- ${page.title} ---\n\n${markdownToPlainTextForTxtExport(page.content)}`).join('\n\n------------------------------\n\n');
-  const txtContent = titleHeader + tagsHeader + pagesContent;
+  const plainTextContent = markdownToPlainTextForTxtExport(note.content);
+  const txtContent = titleHeader + tagsHeader + plainTextContent;
   const blob = new Blob([txtContent], { type: 'text/plain;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -126,22 +123,16 @@ export const importNotesFromJSON = (file: File): Promise<{ notes: Note[]; settin
           
           // Sanitize content to ensure it's a string.
           // If n.content is old EditorJS format, sanitizeMarkdownString will try to convert it.
-          const pages = Array.isArray(n.pages) ? n.pages.map((p: any) => ({
-            id: p.id || crypto.randomUUID(),
-            title: p.title || 'Page',
-            content: sanitizeMarkdownString(p.content),
-          })) : [{ id: crypto.randomUUID(), title: 'Page 1', content: sanitizeMarkdownString(n.content) }];
+          const processedContent = sanitizeMarkdownString(n.content);
 
-          const note: Note = {
-            id: n.id as string,
-            title: n.title as string,
-            content: { blocks: [] } as any, // Placeholder
-            pages: pages,
+          return {
+            id: n.id as string, 
+            title: n.title as string, 
+            content: processedContent, // Content is now Markdown string
             tags: Array.isArray(n.tags) ? n.tags.filter(t => typeof t === 'string') : [],
             createdAt: typeof n.createdAt === 'number' ? n.createdAt : Date.now(),
             updatedAt: typeof n.updatedAt === 'number' ? n.updatedAt : Date.now(),
           };
-          return note;
         });
         resolve({ notes: notesToImport, settings: settingsToImport });
 
