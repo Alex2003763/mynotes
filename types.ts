@@ -19,6 +19,8 @@ export interface Note {
   tags: string[];
   createdAt: number;
   updatedAt: number;
+  isPinned?: boolean;
+  isFavorite?: boolean;
 }
 
 export interface Tag {
@@ -33,6 +35,11 @@ export enum SortOption {
   UpdatedAtAsc = 'updatedAtAsc',
   TitleAsc = 'titleAsc',
   TitleDesc = 'titleDesc',
+}
+
+export enum FilterOption {
+  All = 'all',
+  Favorites = 'favorites',
 }
 
 export type Language = 'en' | 'zh';
