@@ -50,13 +50,22 @@ class PWAService {
       this.wb.addEventListener('waiting', (event) => {
         console.log('SW: 新版本等待中', event);
         this.updateAvailable = true;
-        this.showUpdateNotification();
+        // 在開發模式下不顯示更新通知，避免頻繁提示
+        const isDev = import.meta.env.MODE === 'development';
+        if (!isDev) {
+          this.showUpdateNotification();
+        } else {
+          console.log('SW: 開發模式，自動跳過等待');
+          this.skipWaiting();
+        }
       });
 
       // 監聽 SW 控制事件
       this.wb.addEventListener('controlling', (event) => {
         console.log('SW: Service Worker 開始控制頁面', event);
-        if (this.updateAvailable && !this.hasReloaded) {
+        // 在開發模式下不自動重新載入
+        const isDev = import.meta.env.MODE === 'development';
+        if (this.updateAvailable && !this.hasReloaded && !isDev) {
           this.hasReloaded = true;
           this.restartCount++;
           sessionStorage.setItem('pwa_restart_count', this.restartCount.toString());
@@ -175,6 +184,16 @@ class PWAService {
   }
 
   private showUpdateNotification() {
+    // 檢查是否在短時間內已經顯示過通知
+    const lastNotification = sessionStorage.getItem('last_update_notification');
+    const now = Date.now();
+    if (lastNotification && (now - parseInt(lastNotification)) < 10000) {
+      console.log('SW: 跳過重複的更新通知');
+      return;
+    }
+    
+    sessionStorage.setItem('last_update_notification', now.toString());
+    
     if (confirm('發現新版本，是否立即更新？')) {
       this.skipWaiting();
     }
