@@ -92,41 +92,77 @@ const NoteItemComponent: React.FC<NoteItemProps> = ({ note, isSelected, onSelect
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">
           {summary || t('noteItem.noContent')}
         </p>
-        <div className="flex justify-between items-center mt-2">
-          <p className="text-xs text-slate-400 dark:text-slate-500">
-            {formattedDate}
-          </p>
+        <div className="flex flex-col gap-2 mt-2">
+          <div className="flex justify-between items-center">
+            <p className="text-xs text-slate-400 dark:text-slate-500 flex-shrink-0">
+              {formattedDate}
+            </p>
+            <div className="flex items-center space-x-1 note-item-buttons ml-2">
+              <button
+                onClick={(e) => {
+                  console.log('[NoteItem] Favorite button clicked, current state:', (note as any).isFavorite);
+                  handleToggleFavorite(e);
+                }}
+                className="flex items-center justify-center p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-600 min-h-[44px] min-w-[44px] touch-manipulation"
+                style={{ touchAction: 'manipulation' }}
+              >
+                <StarIcon className={`w-5 h-5 ${(note as any).isFavorite ? 'text-yellow-400 fill-yellow-400' : 'text-slate-400 hover:text-slate-500'}`} />
+              </button>
+              <button
+                onClick={(e) => {
+                  console.log('[NoteItem] Pin button clicked, current state:', (note as any).isPinned);
+                  handleTogglePin(e);
+                }}
+                className="flex items-center justify-center p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-600 min-h-[44px] min-w-[44px] touch-manipulation"
+                style={{ touchAction: 'manipulation' }}
+              >
+                <PinIcon className={`w-5 h-5 ${(note as any).isPinned ? 'text-blue-500' : 'text-slate-400 hover:text-slate-500'}`} />
+              </button>
+            </div>
+          </div>
           {note.tags && note.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1 justify-end shrink-0 ml-2">
-              {note.tags.slice(0, 1).map(tag => (
-                <span key={tag} className="px-1.5 py-0.5 text-[10px] bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-full">
-                  {tag}
-                </span>
-              ))}
-              {note.tags.length > 1 && (
-                <span className="px-1.5 py-0.5 text-[10px] bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-full">
-                  {t('noteItem.moreTags', { count: (note.tags.length - 1).toString() })}
-                </span>
-              )}
+            <div className="w-full overflow-hidden note-item-tags">
+              {/* 在小螢幕上只顯示前1個標籤避免溢出 */}
+              <div className="flex gap-1 sm:hidden">
+                {note.tags.slice(0, 1).map(tag => (
+                  <span key={tag} className="px-2 py-0.5 text-[10px] bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-full truncate max-w-[80px]">
+                    {tag}
+                  </span>
+                ))}
+                {note.tags.length > 1 && (
+                  <span className="px-2 py-0.5 text-[10px] bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-full flex-shrink-0">
+                    +{note.tags.length - 1}
+                  </span>
+                )}
+              </div>
+              {/* 在大螢幕上顯示前2個標籤 */}
+              <div className="hidden sm:flex flex-wrap gap-1">
+                {note.tags.slice(0, 2).map(tag => (
+                  <span key={tag} className="px-1.5 py-0.5 text-[10px] bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-full truncate max-w-[100px]">
+                    {tag}
+                  </span>
+                ))}
+                {note.tags.length > 2 && (
+                  <span className="px-1.5 py-0.5 text-[10px] bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-full flex-shrink-0">
+                    +{note.tags.length - 2}
+                  </span>
+                )}
+              </div>
             </div>
           )}
-          <div className="flex items-center space-x-1">
-            <button onClick={handleToggleFavorite} className="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-600">
-              <StarIcon className={`w-4 h-4 ${(note as any).isFavorite ? 'text-yellow-400 fill-yellow-400' : 'text-slate-400 hover:text-slate-500'}`} />
-            </button>
-            <button onClick={handleTogglePin} className="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-600">
-              <PinIcon className={`w-4 h-4 ${(note as any).isPinned ? 'text-blue-500' : 'text-slate-400 hover:text-slate-500'}`} />
-            </button>
-          </div>
         </div>
       </div>
       <button
-        onClick={handleViewNote}
-        className="p-1.5 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600 focus:outline-none focus:ring-1 focus:ring-primary flex-shrink-0"
-        title={t('noteItem.viewNote', { title: note.title || t('noteItem.untitled') })} 
+        onClick={(e) => {
+          console.log('[NoteItem] View button clicked for note:', note.id);
+          handleViewNote(e);
+        }}
+        className="flex items-center justify-center p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600 focus:outline-none focus:ring-1 focus:ring-primary flex-shrink-0 min-h-[44px] min-w-[44px] touch-manipulation"
+        style={{ touchAction: 'manipulation' }}
+        title={t('noteItem.viewNote', { title: note.title || t('noteItem.untitled') })}
         aria-label={t('noteItem.viewNote', { title: note.title || t('noteItem.untitled') })}
       >
-        <EyeIcon className="w-4 h-4" />
+        <EyeIcon className="w-5 h-5" />
       </button>
     </div>
   );

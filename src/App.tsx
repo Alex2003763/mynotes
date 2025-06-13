@@ -170,7 +170,7 @@ const App: React.FC = () => {
             <div className="hidden xl:block">
               <Resizer onResize={handleRightResize} />
             </div>
-            <div className="hidden xl:block">
+            <div className="hidden xl:block h-full">
               <RightSidebar
                 width={rightSidebarWidth}
               />

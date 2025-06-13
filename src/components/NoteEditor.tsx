@@ -52,8 +52,9 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ isNewNote = false }) => 
   const [initialMarkdownForEditor, setInitialMarkdownForEditor] = useState<string | null>(null);
   
   const editorInstanceRef = useRef<Cherry | null>(null);
-  const editorHolderRef = useRef<HTMLDivElement | null>(null); 
+  const editorHolderRef = useRef<HTMLDivElement | null>(null);
   const lastInitializedNoteIdOrNewFlagRef = useRef<string | null>(null);
+  const isInternalUpdateRef = useRef(false);
 
   const [showExportOptions, setShowExportOptions] = useState(false);
   const [apiMessage, setApiMessage] = useState<ApiFeedback | null>(null);
@@ -146,6 +147,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ isNewNote = false }) => 
   const applyAiChangesToEditorInternal = useCallback((newMarkdown: string) => {
     const sanitizedMarkdown = sanitizeMarkdownString(newMarkdown);
     if (editorInstanceRef.current) {
+      isInternalUpdateRef.current = true;
       editorInstanceRef.current.setMarkdown(sanitizedMarkdown);
     } else {
       setInitialMarkdownForEditor(sanitizedMarkdown);
@@ -191,34 +193,80 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ isNewNote = false }) => 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localNote, setActiveEditorInteraction, getTitleInternal, getFullContentAsTextInternal, applyAiChangesToEditorInternal, setTagsFromAIInternal]);
 
+  // Stable afterChange callback to prevent editor re-initialization
+  const handleAfterChange = useCallback((markdown: string) => {
+    console.log('🔍 [DEBUG] handleAfterChange called:', {
+      isInternal: isInternalUpdateRef.current,
+      markdownLength: markdown.length,
+      activePageId
+    });
+
+    // Prevent circular updates that could reset cursor
+    if (isInternalUpdateRef.current) {
+      console.log('🔍 [DEBUG] Skipping internal update');
+      isInternalUpdateRef.current = false;
+      return;
+    }
+    
+    // Use a more stable update pattern to prevent re-renders
+    setLocalNote(prevNote => {
+      if (!prevNote || !activePageId) return prevNote;
+      
+      // Check if content actually changed to prevent unnecessary updates
+      const currentPage = prevNote.pages.find(p => p.id === activePageId);
+      if (currentPage && currentPage.content === markdown) {
+        console.log('🔍 [DEBUG] Content unchanged, returning same note reference');
+        return prevNote; // No change, return same reference
+      }
+      
+      console.log('🔍 [DEBUG] Content changed, updating localNote');
+      const newPages = prevNote.pages.map(p =>
+        p.id === activePageId ? { ...p, content: markdown } : p
+      );
+      return { ...prevNote, pages: newPages };
+    });
+  }, [activePageId]);
+
 
   // Effect to update initialMarkdownForEditor when activePageId changes
   useEffect(() => {
     if (localNote && activePageId) {
       const activePage = localNote.pages.find(p => p.id === activePageId);
       const newContent = activePage?.content || '';
-      setInitialMarkdownForEditor(newContent);
+      
+      // Only update if content actually changed to prevent unnecessary editor re-initialization
+      setInitialMarkdownForEditor(prevContent => {
+        if (prevContent === newContent) {
+          return prevContent; // No change, keep same reference
+        }
+        return newContent;
+      });
     }
   }, [localNote, activePageId]);
 
   useEffect(() => {
-    if (isLoadingEditor || !editorHolderRef.current || initialMarkdownForEditor === null) {
+    // DEBUG: 詳細追蹤 useEffect 觸發原因
+    console.log('🔍 [DEBUG] Editor useEffect triggered - checking if initialization needed');
+
+    if (isLoadingEditor || !editorHolderRef.current) {
+      console.log('🔍 [DEBUG] Editor initialization skipped - conditions not met');
       return;
     }
   
     if (editorInstanceRef.current) {
-      // If instance exists, just update content to avoid full re-initialization
-      if (editorInstanceRef.current.getMarkdown() !== initialMarkdownForEditor) {
-        editorInstanceRef.current.setMarkdown(initialMarkdownForEditor);
-      }
+      console.log('🔍 [DEBUG] Editor instance already exists, no need to recreate');
       return;
     }
   
+    // Only create editor if we don't have one and have valid initial content
+    const currentInitialContent = initialMarkdownForEditor ?? '';
+    console.log('🔍 [DEBUG] Creating new Cherry editor instance with content:', currentInitialContent);
+    
     const holder = editorHolderRef.current;
     try {
       const cherryConfig = {
         el: holder,
-        value: initialMarkdownForEditor,
+        value: currentInitialContent,
         toolbars: { theme: settings.theme, showToolbar: true },
         editor: { height: '100%', defaultModel: 'editOnly' as const },
         fileUpload: (file: File, callback: (url: string, params?: Record<string, any>) => void) => {
@@ -227,33 +275,38 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ isNewNote = false }) => 
           reader.readAsDataURL(file);
         },
         callback: {
-          afterChange: (markdown: string) => {
-            setLocalNote(prevNote => {
-              if (!prevNote || !activePageId) return prevNote;
-              const newPages = prevNote.pages.map(p =>
-                p.id === activePageId ? { ...p, content: markdown } : p
-              );
-              return { ...prevNote, pages: newPages };
-            });
-          },
+          afterChange: handleAfterChange,
         },
       };
       const cherryInstance = new Cherry(cherryConfig);
       editorInstanceRef.current = cherryInstance;
+      console.log('🔍 [DEBUG] Cherry editor created successfully');
     } catch (e) {
       console.error("Failed to initialize Cherry Markdown editor:", e);
       displayApiMessage({type: 'error', text: 'Editor failed to load. Try refreshing.'});
     }
-  
     return () => {
       if (editorInstanceRef.current) {
+        console.log('🔍 [DEBUG] Destroying Cherry editor instance');
         try {
           editorInstanceRef.current.destroy();
         } catch (e) { /* ignore */ }
         editorInstanceRef.current = null;
       }
     };
-  }, [initialMarkdownForEditor, isLoadingEditor, displayApiMessage, activePageId, settings.theme]);
+  }, [isLoadingEditor, activePageId, settings.theme, handleAfterChange]);
+
+  // Separate useEffect to handle content updates when switching pages
+  useEffect(() => {
+    if (editorInstanceRef.current && initialMarkdownForEditor !== null) {
+      const currentContent = editorInstanceRef.current.getMarkdown();
+      if (currentContent !== initialMarkdownForEditor) {
+        console.log('🔍 [DEBUG] Updating editor content for page switch');
+        isInternalUpdateRef.current = true;
+        editorInstanceRef.current.setMarkdown(initialMarkdownForEditor);
+      }
+    }
+  }, [initialMarkdownForEditor, activePageId]);
   
   const isNoteTrulyEmpty = (note: Note | null): boolean => {
     if (!note) return true;
@@ -313,7 +366,10 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ isNewNote = false }) => 
         });
         setActivePageId(firstPage.id);
         setInitialMarkdownForEditor('');
-        if (editorInstanceRef.current) editorInstanceRef.current.setMarkdown('');
+        if (editorInstanceRef.current) {
+          isInternalUpdateRef.current = true;
+          editorInstanceRef.current.setMarkdown('');
+        }
         
         if (localNote && contextNote && localNote.id === contextNote.id) selectNote(null);
         if (localNote && selectedNoteId === localNote.id) selectNote(null);

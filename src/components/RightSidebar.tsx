@@ -80,7 +80,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ width }) => {
   return (
     <aside
       className={`
-        flex-shrink-0 relative right-sidebar-container
+        flex-shrink-0 relative right-sidebar-container h-full
         bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900
         border-l border-slate-200 dark:border-slate-700
         print:hidden flex flex-col shadow-sm

@@ -242,48 +242,75 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
             </div>
           </div>
           
-          <div className="absolute top-1.5 sm:top-2 right-1.5 sm:right-2 flex items-center space-x-0.5 sm:space-x-1 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-           <button onClick={handleToggleFavorite} className="p-1 sm:p-1.5 rounded-full bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-700">
-             <StarIcon className={`w-3 h-3 sm:w-4 sm:h-4 ${(note as any).isFavorite ? 'text-yellow-400 fill-yellow-400' : 'text-slate-500'}`} />
-           </button>
-           <button onClick={handleTogglePin} className="p-1 sm:p-1.5 rounded-full bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-700">
-             <PinIcon className={`w-3 h-3 sm:w-4 sm:h-4 ${(note as any).isPinned ? 'text-blue-500' : 'text-slate-500'}`} />
-           </button>
+          <div
+            className="absolute top-1.5 sm:top-2 right-1.5 sm:right-2 flex items-center space-x-0.5 sm:space-x-1 z-20 opacity-0 group-hover:opacity-100 md:opacity-100 transition-opacity duration-200 note-card-actions"
+            onTouchStart={(e) => {
+              console.log('[NoteCard] Touch detected on action buttons area');
+              e.currentTarget.style.opacity = '1';
+            }}
+          >
+          <button
+            onClick={(e) => {
+              console.log('[NoteCard] Favorite button clicked, current state:', (note as any).isFavorite);
+              handleToggleFavorite(e);
+            }}
+            className="flex items-center justify-center p-2 rounded-full bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-700 min-h-[44px] min-w-[44px] touch-manipulation"
+            style={{ touchAction: 'manipulation' }}
+          >
+            <StarIcon className={`w-5 h-5 ${(note as any).isFavorite ? 'text-yellow-400 fill-yellow-400' : 'text-slate-500'}`} />
+          </button>
+          <button
+            onClick={(e) => {
+              console.log('[NoteCard] Pin button clicked, current state:', (note as any).isPinned);
+              handleTogglePin(e);
+            }}
+            className="flex items-center justify-center p-2 rounded-full bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-700 min-h-[44px] min-w-[44px] touch-manipulation"
+            style={{ touchAction: 'manipulation' }}
+          >
+            <PinIcon className={`w-5 h-5 ${(note as any).isPinned ? 'text-blue-500' : 'text-slate-500'}`} />
+          </button>
            {/* 三點下拉菜單 */}
            <div className="relative" ref={dropdownRef}>
              <button
-               onClick={toggleDropdown}
-               className="p-1 sm:p-1.5 rounded-full bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-700 transition-colors duration-200"
+               onClick={(e) => {
+                 console.log('[NoteCard] Three-dot menu clicked, current state:', showDropdown);
+                 toggleDropdown(e);
+               }}
+               className="flex items-center justify-center p-2 rounded-full bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-700 transition-colors duration-200 min-h-[44px] min-w-[44px] touch-manipulation"
+               style={{ touchAction: 'manipulation' }}
              >
-               <svg className="w-3 h-3 sm:w-4 sm:h-4 text-slate-500 dark:text-slate-400" fill="currentColor" viewBox="0 0 20 20">
+               <svg className="w-5 h-5 text-slate-500 dark:text-slate-400" fill="currentColor" viewBox="0 0 20 20">
                  <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                </svg>
              </button>
              
              {/* 下拉菜單 */}
              {showDropdown && (
-               <div className="note-card-dropdown absolute right-0 top-6 sm:top-8 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl py-2 z-50 min-w-[120px] sm:min-w-[140px] max-w-[180px] sm:max-w-[200px] animate-in slide-in-from-top-2 duration-150">
+               <div
+                 className="note-card-dropdown absolute right-0 top-12 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl py-2 z-50 min-w-[160px] max-w-[200px] animate-in slide-in-from-top-2 duration-150"
+                 onTouchStart={() => console.log('[NoteCard] Dropdown menu touched')}
+               >
                  <button
                    onClick={handleViewNote}
-                   className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors duration-150 text-left"
+                   className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors duration-150 text-left min-h-[44px] touch-manipulation"
                  >
-                   <EyeIcon className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                   <EyeIcon className="w-5 h-5 flex-shrink-0" />
                    <span className="truncate">{t('noteCard.view')}</span>
                  </button>
                  <button
                    onClick={handleEditNote}
-                   className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors duration-150 text-left"
+                   className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors duration-150 text-left min-h-[44px] touch-manipulation"
                  >
-                   <PencilSquareIcon className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                   <PencilSquareIcon className="w-5 h-5 flex-shrink-0" />
                    <span className="truncate">{t('noteCard.edit')}</span>
                  </button>
                  <div className="border-t border-slate-200 dark:border-slate-600 my-1"></div>
                  <button
                    onClick={handleDeleteNote}
-                   className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-150 text-left"
+                   className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-150 text-left min-h-[44px] touch-manipulation"
                    disabled={isDeleting}
                  >
-                   <TrashIcon className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                   <TrashIcon className="w-5 h-5 flex-shrink-0" />
                    <span className="truncate">{isDeleting ? t('noteCard.deleting') : t('noteCard.delete')}</span>
                  </button>
                </div>
