@@ -189,6 +189,15 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ isNewNote = false }) => 
   }, [localNote, setActiveEditorInteraction, getTitleInternal, getFullContentAsTextInternal, applyAiChangesToEditorInternal, setTagsFromAIInternal]);
 
 
+  // Effect to update initialMarkdownForEditor when activePageId changes
+  useEffect(() => {
+    if (localNote && activePageId) {
+      const activePage = localNote.pages.find(p => p.id === activePageId);
+      const newContent = activePage?.content || '';
+      setInitialMarkdownForEditor(newContent);
+    }
+  }, [localNote, activePageId]);
+
   useEffect(() => {
     if (isLoadingEditor || !editorHolderRef.current || initialMarkdownForEditor === null) {
       return;
@@ -241,7 +250,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ isNewNote = false }) => 
         editorInstanceRef.current = null;
       }
     };
-  }, [initialMarkdownForEditor, isLoadingEditor, displayApiMessage, activePageId]);
+  }, [initialMarkdownForEditor, isLoadingEditor, displayApiMessage, activePageId, settings.theme]);
   
   const isNoteTrulyEmpty = (note: Note | null): boolean => {
     if (!note) return true;

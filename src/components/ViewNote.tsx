@@ -115,7 +115,7 @@ export const ViewNote: React.FC = () => {
   }, [noteId, getNoteById, navigate, contextNote]);
 
   useEffect(() => {
-    if (isLoading || !noteToView || !editorHolderRef.current) {
+    if (isLoading || !noteToView || !editorHolderRef.current || !activePageId) {
       // If still loading, note not available, or ref not set, do nothing or cleanup
       if (!noteToView && editorInstanceRef.current) {
         try { editorInstanceRef.current.destroy(); } catch (e) { /* console.error("Error destroying view Cherry when note is null", e); */ }
@@ -124,27 +124,30 @@ export const ViewNote: React.FC = () => {
       return;
     }
 
-    if (editorInstanceRef.current) {
-      try {
-        editorInstanceRef.current.destroy();
-      } catch(e) { console.warn("Error destroying previous view Cherry instance:", e); }
-      editorInstanceRef.current = null;
-    }
-
-    const holder = editorHolderRef.current;
     const activePage = noteToView.pages.find(p => p.id === activePageId);
     const contentToRender = sanitizeMarkdownString(activePage?.content || createEmptyMarkdown());
 
-    const editor = editorInstanceRef.current;
-    if (editor) {
-      // @ts-ignore
-      if (editor.getMarkdown() !== contentToRender) {
+    // If editor exists, just update content instead of recreating
+    if (editorInstanceRef.current) {
+      try {
         // @ts-ignore
-        editor.setMarkdown(contentToRender);
+        if (editorInstanceRef.current.getMarkdown() !== contentToRender) {
+          // @ts-ignore
+          editorInstanceRef.current.setMarkdown(contentToRender);
+        }
+        return;
+      } catch (e) {
+        console.warn("Error updating Cherry content, will recreate:", e);
+        try {
+          editorInstanceRef.current.destroy();
+        } catch (destroyError) {
+          console.warn("Error destroying Cherry during update:", destroyError);
+        }
+        editorInstanceRef.current = null;
       }
-      return;
     }
 
+    const holder = editorHolderRef.current;
     try {
         const cherryConfig = {
             el: holder,
@@ -160,12 +163,12 @@ export const ViewNote: React.FC = () => {
         };
         const cherryInstance = new Cherry(cherryConfig);
         editorInstanceRef.current = cherryInstance;
-    } catch (e) { 
-        console.error("Failed to initialize read-only Cherry Markdown:", e); 
+    } catch (e) {
+        console.error("Failed to initialize read-only Cherry Markdown:", e);
         displayApiMessage({type: 'error', text: 'Failed to display note content.'});
     }
 
-    return () => { 
+    return () => {
       if (editorInstanceRef.current) {
         try { editorInstanceRef.current.destroy(); } catch (e) { /* console.error("Error destroying view Cherry on cleanup:", e); */ }
       }
