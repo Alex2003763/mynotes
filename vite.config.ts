@@ -23,6 +23,7 @@ export default defineConfig(({ mode }) => {
           workbox: {
             globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
             maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 10 MB
+            navigateFallback: 'index.html',
             runtimeCaching: [
               {
                 urlPattern: ({ url }) => url.origin === 'https://openrouter.ai',
@@ -71,7 +72,17 @@ export default defineConfig(({ mode }) => {
                   }
                 }
               },
-
+              {
+                urlPattern: /cherry-markdown/i,
+                handler: 'StaleWhileRevalidate',
+                options: {
+                  cacheName: 'cherry-markdown-cache',
+                  expiration: {
+                    maxEntries: 10,
+                    maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+                  }
+                }
+              }
             ],
           },
           manifest: {
@@ -79,6 +90,9 @@ export default defineConfig(({ mode }) => {
             short_name: 'MyNotes',
             description: 'A simple note-taking app',
             theme_color: '#ffffff',
+            background_color: '#ffffff',
+            display: 'standalone',
+            start_url: '/',
             icons: [
               {
                 src: 'pwa-192x192.png',
