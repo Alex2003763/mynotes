@@ -16,9 +16,10 @@ export default defineConfig(({ mode }) => {
       },
       plugins: [
         VitePWA({
-          registerType: 'prompt',
+          registerType: 'autoUpdate',
           devOptions: {
-            enabled: true
+            enabled: true,
+            suppressWarnings: true
           },
           workbox: {
             globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,json}'],
@@ -27,7 +28,7 @@ export default defineConfig(({ mode }) => {
             navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/, /^\/api\//, /^\/test-/],
             cleanupOutdatedCaches: true,
             clientsClaim: true,
-            skipWaiting: true,
+            skipWaiting: false,
             // 明確包含根路徑
             additionalManifestEntries: [
               { url: '/', revision: null }
