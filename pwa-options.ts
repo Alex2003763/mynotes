@@ -1,7 +1,7 @@
 import { VitePWAOptions } from 'vite-plugin-pwa';
 
 export const pwaOptions: Partial<VitePWAOptions> = {
-  registerType: 'autoUpdate',
+  registerType: 'prompt',
   includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
   manifest: {
     name: 'MyNotes',
