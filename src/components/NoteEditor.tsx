@@ -245,7 +245,6 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ isNewNote = false }) => 
   }, [localNote, activePageId]);
 
   useEffect(() => {
-    // DEBUG: 詳細追蹤 useEffect 觸發原因
     console.log('🔍 [DEBUG] Editor useEffect triggered - checking if initialization needed');
 
     if (isLoadingEditor || !editorHolderRef.current) {
@@ -258,8 +257,22 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ isNewNote = false }) => 
       return;
     }
   
-    // Only create editor if we don't have one and have valid initial content
     const currentInitialContent = initialMarkdownForEditor ?? '';
+    
+    // Handle offline mode with simple textarea
+    if (!navigator.onLine) {
+      console.warn("Offline mode: Using plain text editor instead of Cherry Markdown");
+      const holder = editorHolderRef.current;
+      holder.innerHTML = `<textarea class="w-full h-full p-4 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200" placeholder="${editorPlaceholderText.current}">${currentInitialContent}</textarea>`;
+      const textarea = holder.querySelector('textarea');
+      if (textarea) {
+        textarea.addEventListener('input', () => {
+          handleAfterChange(textarea.value);
+        });
+      }
+      return;
+    }
+    
     console.log('🔍 [DEBUG] Creating new Cherry editor instance with content:', currentInitialContent);
     
     const holder = editorHolderRef.current;
