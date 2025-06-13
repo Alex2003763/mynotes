@@ -129,13 +129,46 @@ const NoteGridLayoutComponent: React.FC<NoteGridLayoutProps> = ({ onNoteSelect }
     <div className="note-grid-container">
       {/* 標題和控制項 */}
       <header className="note-grid-header">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-4">
+            <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100 truncate">
               {t('noteGrid.title', { count: sortedNotes.length.toString() })}
             </h2>
             
-            {/* 視圖模式切換 */}
+            {/* 移動端視圖模式切換 */}
+            <div className="flex sm:hidden items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
+              {(['grid', 'list'] as ViewMode[]).map((mode) => {
+                const getIcon = () => {
+                  switch (mode) {
+                    case 'grid':
+                      return <Squares2X2Icon className="w-4 h-4" />;
+                    case 'list':
+                      return <ListBulletIcon className="w-4 h-4" />;
+                  }
+                };
+                
+                return (
+                  <button
+                    key={mode}
+                    onClick={() => setViewMode(mode)}
+                    className={`
+                      flex items-center p-1.5 rounded-md transition-all duration-200
+                      ${viewMode === mode
+                        ? 'bg-white dark:bg-slate-700 text-primary shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                      }
+                    `}
+                    title={t(`noteGrid.viewModes.${mode}`)}
+                  >
+                    {getIcon()}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between sm:justify-end gap-2">
+            {/* 桌面端視圖模式切換 */}
             <div className="hidden sm:flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
               {(['grid', 'list'] as ViewMode[]).map((mode) => {
                 const getIcon = () => {
@@ -166,20 +199,19 @@ const NoteGridLayoutComponent: React.FC<NoteGridLayoutProps> = ({ onNoteSelect }
                 );
               })}
             </div>
-          </div>
 
-          {/* 新增筆記按鈕 */}
-          <div className="flex items-center gap-2">
+            {/* 新增筆記按鈕 */}
             <button
               onClick={handleNewNote}
               className="
-                flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-medium
+                flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-primary text-white rounded-lg font-medium text-sm sm:text-base
                 hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary
-                transition-all duration-200 hover:scale-105 shadow-sm hover:shadow-md
+                transition-all duration-200 hover:scale-105 shadow-sm hover:shadow-md flex-shrink-0
               "
             >
               <PlusCircleIcon className="w-4 h-4" />
               <span className="hidden sm:inline">{t('noteGrid.newNote')}</span>
+              <span className="sm:hidden">新增</span>
             </button>
           </div>
         </div>

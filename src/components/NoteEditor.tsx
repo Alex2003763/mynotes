@@ -10,8 +10,10 @@ import { useSettings } from '../contexts/SettingsContext';
 import { useI18n } from '../contexts/I18nContext';
 import { useEditorInteraction } from '../contexts/EditorInteractionContext';
 import { exportNoteAsMarkdown, exportNoteAsTXT, exportNotesAsJSON } from '../services/fileService';
-import { TrashIcon, DownloadIcon, CheckCircleIcon, ExclamationCircleIcon, InformationCircleIcon, SaveIcon, ChevronDownIcon, ArrowLeftIcon, PlusIcon, XMarkIcon } from './Icons';
+import { TrashIcon, DownloadIcon, CheckCircleIcon, ExclamationCircleIcon, InformationCircleIcon, SaveIcon, ChevronDownIcon, ArrowLeftIcon, PlusIcon, XMarkIcon, SparklesIcon } from './Icons';
 import { EDITOR_HOLDER_ID } from '../constants';
+import { Modal } from './Modal';
+import { AiFeaturesPanel } from './AiFeaturesPanel';
 
 
 // Helper functions for Markdown (string) content
@@ -57,6 +59,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ isNewNote = false }) => 
   const [apiMessage, setApiMessage] = useState<ApiFeedback | null>(null);
   const apiMessageTimeoutRef = useRef<number | null>(null);
   const [isLoadingEditor, setIsLoadingEditor] = useState(true);
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
 
   const editorPlaceholderText = useRef(t('noteEditor.contentPlaceholder')); 
 
@@ -423,6 +426,18 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ isNewNote = false }) => 
           />
         </div>
         <div className="flex items-center space-x-2 shrink-0">
+          {/* AI Tools button - only visible on small screens */}
+          {settings.openRouterApiKeyStatus === 'valid' && (
+            <button
+              onClick={() => setIsAiModalOpen(true)}
+              className="lg:hidden p-2 bg-primary/10 hover:bg-primary/20 text-primary dark:text-primary-light rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-primary-dark transition-colors"
+              title={t('aiPanel.title')}
+              aria-label={t('aiPanel.title')}
+            >
+              <SparklesIcon className="w-5 h-5" />
+            </button>
+          )}
+          
           <button
             onClick={handleManualSave}
             className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-light focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-primary-dark transition-colors flex items-center"
@@ -539,6 +554,30 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ isNewNote = false }) => 
         }
         </div>
       </div>
+
+      {/* AI Tools Modal for small screens */}
+      <Modal
+        isOpen={isAiModalOpen}
+        onClose={() => setIsAiModalOpen(false)}
+        title={t('aiPanel.title')}
+        size="lg"
+      >
+        {settings.openRouterApiKeyStatus === 'valid' ? (
+          <AiFeaturesPanel
+            displayApiMessage={displayApiMessage}
+            selectedAiModel={settings.aiModel}
+          />
+        ) : (
+          <div className="text-center py-8">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
+              <SparklesIcon className="w-8 h-8 text-slate-400 dark:text-slate-500" />
+            </div>
+            <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+              {t('noteEditor.aiFeatures.keyNotSet')}
+            </p>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

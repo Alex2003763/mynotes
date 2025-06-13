@@ -8,9 +8,11 @@ import { Note, ApiFeedback } from '../types';
 import { useI18n } from '../contexts/I18nContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useEditorInteraction } from '../contexts/EditorInteractionContext';
-import { PencilSquareIcon, TagIcon, CalendarDaysIcon, ClockIcon, CheckCircleIcon, ExclamationCircleIcon, InformationCircleIcon, ArrowLeftIcon } from './Icons';
-import { sanitizeMarkdownString, createEmptyMarkdown } from './NoteEditor'; 
+import { PencilSquareIcon, TagIcon, CalendarDaysIcon, ClockIcon, CheckCircleIcon, ExclamationCircleIcon, InformationCircleIcon, ArrowLeftIcon, SparklesIcon } from './Icons';
+import { sanitizeMarkdownString, createEmptyMarkdown } from './NoteEditor';
 import { format } from 'date-fns';
+import { Modal } from './Modal';
+import { ViewNoteAiPanel } from './ViewNoteAiPanel';
 
 const EDITOR_VIEW_HOLDER_ID = 'editorjs-view-container';
 
@@ -29,6 +31,7 @@ export const ViewNote: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [apiMessage, setApiMessage] = useState<ApiFeedback | null>(null);
   const apiMessageTimeoutRef = useRef<number | null>(null);
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
 
   const displayApiMessage = useCallback((message: ApiFeedback | null) => {
     if (apiMessageTimeoutRef.current) clearTimeout(apiMessageTimeoutRef.current);
@@ -237,14 +240,28 @@ export const ViewNote: React.FC = () => {
                 {noteToView.title || t('noteItem.untitled')}
               </h1>
             </div>
-            <button
-              onClick={() => navigate(`/note/${noteToView.id}`)}
-              className="mt-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-light focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-900 focus:ring-primary-dark transition-colors flex items-center text-sm font-medium flex-shrink-0"
-              title={t('viewNote.editButton')}
-            >
-              <PencilSquareIcon className="w-5 h-5 sm:mr-2" />
-              <span className="hidden sm:inline">{t('viewNote.editButton')}</span>
-            </button>
+            <div className="flex items-center gap-2">
+              {/* AI Tools button - only visible on small screens */}
+              {settings.openRouterApiKeyStatus === 'valid' && (
+                <button
+                  onClick={() => setIsAiModalOpen(true)}
+                  className="lg:hidden mt-1 p-2 bg-primary/10 hover:bg-primary/20 text-primary dark:text-primary-light rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-900 focus:ring-primary-dark transition-colors flex-shrink-0"
+                  title={t('aiPanel.title')}
+                  aria-label={t('aiPanel.title')}
+                >
+                  <SparklesIcon className="w-5 h-5" />
+                </button>
+              )}
+              
+              <button
+                onClick={() => navigate(`/note/${noteToView.id}`)}
+                className="mt-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-light focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-900 focus:ring-primary-dark transition-colors flex items-center text-sm font-medium flex-shrink-0"
+                title={t('viewNote.editButton')}
+              >
+                <PencilSquareIcon className="w-5 h-5 sm:mr-2" />
+                <span className="hidden sm:inline">{t('viewNote.editButton')}</span>
+              </button>
+            </div>
         </div>
 
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-slate-500 dark:text-slate-400">
@@ -297,12 +314,36 @@ export const ViewNote: React.FC = () => {
         contentEditable={false} // Reinforce non-editable nature
         className="flex-1 overflow-hidden max-w-none w-full" // Removed prose classes
       >
-         {(isLoading || !noteToView) && 
-            <div className="w-full h-full flex items-center justify-center text-slate-400 p-4 bg-white dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-600">
-                {t('noteEditor.loading')}
-            </div>
-         }
+         {(isLoading || !noteToView) &&
+           <div className="w-full h-full flex items-center justify-center text-slate-400 p-4 bg-white dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-600">
+               {t('noteEditor.loading')}
+           </div>
+        }
       </div>
+
+      {/* AI Tools Modal for small screens */}
+      <Modal
+        isOpen={isAiModalOpen}
+        onClose={() => setIsAiModalOpen(false)}
+        title={t('aiPanel.title')}
+        size="lg"
+      >
+        {settings.openRouterApiKeyStatus === 'valid' ? (
+          <ViewNoteAiPanel
+            displayApiMessage={displayApiMessage}
+            selectedAiModel={settings.aiModel}
+          />
+        ) : (
+          <div className="text-center py-8">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
+              <SparklesIcon className="w-8 h-8 text-slate-400 dark:text-slate-500" />
+            </div>
+            <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+              {t('noteEditor.aiFeatures.keyNotSet')}
+            </p>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

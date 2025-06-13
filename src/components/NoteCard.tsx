@@ -159,23 +159,25 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
   const cardClasses = `
     group relative overflow-visible
     bg-gradient-to-br from-white via-white to-slate-50 dark:from-slate-800 dark:via-slate-800 dark:to-slate-900
-    rounded-2xl border border-slate-200/60 dark:border-slate-700/60
+    rounded-xl sm:rounded-2xl border border-slate-200/60 dark:border-slate-700/60
     shadow-lg hover:shadow-xl
     transition-all duration-200 ease-out cursor-pointer
     backdrop-blur-sm
-    ${isSelected ? 'ring-2 ring-primary ring-offset-4 dark:ring-offset-slate-900 shadow-primary/20' : ''}
+    ${isSelected ? 'ring-2 ring-primary ring-offset-2 sm:ring-offset-4 dark:ring-offset-slate-900 shadow-primary/20' : ''}
     ${isLoading || isDeleting ? 'opacity-60 pointer-events-none' : ''}
-    ${viewMode === 'list' ? 'flex flex-row w-full max-w-4xl max-h-32' : 'flex flex-col w-64 h-64'}
+    ${viewMode === 'list'
+      ? 'flex flex-row w-full max-w-full sm:max-w-4xl h-auto min-h-[120px] sm:max-h-32'
+      : 'flex flex-col w-full sm:w-64 h-auto sm:h-64 min-h-[200px] sm:min-h-[256px]'}
     hover:border-primary/30 dark:hover:border-primary-light/30
   `;
 
   const contentClasses = viewMode === 'list'
-    ? 'flex-1 p-2.5 bg-gradient-to-r from-transparent to-slate-50/30 dark:to-slate-800/30'
-    : 'p-3 bg-gradient-to-b from-transparent to-slate-50/20 dark:to-slate-800/20';
+    ? 'flex-1 p-2 sm:p-2.5 bg-gradient-to-r from-transparent to-slate-50/30 dark:to-slate-800/30'
+    : 'p-2.5 sm:p-3 bg-gradient-to-b from-transparent to-slate-50/20 dark:to-slate-800/20 flex-1';
 
   const actionsClasses = viewMode === 'list'
-    ? 'flex flex-row items-center justify-center p-4 bg-gradient-to-t from-slate-100/80 to-transparent dark:from-slate-700/50 dark:to-transparent border-l border-slate-200/60 dark:border-slate-600/60 backdrop-blur-sm'
-    : 'flex flex-row items-center justify-between p-4 bg-gradient-to-t from-slate-100/80 to-transparent dark:from-slate-700/50 dark:to-transparent border-t border-slate-200/60 dark:border-slate-600/60 backdrop-blur-sm';
+    ? 'flex flex-row items-center justify-center p-3 sm:p-4 bg-gradient-to-t from-slate-100/80 to-transparent dark:from-slate-700/50 dark:to-transparent border-l border-slate-200/60 dark:border-slate-600/60 backdrop-blur-sm'
+    : 'flex flex-row items-center justify-between p-3 sm:p-4 bg-gradient-to-t from-slate-100/80 to-transparent dark:from-slate-700/50 dark:to-transparent border-t border-slate-200/60 dark:border-slate-600/60 backdrop-blur-sm';
 
   if (isLoading) {
     return (
@@ -221,16 +223,17 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
 
       {/* 卡片頭部 */}
       <div className={contentClasses}>
-        <header className="flex items-start justify-between mb-1.5">
+        <header className="flex items-start justify-between mb-1 sm:mb-1.5">
           <div className="flex-1 min-w-0 pr-2">
             <h3 className={`
-              font-medium ${viewMode === 'list' ? 'text-sm' : 'text-sm'} leading-tight truncate
+              font-medium ${viewMode === 'list' ? 'text-sm sm:text-base' : 'text-sm sm:text-base'} leading-tight
               ${isSelected
                 ? 'text-primary dark:text-primary-light'
                 : 'text-slate-900 dark:text-slate-100 group-hover:text-primary dark:group-hover:text-primary-light'
               }
               transition-colors duration-200
               ${note.title ? '' : 'italic text-slate-500 dark:text-slate-400'}
+              ${viewMode === 'list' ? 'line-clamp-2' : 'line-clamp-2 sm:line-clamp-1'}
             `}>
               {note.title || t('noteCard.untitled')}
             </h3>
@@ -239,48 +242,48 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
             </div>
           </div>
           
-          <div className="absolute top-2 right-2 flex items-center space-x-1 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-           <button onClick={handleToggleFavorite} className="p-1.5 rounded-full bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-700">
-             <StarIcon className={`w-4 h-4 ${(note as any).isFavorite ? 'text-yellow-400 fill-yellow-400' : 'text-slate-500'}`} />
+          <div className="absolute top-1.5 sm:top-2 right-1.5 sm:right-2 flex items-center space-x-0.5 sm:space-x-1 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+           <button onClick={handleToggleFavorite} className="p-1 sm:p-1.5 rounded-full bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-700">
+             <StarIcon className={`w-3 h-3 sm:w-4 sm:h-4 ${(note as any).isFavorite ? 'text-yellow-400 fill-yellow-400' : 'text-slate-500'}`} />
            </button>
-           <button onClick={handleTogglePin} className="p-1.5 rounded-full bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-700">
-             <PinIcon className={`w-4 h-4 ${(note as any).isPinned ? 'text-blue-500' : 'text-slate-500'}`} />
+           <button onClick={handleTogglePin} className="p-1 sm:p-1.5 rounded-full bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-700">
+             <PinIcon className={`w-3 h-3 sm:w-4 sm:h-4 ${(note as any).isPinned ? 'text-blue-500' : 'text-slate-500'}`} />
            </button>
            {/* 三點下拉菜單 */}
            <div className="relative" ref={dropdownRef}>
              <button
                onClick={toggleDropdown}
-               className="p-1.5 rounded-full bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-700 transition-colors duration-200"
+               className="p-1 sm:p-1.5 rounded-full bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-700 transition-colors duration-200"
              >
-               <svg className="w-4 h-4 text-slate-500 dark:text-slate-400" fill="currentColor" viewBox="0 0 20 20">
+               <svg className="w-3 h-3 sm:w-4 sm:h-4 text-slate-500 dark:text-slate-400" fill="currentColor" viewBox="0 0 20 20">
                  <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                </svg>
              </button>
              
              {/* 下拉菜單 */}
              {showDropdown && (
-               <div className="note-card-dropdown absolute right-0 top-8 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl py-2 z-50 min-w-[140px] max-w-[200px] animate-in slide-in-from-top-2 duration-150">
+               <div className="note-card-dropdown absolute right-0 top-6 sm:top-8 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl py-2 z-50 min-w-[120px] sm:min-w-[140px] max-w-[180px] sm:max-w-[200px] animate-in slide-in-from-top-2 duration-150">
                  <button
                    onClick={handleViewNote}
-                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors duration-150 text-left"
+                   className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors duration-150 text-left"
                  >
-                   <EyeIcon className="w-4 h-4 flex-shrink-0" />
+                   <EyeIcon className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                    <span className="truncate">{t('noteCard.view')}</span>
                  </button>
                  <button
                    onClick={handleEditNote}
-                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors duration-150 text-left"
+                   className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors duration-150 text-left"
                  >
-                   <PencilSquareIcon className="w-4 h-4 flex-shrink-0" />
+                   <PencilSquareIcon className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                    <span className="truncate">{t('noteCard.edit')}</span>
                  </button>
                  <div className="border-t border-slate-200 dark:border-slate-600 my-1"></div>
                  <button
                    onClick={handleDeleteNote}
-                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-150 text-left"
+                   className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-150 text-left"
                    disabled={isDeleting}
                  >
-                   <TrashIcon className="w-4 h-4 flex-shrink-0" />
+                   <TrashIcon className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                    <span className="truncate">{isDeleting ? t('noteCard.deleting') : t('noteCard.delete')}</span>
                  </button>
                </div>
@@ -290,10 +293,10 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
         </header>
 
         {/* 內容預覽 */}
-        <div className="mb-2 flex-1">
+        <div className="mb-1.5 sm:mb-2 flex-1">
           <p className={`
-            text-xs leading-relaxed text-slate-600 dark:text-slate-400
-            ${viewMode === 'grid' ? 'line-clamp-3' : 'line-clamp-1'}
+            text-xs sm:text-sm leading-relaxed text-slate-600 dark:text-slate-400
+            ${viewMode === 'grid' ? 'line-clamp-3 sm:line-clamp-4' : 'line-clamp-2 sm:line-clamp-1'}
           `}>
             {summary}
           </p>
@@ -302,7 +305,7 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
         {/* 標籤區域 */}
         {note.tags && note.tags.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-auto">
-            {note.tags.slice(0, viewMode === 'grid' ? 2 : 3).map((tag, index) => (
+            {note.tags.slice(0, viewMode === 'grid' ? 3 : 4).map((tag, index) => (
               <span
                 key={`${tag}-${index}`}
                 className={`
@@ -314,9 +317,9 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({
                 {tag}
               </span>
             ))}
-            {note.tags.length > (viewMode === 'grid' ? 2 : 3) && (
+            {note.tags.length > (viewMode === 'grid' ? 3 : 4) && (
               <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
-                +{note.tags.length - (viewMode === 'grid' ? 2 : 3)}
+                +{note.tags.length - (viewMode === 'grid' ? 3 : 4)}
               </span>
             )}
           </div>

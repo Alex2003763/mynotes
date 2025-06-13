@@ -20,7 +20,7 @@ const App: React.FC = () => {
   const { notes, selectNote, selectedNoteId, loading } = useNotes();
   // Sidebar states
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(window.innerWidth > 768);
-  const [isRightSidebarVisible, setIsRightSidebarVisible] = useState(window.innerWidth > 1024);
+  const [isRightSidebarVisible, setIsRightSidebarVisible] = useState(window.innerWidth > 1200);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   
   // Sidebar widths
@@ -114,8 +114,12 @@ const App: React.FC = () => {
   // For responsive handling of sidebar visibility
   useEffect(() => {
     const handleResize = () => {
-      // setIsLeftSidebarOpen(window.innerWidth > 768); // We now control this manually
-      setIsRightSidebarVisible(window.innerWidth > 1024); // Right sidebar auto-visible on larger screens
+      // Auto-close left sidebar on smaller screens
+      if (window.innerWidth <= 768) {
+        setIsLeftSidebarOpen(false);
+      }
+      // Right sidebar visibility for larger screens
+      setIsRightSidebarVisible(window.innerWidth > 1200);
     };
     window.addEventListener('resize', handleResize);
     handleResize(); // Initial check
@@ -128,7 +132,14 @@ const App: React.FC = () => {
       <Header
         onToggleLeftSidebar={() => setIsLeftSidebarOpen(!isLeftSidebarOpen)}
       />
-      <div className="flex flex-1 min-h-0">
+      <div className="flex flex-1 min-h-0 relative">
+        {/* Mobile overlay */}
+        {isLeftSidebarOpen && window.innerWidth <= 768 && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
+            onClick={() => setIsLeftSidebarOpen(false)}
+          />
+        )}
         {/* Left sidebar with search and sort */}
         <Sidebar
           isOpen={isLeftSidebarOpen}
@@ -144,12 +155,18 @@ const App: React.FC = () => {
         
         <MainContent />
         
-        {/* Right sidebar and its resizer, only shown on relevant routes and desktop */}
-        {showRightSidebarPanel && isRightSidebarVisible && <Resizer onResize={handleRightResize} />}
+        {/* Right sidebar and its resizer, only shown on relevant routes and larger screens */}
         {showRightSidebarPanel && isRightSidebarVisible && (
-          <RightSidebar
-            width={rightSidebarWidth}
-          />
+          <>
+            <div className="hidden xl:block">
+              <Resizer onResize={handleRightResize} />
+            </div>
+            <div className="hidden xl:block">
+              <RightSidebar
+                width={rightSidebarWidth}
+              />
+            </div>
+          </>
         )}
       </div>
       {isSettingsModalOpen && <SettingsModal onClose={closeSettingsModal} />}
