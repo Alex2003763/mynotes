@@ -34,9 +34,7 @@ class PWAService {
     
     if ('serviceWorker' in navigator) {
       // 使用 Workbox 註冊 Vite 生成的 Service Worker
-      this.wb = new Workbox('/sw.js', {
-        type: 'module'
-      });
+      this.wb = new Workbox('/sw.js');
       
       // 監聽 SW 安裝事件
       this.wb.addEventListener('installed', (event) => {
