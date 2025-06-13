@@ -349,6 +349,11 @@ export const answerQuestionFromNote = async (question: string, noteContent: stri
 };
 
 export const checkApiKeyValidity = async (): Promise<boolean> => {
+  // If offline, don't perform the check. Trust the last known state.
+  if (!navigator.onLine) {
+    return isCurrentKeyKnownValid;
+  }
+
   // If no API key is set, mark as invalid and return false
   if (!currentApiKey) {
     isCurrentKeyKnownValid = false;

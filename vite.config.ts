@@ -19,9 +19,10 @@ export default defineConfig(({ mode }) => {
       plugins: [
         react(),
         VitePWA({
-          registerType: 'prompt',
+          registerType: 'autoUpdate',
+          includeAssets: ['**/*.{png,ico,svg,woff2,woff,ttf,eot}'],
           workbox: {
-            globPatterns: ['**/*.{js,css,html,ico,png,svg,json,woff,woff2,ttf,eot,wasm}'],
+            globPatterns: ['**/*.{js,css,html,json,wasm}'],
             maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 10 MB
             navigateFallback: 'index.html',
             runtimeCaching: [
@@ -40,41 +41,33 @@ export default defineConfig(({ mode }) => {
                 },
               },
                {
-                urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-                handler: 'CacheFirst',
-                options: {
-                  cacheName: 'gstatic-fonts-cache',
-                  expiration: {
-                    maxEntries: 10,
-                    maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
-                  }
-                }
-              },
-              {
-                urlPattern: /^https:\/\/cdn\.tailwindcss\.com\/.*/i,
+                urlPattern: ({ request }) => request.destination === 'font' || request.destination === 'style',
                 handler: 'StaleWhileRevalidate',
                 options: {
-                  cacheName: 'tailwind-css-cache',
+                  cacheName: 'assets-cache',
                   expiration: {
-                    maxEntries: 5,
-                    maxAgeSeconds: 60 * 60 * 24 * 30 // <== 30 days
+                    maxEntries: 50,
+                    maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
                   }
                 }
               },
               {
-                urlPattern: /^https:\/\/cdnjs\.cloudflare\.com\/.*/i,
+                urlPattern: ({ request }) => request.destination === 'image',
                 handler: 'CacheFirst',
                 options: {
-                  cacheName: 'cloudflare-cdn-cache',
+                  cacheName: 'image-cache',
                   expiration: {
-                    maxEntries: 20,
-                    maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
+                    maxEntries: 50,
+                    maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+                  },
+                  cacheableResponse: {
+                    statuses: [0, 200]
                   }
                 }
               },
               {
-                urlPattern: /cherry-markdown/i,
-                handler: 'StaleWhileRevalidate',
+                urlPattern: /cherry-markdown/,
+                handler: 'CacheFirst',
                 options: {
                   cacheName: 'cherry-markdown-cache',
                   expiration: {

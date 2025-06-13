@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Cherry from 'cherry-markdown';
+import 'cherry-markdown/dist/cherry-markdown.css';
 
 import { useNotes } from '../contexts/NoteContext';
 import { Note, NotePage, ApiFeedback } from '../types';
@@ -283,6 +284,12 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ isNewNote = false }) => 
       console.log('🔍 [DEBUG] Cherry editor created successfully');
     } catch (e) {
       console.error("Failed to initialize Cherry Markdown editor:", e);
+      // DETAILED LOGGING FOR OFFLINE ISSUE
+      if (e instanceof Error) {
+        console.log('[DEBUG] Cherry-Markdown initialization failed. Error message:', e.message, 'Stack:', e.stack, 'Full error:', e);
+      } else {
+        console.log('[DEBUG] Cherry-Markdown initialization failed with non-Error object:', e);
+      }
       displayApiMessage({type: 'error', text: 'Editor failed to load. Try refreshing.'});
     }
     return () => {
