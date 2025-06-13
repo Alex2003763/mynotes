@@ -29,10 +29,14 @@ export default defineConfig(({ mode }) => {
             cleanupOutdatedCaches: true,
             clientsClaim: true,
             skipWaiting: false,
-            // 明確包含根路徑
+            // 明確包含根路徑和離線頁面
             additionalManifestEntries: [
-              { url: '/', revision: null }
+              { url: '/', revision: null },
+              { url: '/offline.html', revision: null }
             ],
+            // 移動設備優化
+            mode: 'production',
+            disableDevLogs: true,
             runtimeCaching: [
               {
                 urlPattern: /\/locales\/.*\.json$/,
@@ -47,14 +51,27 @@ export default defineConfig(({ mode }) => {
               },
               {
                 urlPattern: ({ request }: {request: any}) => request.destination === 'document',
-                handler: 'NetworkFirst',
+                handler: 'CacheFirst',
                 options: {
                   cacheName: 'pages',
                   expiration: {
                     maxEntries: 50,
                     maxAgeSeconds: 60 * 60 * 24
-                  },
-                  networkTimeoutSeconds: 3
+                  }
+                }
+              },
+              {
+                urlPattern: ({ request }: {request: any}) =>
+                  request.destination === 'style' ||
+                  request.destination === 'script' ||
+                  request.destination === 'image',
+                handler: 'CacheFirst',
+                options: {
+                  cacheName: 'static-resources',
+                  expiration: {
+                    maxEntries: 100,
+                    maxAgeSeconds: 60 * 60 * 24 * 7
+                  }
                 }
               }
             ]

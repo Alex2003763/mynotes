@@ -23,6 +23,10 @@ class PWAService {
     // 在開發模式下跳過某些功能
     const isDev = import.meta.env.MODE === 'development';
     
+    // 檢查是否為移動設備
+    const isMobile = this.isMobileDevice();
+    console.log(`PWA: 設備類型: ${isMobile ? '移動設備' : '桌面設備'}`);
+    
     // 檢查重啟次數，防止無限重啟循環
     this.restartCount = parseInt(sessionStorage.getItem('pwa_restart_count') || '0', 10);
     
@@ -30,6 +34,11 @@ class PWAService {
       console.warn('PWA: 已達到最大重啟次數，停止自動重啟');
       sessionStorage.removeItem('pwa_restart_count');
       return;
+    }
+    
+    // 移動設備需要額外檢查
+    if (isMobile) {
+      this.setupMobileOptimizations();
     }
     
     if ('serviceWorker' in navigator) {
@@ -202,6 +211,85 @@ class PWAService {
   skipWaiting() {
     if (this.wb && this.updateAvailable && !this.hasReloaded) {
       this.wb.messageSkipWaiting();
+    }
+  }
+
+  // 檢查是否為移動設備
+  private isMobileDevice(): boolean {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+           (window.innerWidth <= 768 && 'ontouchstart' in window);
+  }
+
+  // 移動設備優化設置
+  private setupMobileOptimizations(): void {
+    console.log('PWA: 設置移動設備優化');
+    
+    // 強制使用 HTTPS（移動設備要求）
+    if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+      console.warn('PWA: 移動設備需要 HTTPS，正在重定向...');
+      location.replace(`https:${location.href.substring(location.protocol.length)}`);
+      return;
+    }
+    
+    // 移動設備的緩存預載入
+    this.preloadMobileResources();
+    
+    // 監聽頁面可見性變化
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        // 頁面重新可見時檢查緩存
+        this.checkMobileCacheHealth();
+      }
+    });
+  }
+
+  // 移動設備資源預載入
+  private async preloadMobileResources(): Promise<void> {
+    if (!('caches' in window)) return;
+    
+    try {
+      const cache = await caches.open('mobile-essential-cache');
+      const essentialUrls = [
+        '/',
+        '/index.html',
+        '/locales/en.json',
+        '/locales/zh.json'
+      ];
+      
+      for (const url of essentialUrls) {
+        try {
+          const response = await fetch(url);
+          if (response.ok) {
+            await cache.put(url, response);
+            console.log(`PWA Mobile: 預載入 ${url}`);
+          }
+        } catch (error) {
+          console.warn(`PWA Mobile: 預載入失敗 ${url}:`, error);
+        }
+      }
+    } catch (error) {
+      console.error('PWA Mobile: 預載入失敗:', error);
+    }
+  }
+
+  // 檢查移動設備緩存健康度
+  private async checkMobileCacheHealth(): Promise<void> {
+    if (!('caches' in window)) return;
+    
+    try {
+      const cacheNames = await caches.keys();
+      console.log(`PWA Mobile: 找到 ${cacheNames.length} 個緩存`);
+      
+      // 檢查翻譯緩存
+      for (const cacheName of cacheNames) {
+        if (cacheName.includes('translation')) {
+          const cache = await caches.open(cacheName);
+          const requests = await cache.keys();
+          console.log(`PWA Mobile: 緩存 "${cacheName}" 包含 ${requests.length} 個項目`);
+        }
+      }
+    } catch (error) {
+      console.warn('PWA Mobile: 緩存檢查失敗:', error);
     }
   }
 
