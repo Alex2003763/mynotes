@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useSettings } from './SettingsContext';
 import { Language, Translations, TranslationKey } from '../types';
+import TranslationCacheService from '../services/translationCacheService';
 import type { Locale as DateFnsLocale } from 'date-fns/locale/types';
 
 // Dynamically import date-fns locales using full URLs
@@ -47,21 +48,90 @@ export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const loadTranslations = async (lang: Language) => {
       try {
-        const response = await fetch(`/locales/${lang}.json`);
+        // 首先嘗試從緩存載入
+        const cachedTranslations = TranslationCacheService.getCachedTranslations(lang);
+        if (cachedTranslations) {
+          console.log(`I18n: Using cached translations for ${lang}`);
+          setTranslations(cachedTranslations);
+          
+          // 在背景中更新翻譯
+          updateTranslationsInBackground(lang);
+          return;
+        }
+
+        // 緩存中沒有，嘗試從網絡載入
+        console.log(`I18n: Loading translations for ${lang} from network`);
+        const response = await fetch(`/locales/${lang}.json`, {
+          cache: 'force-cache'
+        });
+        
         if (!response.ok) {
           throw new Error(`Failed to load ${lang}.json, status: ${response.status}`);
         }
+        
         const data: Translations = await response.json();
-        setTranslations(data);
-      } catch (error) {
-        console.error(`Failed to load translations for ${lang}:`, error);
-        if (lang !== 'en') {
-            console.info("Attempting to load English translations as fallback.");
-            loadTranslations('en'); 
+        
+        // 驗證數據完整性
+        if (data && typeof data === 'object' && Object.keys(data).length > 0) {
+          setTranslations(data);
+          TranslationCacheService.cacheTranslations(lang, data);
+          console.log(`I18n: Successfully loaded and cached ${lang} translations`);
         } else {
-            console.error("Failed to load English translations as well. Setting minimal error translations.");
-            setTranslations({ "error": "Translations loading failed" });
+          throw new Error('Invalid translation data received');
         }
+      } catch (error) {
+        console.error(`I18n: Failed to load translations for ${lang}:`, error);
+        
+        // 嘗試獲取最佳可用的翻譯
+        const fallbackTranslations = TranslationCacheService.getBestAvailableTranslations(lang);
+        if (fallbackTranslations) {
+          setTranslations(fallbackTranslations);
+          console.log(`I18n: Using fallback translations`);
+          return;
+        }
+
+        // 如果當前語言不是英文，嘗試載入英文
+        if (lang !== 'en') {
+          console.info("I18n: Attempting to load English translations as fallback");
+          loadTranslations('en');
+          return;
+        }
+        
+        // 最後的備用方案：設置基本的錯誤翻譯
+        console.error("I18n: All translation loading attempts failed. Setting minimal translations.");
+        const minimalTranslations: Translations = {
+          "error": "翻譯載入失敗 / Translations loading failed",
+          "general": {
+            "error": "錯誤 / Error",
+            "loading": "載入中... / Loading...",
+            "success": "成功 / Success",
+            "info": "資訊 / Info"
+          },
+          "header": {
+            "title": "我的筆記 / MyNotes",
+            "settings": "設定 / Settings",
+            "newNote": "新筆記 / New Note"
+          }
+        };
+        setTranslations(minimalTranslations);
+        TranslationCacheService.cacheTranslations(lang, minimalTranslations);
+      }
+    };
+
+    // 在背景中更新翻譯
+    const updateTranslationsInBackground = async (lang: Language) => {
+      try {
+        const response = await fetch(`/locales/${lang}.json`);
+        if (response.ok) {
+          const data: Translations = await response.json();
+          if (data && typeof data === 'object' && Object.keys(data).length > 0) {
+            TranslationCacheService.cacheTranslations(lang, data);
+            console.log(`I18n: Background update completed for ${lang}`);
+          }
+        }
+      } catch (error) {
+        console.log(`I18n: Background update failed for ${lang}:`, error);
+        // 忽略背景更新的錯誤
       }
     };
 

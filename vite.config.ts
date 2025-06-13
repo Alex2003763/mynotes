@@ -21,11 +21,28 @@ export default defineConfig(({ mode }) => {
             enabled: false // 在開發模式下禁用 PWA
           },
           workbox: {
-            globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+            globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,json}'],
             maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB
             navigateFallback: '/offline.html',
             navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/],
+            // 明確包含翻譯文件
+            additionalManifestEntries: [
+              { url: '/locales/en.json', revision: null },
+              { url: '/locales/zh.json', revision: null }
+            ],
             runtimeCaching: [
+              // 翻譯文件 - 最高優先級緩存
+              {
+                urlPattern: /\/locales\/.*\.json$/,
+                handler: 'CacheFirst',
+                options: {
+                  cacheName: 'mynotes-translations-v1',
+                  expiration: {
+                    maxEntries: 10,
+                    maxAgeSeconds: 60 * 60 * 24 * 30 // 30 天
+                  },
+                }
+              },
               {
                 urlPattern: /^https:\/\/cdn\.tailwindcss\.com\/.*/i,
                 handler: 'CacheFirst',
@@ -60,7 +77,7 @@ export default defineConfig(({ mode }) => {
                 }
               },
               {
-                urlPattern: ({ request }) => request.destination === 'document',
+                urlPattern: ({ request }: {request: any}) => request.destination === 'document',
                 handler: 'NetworkFirst',
                 options: {
                   cacheName: 'pages-cache',
@@ -69,6 +86,21 @@ export default defineConfig(({ mode }) => {
                     maxAgeSeconds: 60 * 60 * 24 // 1 天
                   },
                   networkTimeoutSeconds: 3
+                }
+              },
+              // 靜態資源
+              {
+                urlPattern: ({ request }: {request: any}) =>
+                  request.destination === 'style' ||
+                  request.destination === 'script' ||
+                  request.destination === 'worker',
+                handler: 'StaleWhileRevalidate',
+                options: {
+                  cacheName: 'static-resources',
+                  expiration: {
+                    maxEntries: 100,
+                    maxAgeSeconds: 60 * 60 * 24 * 7 // 1 週
+                  }
                 }
               }
             ]

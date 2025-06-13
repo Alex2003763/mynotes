@@ -11,6 +11,8 @@ import { useNotes } from './contexts/NoteContext';
 import { Resizer } from './components/Resizer';
 import { PWAStatus } from './components/PWAStatus';
 import { pwaService } from './services/pwaService';
+import TranslationCacheService from './services/translationCacheService';
+import OfflineRecoveryService from './services/offlineRecoveryService';
 
 const MIN_SIDEBAR_WIDTH = 200; // px
 const MAX_SIDEBAR_WIDTH = 500; // px
@@ -48,11 +50,35 @@ const App: React.FC = () => {
     // SettingsContext now handles theme and lang attribute on html tag
   }, [settings.theme, settings.language]);
 
-  // 初始化 PWA 功能
+  // 初始化 PWA 功能和翻譯預載入
   useEffect(() => {
-    pwaService.init();
-    pwaService.showInstallPrompt();
-    pwaService.setupOfflineNotification();
+    const initializeApp = async () => {
+      try {
+        // 先預載入翻譯文件
+        await TranslationCacheService.preloadTranslations();
+        console.log('App: Translation preload completed');
+        
+        // 初始化離線恢復服務
+        const offlineRecovery = OfflineRecoveryService.getInstance();
+        console.log('App: Offline recovery service initialized');
+        
+        // 然後初始化 PWA 功能
+        pwaService.init();
+        pwaService.showInstallPrompt();
+        pwaService.setupOfflineNotification();
+        
+        console.log('App: PWA initialization completed');
+      } catch (error) {
+        console.warn('App: Initialization error:', error);
+        // 即使預載入失敗，也要初始化其他服務
+        OfflineRecoveryService.getInstance();
+        pwaService.init();
+        pwaService.showInstallPrompt();
+        pwaService.setupOfflineNotification();
+      }
+    };
+
+    initializeApp();
   }, []);
 
   useEffect(() => {
