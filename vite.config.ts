@@ -1,25 +1,28 @@
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { defineConfig, loadEnv } from 'vite';
+import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
     return {
       define: {
-        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
         'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
       },
       resolve: {
         alias: {
-          '@': path.resolve(__dirname, '.'),
+          '@': path.resolve(__dirname, './src'),
         }
       },
       plugins: [
+        react(),
         VitePWA({
           registerType: 'prompt',
           workbox: {
             globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
-            maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 5 MB
+            maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 10 MB
             runtimeCaching: [
               {
                 urlPattern: ({ url }) => url.origin === 'https://openrouter.ai',
@@ -35,6 +38,40 @@ export default defineConfig(({ mode }) => {
                   },
                 },
               },
+               {
+                urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+                handler: 'CacheFirst',
+                options: {
+                  cacheName: 'gstatic-fonts-cache',
+                  expiration: {
+                    maxEntries: 10,
+                    maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
+                  }
+                }
+              },
+              {
+                urlPattern: /^https:\/\/cdn\.tailwindcss\.com\/.*/i,
+                handler: 'StaleWhileRevalidate',
+                options: {
+                  cacheName: 'tailwind-css-cache',
+                  expiration: {
+                    maxEntries: 5,
+                    maxAgeSeconds: 60 * 60 * 24 * 30 // <== 30 days
+                  }
+                }
+              },
+              {
+                urlPattern: /^https:\/\/cdnjs\.cloudflare\.com\/.*/i,
+                handler: 'CacheFirst',
+                options: {
+                  cacheName: 'cloudflare-cdn-cache',
+                  expiration: {
+                    maxEntries: 20,
+                    maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
+                  }
+                }
+              },
+
             ],
           },
           manifest: {

@@ -24,7 +24,7 @@
     "noUncheckedSideEffectImports": true,
 
     "paths": {
-      "@/*" :  ["./*"]
+      "@/*" :  ["./src/*"]
     },
     "types": ["vite/client", "vite-plugin-pwa/client"]
   }
