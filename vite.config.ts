@@ -19,123 +19,42 @@ export default defineConfig(({ mode }) => {
           registerType: 'prompt',
           workbox: {
             globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
+            maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 5 MB
             runtimeCaching: [
               {
-                urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-                handler: 'CacheFirst',
+                urlPattern: ({ url }) => url.origin === 'https://openrouter.ai',
+                handler: 'NetworkFirst',
                 options: {
-                  cacheName: 'google-fonts-cache',
+                  cacheName: 'api-cache',
                   expiration: {
                     maxEntries: 10,
-                    maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
-                  }
-                }
+                    maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
+                  },
+                  cacheableResponse: {
+                    statuses: [0, 200],
+                  },
+                },
               },
-              {
-                urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-                handler: 'CacheFirst',
-                options: {
-                  cacheName: 'gstatic-fonts-cache',
-                  expiration: {
-                    maxEntries: 10,
-                    maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
-                  }
-                }
-              },
-              {
-                urlPattern: /^https:\/\/cdn\.tailwindcss\.com\/.*/i,
-                handler: 'StaleWhileRevalidate',
-                options: {
-                  cacheName: 'tailwind-css-cache',
-                  expiration: {
-                    maxEntries: 5,
-                    maxAgeSeconds: 60 * 60 * 24 * 30 // <== 30 days
-                  }
-                }
-              },
-              {
-                urlPattern: /^https:\/\/cdnjs\.cloudflare\.com\/.*/i,
-                handler: 'CacheFirst',
-                options: {
-                  cacheName: 'cloudflare-cdn-cache',
-                  expiration: {
-                    maxEntries: 20,
-                    maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
-                  }
-                }
-              },
-              {
-                urlPattern: /^https:\/\/esm\.sh\/.*/i,
-                handler: 'StaleWhileRevalidate',
-                options: {
-                  cacheName: 'esm-modules-cache',
-                  expiration: {
-                    maxEntries: 50,
-                    maxAgeSeconds: 60 * 60 * 24 * 7 // <== 7 days
-                  }
-                }
-              },
-              {
-                urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/.*/i,
-                handler: 'CacheFirst',
-                options: {
-                  cacheName: 'jsdelivr-cdn-cache',
-                  expiration: {
-                    maxEntries: 20,
-                    maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
-                  }
-                }
-              },
-              {
-                urlPattern: /^.*\/locales\/.*\.json$/i,
-                handler: 'CacheFirst',
-                options: {
-                  cacheName: 'translations-cache',
-                  expiration: {
-                    maxEntries: 10,
-                    maxAgeSeconds: 60 * 60 * 24 * 30 // <== 30 days
-                  }
-                }
-              }
-            ]
+            ],
           },
           manifest: {
-            name: 'ClarityLedger',
-            short_name: 'ClarityLedger',
-            description: 'A simple and elegant personal finance manager (ClarityLedger) to track your income and expenses, with AI-powered financial tips. User data is stored locally in the browser.',
-            theme_color: '#4361ee',
-            background_color: '#f5f7fb',
-            display: 'standalone',
-            orientation: 'portrait-primary',
-            scope: '/',
-            start_url: '/',
+            name: 'MyNotes',
+            short_name: 'MyNotes',
+            description: 'A simple note-taking app',
+            theme_color: '#ffffff',
             icons: [
               {
-                src: '/icons/icon-192x192.png',
+                src: 'pwa-192x192.png',
                 sizes: '192x192',
                 type: 'image/png',
-                purpose: 'any'
               },
               {
-                src: '/icons/icon-512x512.png',
+                src: 'pwa-512x512.png',
                 sizes: '512x512',
                 type: 'image/png',
-                purpose: 'any'
               },
-              {
-                src: '/icons/icon-maskable-192x192.png',
-                sizes: '192x192',
-                type: 'image/png',
-                purpose: 'maskable'
-              },
-              {
-                src: '/icons/icon-maskable-512x512.png',
-                sizes: '512x512',
-                type: 'image/png',
-                purpose: 'maskable'
-              }
-            ]
-          }
+            ],
+          },
         })
       ]
     };
