@@ -18,17 +18,20 @@ export default defineConfig(({ mode }) => {
         VitePWA({
           registerType: 'prompt',
           devOptions: {
-            enabled: true,
-            type: 'module'
+            enabled: true
           },
           workbox: {
             globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,json}'],
             maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
-            navigateFallback: '/',
+            navigateFallback: '/index.html',
             navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/, /^\/api\//, /^\/test-/],
             cleanupOutdatedCaches: true,
             clientsClaim: true,
             skipWaiting: true,
+            // 明確包含根路徑
+            additionalManifestEntries: [
+              { url: '/', revision: null }
+            ],
             runtimeCaching: [
               {
                 urlPattern: /\/locales\/.*\.json$/,
