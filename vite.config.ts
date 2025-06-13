@@ -23,13 +23,20 @@ export default defineConfig(({ mode }) => {
           workbox: {
             globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,json}'],
             maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB
-            navigateFallback: '/offline.html',
-            navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/],
-            // 明確包含翻譯文件
+            navigateFallback: '/',
+            navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/, /^\/api\//],
+            // 明確包含翻譯文件和核心資源
             additionalManifestEntries: [
               { url: '/locales/en.json', revision: null },
-              { url: '/locales/zh.json', revision: null }
+              { url: '/locales/zh.json', revision: null },
+              { url: '/', revision: null },
+              { url: '/offline.html', revision: null }
             ],
+            // 清理舊版本
+            cleanupOutdatedCaches: true,
+            // 客戶端重載
+            clientsClaim: true,
+            skipWaiting: true,
             runtimeCaching: [
               // 翻譯文件 - 最高優先級緩存
               {
