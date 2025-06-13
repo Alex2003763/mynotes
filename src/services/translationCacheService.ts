@@ -195,7 +195,14 @@ class TranslationCacheService {
         // 檢查是否已有有效緩存
         const cached = this.getCachedTranslations(lang);
         if (cached) {
-          console.log(`Translation cache: ${lang} already cached`);
+          console.log(`Translation cache: ${lang} already cached in localStorage`);
+          
+          // 即使已緩存，也嘗試更新到瀏覽器緩存
+          try {
+            await this.ensureBrowserCache(lang);
+          } catch (error) {
+            console.warn(`Translation cache: Failed to ensure browser cache for ${lang}:`, error);
+          }
           return;
         }
 
@@ -204,6 +211,9 @@ class TranslationCacheService {
         if (response.ok) {
           const translations = await response.json();
           this.cacheTranslations(lang, translations);
+          
+          // 同時緩存到瀏覽器緩存
+          await this.ensureBrowserCache(lang, translations);
         } else {
           console.warn(`Translation cache: Failed to preload ${lang}, status: ${response.status}`);
         }
@@ -214,6 +224,45 @@ class TranslationCacheService {
 
     await Promise.all(preloadPromises);
     console.log('Translation cache: Preload completed');
+  }
+
+  /**
+   * 確保翻譯文件在瀏覽器緩存中
+   */
+  private static async ensureBrowserCache(language: Language, translations?: any): Promise<void> {
+    if (!('caches' in window)) {
+      return;
+    }
+
+    try {
+      const cache = await caches.open('mynotes-translations-v1');
+      const url = `/locales/${language}.json`;
+      
+      // 檢查是否已經在緩存中
+      const cached = await cache.match(url);
+      if (cached) {
+        return;
+      }
+
+      // 如果提供了翻譯數據，直接緩存
+      if (translations) {
+        const response = new Response(JSON.stringify(translations), {
+          headers: { 'Content-Type': 'application/json' }
+        });
+        await cache.put(url, response);
+        console.log(`Translation cache: Cached ${language} to browser cache`);
+        return;
+      }
+
+      // 否則嘗試從網絡獲取並緩存
+      const response = await fetch(url);
+      if (response.ok) {
+        await cache.put(url, response.clone());
+        console.log(`Translation cache: Fetched and cached ${language} to browser cache`);
+      }
+    } catch (error) {
+      console.warn(`Translation cache: Failed to ensure browser cache for ${language}:`, error);
+    }
   }
 }
 

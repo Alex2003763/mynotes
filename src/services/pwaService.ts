@@ -32,68 +32,94 @@ class PWAService {
       return;
     }
     
-    if ('serviceWorker' in navigator && !isDev) {
-      this.wb = new Workbox('/sw.js');
-      
-      // 監聽 SW 安裝事件
-      this.wb.addEventListener('installed', (event) => {
-        console.log('SW: Service Worker 已安裝', event);
-        if (!event.isUpdate) {
-          console.log('SW: 首次安裝完成');
-        }
-      });
-
-      // 監聽 SW 更新事件
-      this.wb.addEventListener('waiting', (event) => {
-        console.log('SW: 新版本等待中', event);
-        this.updateAvailable = true;
-        this.showUpdateNotification();
-      });
-
-      // 監聽 SW 控制事件
-      this.wb.addEventListener('controlling', (event) => {
-        console.log('SW: Service Worker 開始控制頁面', event);
-        if (this.updateAvailable && !this.hasReloaded) {
-          this.hasReloaded = true;
-          this.restartCount++;
-          sessionStorage.setItem('pwa_restart_count', this.restartCount.toString());
-          
-          // 添加延遲避免競爭條件，並確保翻譯已緩存
-          setTimeout(async () => {
-            try {
-              // 確保翻譯文件已緩存
-              await this.ensureTranslationsCached();
-              console.log('SW: 翻譯文件已確保緩存，準備重新載入');
-              window.location.reload();
-            } catch (error) {
-              console.error('SW: 緩存翻譯文件失敗，仍然重新載入:', error);
-              window.location.reload();
-            }
-          }, 500);
-        }
-      });
-
-      // 監聽 SW 錯誤事件
-      this.wb.addEventListener('redundant', () => {
-        console.warn('SW: Service Worker 變為冗餘');
-      });
-
-      // 註冊 Service Worker
-      this.wb.register().then((registration) => {
-        console.log('SW 註冊成功:', registration);
-        
-        // 清除重啟計數器（成功註冊後）
-        setTimeout(() => {
-          sessionStorage.removeItem('pwa_restart_count');
-        }, 5000);
-        
+    if ('serviceWorker' in navigator) {
+      // 首先嘗試直接註冊 Service Worker
+      this.registerServiceWorkerDirectly().then(() => {
+        console.log('PWA: 直接註冊成功，開始使用 Workbox');
+        this.initWorkbox();
       }).catch((error) => {
-        console.error('SW 註冊失敗:', error);
-        // 如果 SW 註冊失敗，不要增加重啟計數
+        console.warn('PWA: 直接註冊失敗，嘗試 Workbox:', error);
+        this.initWorkbox();
       });
-    } else if (isDev) {
-      console.log('開發模式：跳過 Service Worker 註冊');
+    } else {
+      console.log('瀏覽器不支援 Service Worker');
     }
+  }
+
+  // 直接註冊 Service Worker
+  private async registerServiceWorkerDirectly(): Promise<ServiceWorkerRegistration> {
+    return navigator.serviceWorker.register('/sw.js');
+  }
+
+  // 初始化 Workbox
+  private initWorkbox(): void {
+    this.wb = new Workbox('/sw.js');
+    
+    // 監聽 SW 安裝事件
+    this.wb.addEventListener('installed', (event) => {
+      console.log('SW: Service Worker 已安裝', event);
+      if (!event.isUpdate) {
+        console.log('SW: 首次安裝完成');
+      }
+    });
+
+    // 監聽 SW 更新事件
+    this.wb.addEventListener('waiting', (event) => {
+      console.log('SW: 新版本等待中', event);
+      this.updateAvailable = true;
+      this.showUpdateNotification();
+    });
+
+    // 監聽 SW 控制事件
+    this.wb.addEventListener('controlling', (event) => {
+      console.log('SW: Service Worker 開始控制頁面', event);
+      if (this.updateAvailable && !this.hasReloaded) {
+        this.hasReloaded = true;
+        this.restartCount++;
+        sessionStorage.setItem('pwa_restart_count', this.restartCount.toString());
+        
+        // 添加延遲避免競爭條件，並確保翻譯已緩存
+        setTimeout(async () => {
+          try {
+            // 確保翻譯文件已緩存
+            await this.ensureTranslationsCached();
+            console.log('SW: 翻譯文件已確保緩存，準備重新載入');
+            window.location.reload();
+          } catch (error) {
+            console.error('SW: 緩存翻譯文件失敗，仍然重新載入:', error);
+            window.location.reload();
+          }
+        }, 500);
+      }
+    });
+
+    // 監聽 SW 錯誤事件
+    this.wb.addEventListener('redundant', () => {
+      console.warn('SW: Service Worker 變為冗餘');
+    });
+
+    // 註冊 Service Worker
+    this.wb.register().then(async (registration) => {
+      console.log('SW 註冊成功:', registration);
+      
+      // 立即嘗試緩存核心資源
+      try {
+        await this.preCacheEssentialResources();
+        console.log('PWA: Essential resources pre-cached');
+      } catch (error) {
+        console.warn('PWA: Pre-caching failed:', error);
+      }
+      
+      // 清除重啟計數器（成功註冊後）
+      setTimeout(() => {
+        sessionStorage.removeItem('pwa_restart_count');
+      }, 5000);
+      
+    }).catch((error) => {
+      console.error('SW 註冊失敗:', error);
+      // 如果 SW 註冊失敗，嘗試手動緩存關鍵資源
+      this.fallbackCaching();
+    });
   }
 
   // 確保翻譯文件已緩存
@@ -117,6 +143,56 @@ class PWAService {
     });
 
     await Promise.all(cachePromises);
+  }
+
+  // 預緩存基本資源
+  private async preCacheEssentialResources(): Promise<void> {
+    if (!('caches' in window)) {
+      throw new Error('Cache API 不可用');
+    }
+
+    const essentialResources = [
+      '/',
+      '/index.html',
+      '/offline.html',
+      '/locales/en.json',
+      '/locales/zh.json',
+      '/manifest.webmanifest'
+    ];
+
+    try {
+      const cache = await caches.open('mynotes-essential-v1');
+      const cachePromises = essentialResources.map(async (resource) => {
+        try {
+          const response = await fetch(resource);
+          if (response.ok) {
+            await cache.put(resource, response);
+            console.log(`PWA: Cached essential resource: ${resource}`);
+          }
+        } catch (error) {
+          console.warn(`PWA: Failed to cache ${resource}:`, error);
+        }
+      });
+
+      await Promise.all(cachePromises);
+    } catch (error) {
+      console.error('PWA: Essential resource caching failed:', error);
+    }
+  }
+
+  // 後備緩存方案
+  private async fallbackCaching(): Promise<void> {
+    console.log('PWA: Attempting fallback caching');
+    
+    if ('caches' in window) {
+      try {
+        await this.preCacheEssentialResources();
+        await this.ensureTranslationsCached();
+        console.log('PWA: Fallback caching completed');
+      } catch (error) {
+        console.error('PWA: Fallback caching failed:', error);
+      }
+    }
   }
 
   private showUpdateNotification() {
