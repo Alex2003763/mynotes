@@ -9,6 +9,8 @@ import { PerformanceMonitor } from './components/PerformanceMonitor';
 import { useSettings } from './contexts/SettingsContext';
 import { useNotes } from './contexts/NoteContext';
 import { Resizer } from './components/Resizer';
+import { PWAStatus } from './components/PWAStatus';
+import { pwaService } from './services/pwaService';
 
 const MIN_SIDEBAR_WIDTH = 200; // px
 const MAX_SIDEBAR_WIDTH = 500; // px
@@ -45,6 +47,13 @@ const App: React.FC = () => {
   useEffect(() => {
     // SettingsContext now handles theme and lang attribute on html tag
   }, [settings.theme, settings.language]);
+
+  // 初始化 PWA 功能
+  useEffect(() => {
+    pwaService.init();
+    pwaService.showInstallPrompt();
+    pwaService.setupOfflineNotification();
+  }, []);
 
   useEffect(() => {
     if (loading) return;
@@ -170,6 +179,7 @@ const App: React.FC = () => {
         )}
       </div>
       {isSettingsModalOpen && <SettingsModal onClose={closeSettingsModal} />}
+      <PWAStatus />
     </div>
   );
 };
