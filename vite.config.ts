@@ -21,7 +21,7 @@ export default defineConfig(({ mode }) => {
         VitePWA({
           registerType: 'prompt',
           workbox: {
-            globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
+            globPatterns: ['**/*.{js,css,html,ico,png,svg,json,woff,woff2,ttf,eot,wasm}'],
             maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 10 MB
             navigateFallback: 'index.html',
             runtimeCaching: [
