@@ -1,11 +1,27 @@
 import { Workbox } from 'workbox-window';
 
+// 擴展 ImportMeta 接口以支援 Vite 環境變數
+declare global {
+  interface ImportMeta {
+    env: {
+      MODE: string;
+      DEV: boolean;
+      PROD: boolean;
+      [key: string]: any;
+    };
+  }
+}
+
 class PWAService {
   private wb: Workbox | null = null;
   private updateAvailable = false;
+  private hasReloaded = false;
 
   init() {
-    if ('serviceWorker' in navigator) {
+    // 在開發模式下跳過某些功能
+    const isDev = import.meta.env.MODE === 'development';
+    
+    if ('serviceWorker' in navigator && !isDev) {
       this.wb = new Workbox('/sw.js');
       
       // 監聽 SW 更新事件
@@ -14,9 +30,15 @@ class PWAService {
         this.showUpdateNotification();
       });
 
-      // 監聽 SW 控制事件
+      // 監聽 SW 控制事件 - 只在有更新且未重載過時才重載
       this.wb.addEventListener('controlling', () => {
-        window.location.reload();
+        if (this.updateAvailable && !this.hasReloaded) {
+          this.hasReloaded = true;
+          // 添加短暫延遲避免競爭條件
+          setTimeout(() => {
+            window.location.reload();
+          }, 100);
+        }
       });
 
       // 註冊 Service Worker
@@ -25,6 +47,8 @@ class PWAService {
       }).catch((error) => {
         console.error('SW 註冊失敗:', error);
       });
+    } else if (isDev) {
+      console.log('開發模式：跳過 Service Worker 註冊');
     }
   }
 
@@ -35,7 +59,7 @@ class PWAService {
   }
 
   skipWaiting() {
-    if (this.wb && this.updateAvailable) {
+    if (this.wb && this.updateAvailable && !this.hasReloaded) {
       this.wb.messageSkipWaiting();
     }
   }

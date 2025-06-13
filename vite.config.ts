@@ -16,7 +16,10 @@ export default defineConfig(({ mode }) => {
       },
       plugins: [
         VitePWA({
-          registerType: 'autoUpdate',
+          registerType: 'prompt',
+          devOptions: {
+            enabled: false // 在開發模式下禁用 PWA
+          },
           workbox: {
             globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
             maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB
