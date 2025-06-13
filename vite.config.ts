@@ -38,39 +38,55 @@ export default defineConfig(({ mode }) => {
             mode: 'production',
             disableDevLogs: true,
             runtimeCaching: [
+              // 翻譯文件 - 優先使用快取
               {
                 urlPattern: /\/locales\/.*\.json$/,
                 handler: 'CacheFirst',
                 options: {
-                  cacheName: 'translations',
+                  cacheName: 'mynotes-translations-v1',
                   expiration: {
                     maxEntries: 20,
-                    maxAgeSeconds: 60 * 60 * 24 * 30
+                    maxAgeSeconds: 60 * 60 * 24 * 30 // 30天
                   }
                 }
               },
+              // HTML 文件 - 網絡優先，失敗時使用快取
               {
                 urlPattern: ({ request }: {request: any}) => request.destination === 'document',
-                handler: 'CacheFirst',
+                handler: 'NetworkFirst',
                 options: {
-                  cacheName: 'pages',
+                  cacheName: 'mynotes-pages-v1',
+                  networkTimeoutSeconds: 3,
                   expiration: {
                     maxEntries: 50,
-                    maxAgeSeconds: 60 * 60 * 24
+                    maxAgeSeconds: 60 * 60 * 24 // 1天
                   }
                 }
               },
+              // 靜態資源 - 優先使用快取
               {
                 urlPattern: ({ request }: {request: any}) =>
                   request.destination === 'style' ||
                   request.destination === 'script' ||
-                  request.destination === 'image',
+                  request.destination === 'font',
                 handler: 'CacheFirst',
                 options: {
-                  cacheName: 'static-resources',
+                  cacheName: 'mynotes-static-v1',
                   expiration: {
                     maxEntries: 100,
-                    maxAgeSeconds: 60 * 60 * 24 * 7
+                    maxAgeSeconds: 60 * 60 * 24 * 30 // 30天
+                  }
+                }
+              },
+              // 圖片資源 - 優先使用快取
+              {
+                urlPattern: ({ request }: {request: any}) => request.destination === 'image',
+                handler: 'CacheFirst',
+                options: {
+                  cacheName: 'mynotes-images-v1',
+                  expiration: {
+                    maxEntries: 60,
+                    maxAgeSeconds: 60 * 60 * 24 * 7 // 7天
                   }
                 }
               }

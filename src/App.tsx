@@ -9,11 +9,8 @@ import { PerformanceMonitor } from './components/PerformanceMonitor';
 import { useSettings } from './contexts/SettingsContext';
 import { useNotes } from './contexts/NoteContext';
 import { Resizer } from './components/Resizer';
-import { PWAStatus } from './components/PWAStatus';
-import { pwaService } from './services/pwaService';
-import TranslationCacheService from './services/translationCacheService';
-import OfflineRecoveryService from './services/offlineRecoveryService';
-import MobileOfflineService from './services/mobileOfflineService';
+import OfflineStatus from './components/OfflineStatus';
+import OfflineManager from './services/offlineManager';
 
 const MIN_SIDEBAR_WIDTH = 200; // px
 const MAX_SIDEBAR_WIDTH = 500; // px
@@ -50,44 +47,18 @@ const App: React.FC = () => {
   useEffect(() => {
     // SettingsContext now handles theme and lang attribute on html tag
   }, [settings.theme, settings.language]);
-  // 初始化 PWA 功能和翻譯預載入
+  // 初始化新的離線管理器
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        // 檢查是否為移動設備
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-                         (window.innerWidth <= 768 && 'ontouchstart' in window);
+        console.log('App: Initializing offline manager...');
         
-        console.log(`App: 設備類型: ${isMobile ? '移動設備' : '桌面設備'}`);
+        const offlineManager = OfflineManager.getInstance();
+        await offlineManager.init();
         
-        // 先預載入翻譯文件
-        await TranslationCacheService.preloadTranslations();
-        console.log('App: Translation preload completed');
-        
-        // 初始化離線恢復服務
-        const offlineRecovery = OfflineRecoveryService.getInstance();
-        console.log('App: Offline recovery service initialized');
-        
-        // 如果是移動設備，初始化移動離線服務
-        if (isMobile) {
-          const mobileOffline = MobileOfflineService.getInstance();
-          await mobileOffline.init();
-          console.log('App: Mobile offline service initialized');
-        }
-        
-        // 然後初始化 PWA 功能
-        pwaService.init();
-        pwaService.showInstallPrompt();
-        pwaService.setupOfflineNotification();
-        
-        console.log('App: PWA initialization completed');
+        console.log('App: Offline manager initialization completed');
       } catch (error) {
-        console.warn('App: Initialization error:', error);
-        // 即使預載入失敗，也要初始化其他服務
-        OfflineRecoveryService.getInstance();
-        pwaService.init();
-        pwaService.showInstallPrompt();
-        pwaService.setupOfflineNotification();
+        console.error('App: Offline manager initialization failed:', error);
       }
     };
 
@@ -218,7 +189,7 @@ const App: React.FC = () => {
         )}
       </div>
       {isSettingsModalOpen && <SettingsModal onClose={closeSettingsModal} />}
-      <PWAStatus />
+      <OfflineStatus />
     </div>
   );
 };
