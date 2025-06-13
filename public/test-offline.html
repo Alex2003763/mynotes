@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>離線測試 - MyNotes</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .test-card {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 10px 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .status {
+      padding: 8px 12px;
+      border-radius: 4px;
+      display: inline-block;
+      margin: 5px 0;
+    }
+    .success { background: #d4edda; color: #155724; }
+    .error { background: #f8d7da; color: #721c24; }
+    .warning { background: #fff3cd; color: #856404; }
+    .info { background: #d1ecf1; color: #0c5460; }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    button:hover { background: #0056b3; }
+    .log {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      padding: 10px;
+      border-radius: 4px;
+      max-height: 200px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <h1>MyNotes 離線功能測試</h1>
+  
+  <div class="test-card">
+    <h3>網絡狀態</h3>
+    <div id="network-status" class="status info">檢查中...</div>
+    <button onclick="checkNetworkStatus()">重新檢查</button>
+  </div>
+
+  <div class="test-card">
+    <h3>Service Worker 狀態</h3>
+    <div id="sw-status" class="status info">檢查中...</div>
+    <button onclick="checkServiceWorker()">重新檢查</button>
+  </div>
+
+  <div class="test-card">
+    <h3>緩存狀態</h3>
+    <div id="cache-status" class="status info">檢查中...</div>
+    <button onclick="checkCaches()">檢查緩存</button>
+    <button onclick="clearAllCaches()">清除所有緩存</button>
+  </div>
+
+  <div class="test-card">
+    <h3>翻譯測試</h3>
+    <div id="translation-status" class="status info">檢查中...</div>
+    <button onclick="testTranslations()">測試翻譯</button>
+  </div>
+
+  <div class="test-card">
+    <h3>離線模擬</h3>
+    <button onclick="goOffline()">模擬離線</button>
+    <button onclick="goOnline()">模擬上線</button>
+    <button onclick="testOfflineApp()">測試離線應用</button>
+  </div>
+
+  <div class="test-card">
+    <h3>測試日誌</h3>
+    <div id="log" class="log"></div>
+    <button onclick="clearLog()">清除日誌</button>
+  </div>
+
+  <script>
+    let isOfflineMode = false;
+    
+    function log(message, type = 'info') {
+      const logDiv = document.getElementById('log');
+      const time = new Date().toLocaleTimeString();
+      logDiv.innerHTML += `[${time}] ${type.toUpperCase()}: ${message}\n`;
+      logDiv.scrollTop = logDiv.scrollHeight;
+      console.log(`[Test] ${message}`);
+    }
+
+    function clearLog() {
+      document.getElementById('log').innerHTML = '';
+    }
+
+    function updateStatus(elementId, message, type) {
+      const element = document.getElementById(elementId);
+      element.textContent = message;
+      element.className = `status ${type}`;
+    }
+
+    function checkNetworkStatus() {
+      const isOnline = navigator.onLine;
+      const message = isOnline ? '在線' : '離線';
+      const type = isOnline ? 'success' : 'warning';
+      updateStatus('network-status', `網絡狀態: ${message}`, type);
+      log(`網絡狀態: ${message}`);
+    }
+
+    async function checkServiceWorker() {
+      if ('serviceWorker' in navigator) {
+        try {
+          const registration = await navigator.serviceWorker.getRegistration();
+          if (registration) {
+            const state = registration.active ? registration.active.state : 'none';
+            updateStatus('sw-status', `Service Worker: 已註冊 (${state})`, 'success');
+            log(`Service Worker 狀態: ${state}`);
+          } else {
+            updateStatus('sw-status', 'Service Worker: 未註冊', 'warning');
+            log('Service Worker 未註冊');
+          }
+        } catch (error) {
+          updateStatus('sw-status', `Service Worker: 錯誤 - ${error.message}`, 'error');
+          log(`Service Worker 錯誤: ${error.message}`, 'error');
+        }
+      } else {
+        updateStatus('sw-status', 'Service Worker: 不支援', 'error');
+        log('瀏覽器不支援 Service Worker', 'error');
+      }
+    }
+
+    async function checkCaches() {
+      if ('caches' in window) {
+        try {
+          const cacheNames = await caches.keys();
+          let totalEntries = 0;
+          
+          for (const name of cacheNames) {
+            const cache = await caches.open(name);
+            const requests = await cache.keys();
+            totalEntries += requests.length;
+            log(`緩存 "${name}": ${requests.length} 項目`);
+          }
+          
+          updateStatus('cache-status', `發現 ${cacheNames.length} 個緩存，共 ${totalEntries} 項目`, 'success');
+          log(`總共 ${cacheNames.length} 個緩存，${totalEntries} 個項目`);
+        } catch (error) {
+          updateStatus('cache-status', `緩存錯誤: ${error.message}`, 'error');
+          log(`緩存檢查錯誤: ${error.message}`, 'error');
+        }
+      } else {
+        updateStatus('cache-status', 'Cache API 不支援', 'error');
+        log('瀏覽器不支援 Cache API', 'error');
+      }
+    }
+
+    async function clearAllCaches() {
+      if ('caches' in window) {
+        try {
+          const cacheNames = await caches.keys();
+          await Promise.all(cacheNames.map(name => caches.delete(name)));
+          updateStatus('cache-status', '所有緩存已清除', 'success');
+          log(`已清除 ${cacheNames.length} 個緩存`);
+        } catch (error) {
+          log(`清除緩存錯誤: ${error.message}`, 'error');
+        }
+      }
+    }
+
+    async function testTranslations() {
+      try {
+        const languages = ['en', 'zh'];
+        let successCount = 0;
+        
+        for (const lang of languages) {
+          try {
+            const response = await fetch(`/locales/${lang}.json`);
+            if (response.ok) {
+              const data = await response.json();
+              log(`翻譯 ${lang}: ✓ (${Object.keys(data).length} 個鍵)`);
+              successCount++;
+            } else {
+              log(`翻譯 ${lang}: ✗ HTTP ${response.status}`, 'error');
+            }
+          } catch (error) {
+            log(`翻譯 ${lang}: ✗ ${error.message}`, 'error');
+          }
+        }
+        
+        const type = successCount === languages.length ? 'success' : 'warning';
+        updateStatus('translation-status', `翻譯測試: ${successCount}/${languages.length} 成功`, type);
+      } catch (error) {
+        updateStatus('translation-status', `翻譯測試錯誤: ${error.message}`, 'error');
+        log(`翻譯測試錯誤: ${error.message}`, 'error');
+      }
+    }
+
+    function goOffline() {
+      // 模擬離線狀態
+      isOfflineMode = true;
+      Object.defineProperty(navigator, 'onLine', {
+        writable: true,
+        value: false
+      });
+      window.dispatchEvent(new Event('offline'));
+      log('模擬離線狀態');
+      checkNetworkStatus();
+    }
+
+    function goOnline() {
+      // 恢復在線狀態
+      isOfflineMode = false;
+      Object.defineProperty(navigator, 'onLine', {
+        writable: true,
+        value: true
+      });
+      window.dispatchEvent(new Event('online'));
+      log('恢復在線狀態');
+      checkNetworkStatus();
+    }
+
+    function testOfflineApp() {
+      log('開始測試離線應用');
+      window.open('/', '_blank');
+    }
+
+    // 監聽網絡狀態變化
+    window.addEventListener('online', () => {
+      log('網絡已連接');
+      checkNetworkStatus();
+    });
+
+    window.addEventListener('offline', () => {
+      log('網絡已斷開');
+      checkNetworkStatus();
+    });
+
+    // 初始化檢查
+    window.addEventListener('load', () => {
+      log('測試頁面載入完成');
+      checkNetworkStatus();
+      checkServiceWorker();
+      checkCaches();
+      testTranslations();
+    });
+  </script>
+</body>
+</html>
