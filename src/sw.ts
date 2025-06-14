@@ -48,46 +48,59 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
 });
 
-// 導航快取策略 - 用於 SPA 路由
+// 導航快取策略 - Cache First 策略，優先使用緩存
 registerRoute(
   ({ request }) => request.mode === 'navigate',
   async ({ event }) => {
-    try {
-      // 嘗試從網路取得頁面
-      const networkResponse = await fetch(event.request);
-      if (networkResponse.ok) {
-        // 成功取得網路回應，快取它
-        const cache = await caches.open('mynotes-pages');
-        cache.put(event.request, networkResponse.clone());
-        return networkResponse;
-      }
-    } catch (error) {
-      console.log('Network failed, trying cache for navigation:', event.request.url);
-    }
-    
-    // 網路失敗或回應不正常時，嘗試從快取取得
     const cache = await caches.open('mynotes-pages');
     
-    // 首先嘗試取得請求的確切路徑
+    // 優先檢查緩存 - Cache First 策略
     let cachedResponse = await cache.match(event.request);
     
-    // 如果沒有找到，嘗試取得 index.html (SPA 回退)
+    // 如果沒有找到確切路徑，嘗試 SPA 回退
     if (!cachedResponse) {
       cachedResponse = await cache.match('/index.html');
     }
     
-    // 如果還是沒有找到，嘗試取得根目錄
+    // 如果還是沒有找到，嘗試根目錄
     if (!cachedResponse) {
       cachedResponse = await cache.match('/');
     }
     
-    // 如果主頁面也沒有，嘗試取得離線頁面
-    if (!cachedResponse) {
-      cachedResponse = await cache.match('/offline.html');
+    // 如果找到緩存，立即返回，同時在背景更新
+    if (cachedResponse) {
+      // 在背景更新緩存（不等待結果）
+      event.waitUntil(
+        fetch(event.request)
+          .then(networkResponse => {
+            if (networkResponse && networkResponse.ok) {
+              cache.put(event.request, networkResponse.clone());
+            }
+          })
+          .catch(() => {
+            // 網路失敗時忽略錯誤
+          })
+      );
+      
+      return cachedResponse;
     }
     
-    if (cachedResponse) {
-      return cachedResponse;
+    // 如果沒有緩存，嘗試從網路取得
+    try {
+      const networkResponse = await fetch(event.request);
+      if (networkResponse.ok) {
+        // 成功取得網路回應，快取它
+        cache.put(event.request, networkResponse.clone());
+        return networkResponse;
+      }
+    } catch (error) {
+      console.log('Network failed for navigation:', event.request.url);
+    }
+    
+    // 最後的回退：嘗試離線頁面
+    const offlineResponse = await cache.match('/offline.html');
+    if (offlineResponse) {
+      return offlineResponse;
     }
     
     // 最後的回退：返回一個簡單的離線提示
@@ -216,13 +229,13 @@ registerRoute(
   })
 );
 
-// 應用程式資源快取
+// 應用程式資源快取 - Cache First 策略提升載入速度
 registerRoute(
-  ({ request }) => 
+  ({ request }) =>
     request.destination === 'script' ||
     request.destination === 'style' ||
     request.destination === 'worker',
-  new StaleWhileRevalidate({
+  new CacheFirst({
     cacheName: 'mynotes-app-cache',
     plugins: [
       new ExpirationPlugin({
