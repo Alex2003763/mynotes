@@ -22,15 +22,21 @@ export default defineConfig(({ mode }) => {
           registerType: 'autoUpdate',
           strategies: 'generateSW',
           injectRegister: 'auto',
+          srcDir: 'public',
+          filename: 'sw.js',
+          includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
           workbox: {
             globPatterns: [
-              '**/*.{js,css,html,ico,png,svg,json,woff2,woff,ttf}',
-              '**/assets/**/*'
+              '**/*.{js,css,html,ico,png,svg,json,woff2,woff,ttf,eot}',
+              'assets/**/*',
+              'icons/**/*',
+              'locales/**/*'
             ],
             globIgnores: [
               '**/sw.js',
               '**/workbox-*.js',
-              '**/dev-dist/**/*'
+              '**/dev-dist/**/*',
+              '**/node_modules/**/*'
             ],
             dontCacheBustURLsMatching: /\.\w{8}\./,
             maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 10 MB
@@ -39,7 +45,10 @@ export default defineConfig(({ mode }) => {
             cleanupOutdatedCaches: true,
             skipWaiting: true,
             clientsClaim: true,
-            mode: 'production',
+            sourcemap: false,
+            disableDevLogs: true,
+            swDest: 'dist/sw.js',
+            importScripts: ['/sw-inject.js'],
             runtimeCaching: [
               // Tailwind CSS CDN - 改善生產環境快取
               {
