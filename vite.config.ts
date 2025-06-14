@@ -48,7 +48,9 @@ export default defineConfig(({ mode }) => {
             sourcemap: false,
             disableDevLogs: true,
             swDest: 'dist/sw.js',
+            importScripts: ['/sw-inject.js'],
             runtimeCaching: [
+              // Tailwind CSS CDN - 改善生產環境快取
               {
                 urlPattern: /^https:\/\/cdn\.tailwindcss\.com\/.*/i,
                 handler: 'CacheFirst',
@@ -56,10 +58,11 @@ export default defineConfig(({ mode }) => {
                   cacheName: 'tailwind-css-cache',
                   expiration: {
                     maxEntries: 5,
-                    maxAgeSeconds: 60 * 60 * 24 * 365,
+                    maxAgeSeconds: 60 * 60 * 24 * 365, // 365 天
                   },
                 },
               },
+              // Cherry Markdown CDN
               {
                 urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/npm\/cherry-markdown@.*\/.*/i,
                 handler: 'StaleWhileRevalidate',
@@ -67,10 +70,11 @@ export default defineConfig(({ mode }) => {
                   cacheName: 'cherry-markdown-cache',
                   expiration: {
                     maxEntries: 10,
-                    maxAgeSeconds: 60 * 60 * 24 * 30,
+                    maxAgeSeconds: 60 * 60 * 24 * 30, // 30 天
                   },
                 },
               },
+              // ESM.SH 模塊
               {
                 urlPattern: /^https:\/\/esm\.sh\/.*/i,
                 handler: 'StaleWhileRevalidate',
@@ -78,10 +82,11 @@ export default defineConfig(({ mode }) => {
                   cacheName: 'esm-modules-cache',
                   expiration: {
                     maxEntries: 50,
-                    maxAgeSeconds: 60 * 60 * 24 * 7,
+                    maxAgeSeconds: 60 * 60 * 24 * 7, // 7 天
                   },
                 },
               },
+              // 本地化文件
               {
                 urlPattern: /^.*\/locales\/.*\.json$/i,
                 handler: 'CacheFirst',
@@ -89,56 +94,53 @@ export default defineConfig(({ mode }) => {
                   cacheName: 'translations-cache',
                   expiration: {
                     maxEntries: 10,
-                    maxAgeSeconds: 60 * 60 * 24 * 30,
+                    maxAgeSeconds: 60 * 60 * 24 * 30, // 30 天
                   },
                 },
               },
+              // 圖片資源
               {
-                urlPattern: /\.(?:png|jpg|jpeg|svg|ico|webp)$/i,
+                urlPattern: ({ request }) =>
+                  request.destination === 'image' ||
+                  request.url.includes('/icons/') ||
+                  request.url.includes('.png') ||
+                  request.url.includes('.ico'),
                 handler: 'CacheFirst',
                 options: {
                   cacheName: 'images-cache',
                   expiration: {
                     maxEntries: 20,
-                    maxAgeSeconds: 60 * 60 * 24 * 365,
+                    maxAgeSeconds: 60 * 60 * 24 * 365, // 365 天
                   },
                 },
               },
+              // CSS 和 JS 文件
               {
-                urlPattern: /\.(?:js|css)$/i,
+                urlPattern: ({ request }) =>
+                  request.destination === 'style' ||
+                  request.destination === 'script',
                 handler: 'StaleWhileRevalidate',
                 options: {
                   cacheName: 'static-resources-cache',
                   expiration: {
                     maxEntries: 50,
-                    maxAgeSeconds: 60 * 60 * 24 * 7,
+                    maxAgeSeconds: 60 * 60 * 24 * 7, // 7 天
                   },
                 },
               },
+              // HTML 頁面 - 改善離線支援
               {
-                urlPattern: /^https:\/\/mynotess\.usefultools\.dpdns\.org\/$/i,
-                handler: 'NetworkFirst',
-                options: {
-                  cacheName: 'app-shell-cache',
-                  expiration: {
-                    maxEntries: 5,
-                    maxAgeSeconds: 60 * 60 * 24,
-                  },
-                  networkTimeoutSeconds: 3,
-                },
-              },
-              {
-                urlPattern: /^https:\/\/mynotess\.usefultools\.dpdns\.org\/.*/i,
+                urlPattern: ({ request }) => request.mode === 'navigate',
                 handler: 'NetworkFirst',
                 options: {
                   cacheName: 'pages-cache',
                   expiration: {
                     maxEntries: 10,
-                    maxAgeSeconds: 60 * 60 * 24,
+                    maxAgeSeconds: 60 * 60 * 24, // 1 天
                   },
                   networkTimeoutSeconds: 3,
                 },
-              }
+              },
             ],
           },
           
