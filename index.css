@@ -1,5 +1,7 @@
 /* =================== 新增現代化主頁樣式 =================== */
-
+.sidebar-resizer{
+  height: 100%;
+}
 /* 漸變背景動畫 */
 .gradient-bg {
   background: linear-gradient(-45deg, #f8fafc, #f1f5f9, #e2e8f0, #f8fafc);
