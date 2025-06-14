@@ -1,4 +1,4 @@
-# mynotes
+# mynotes [![Netlify Status](https://api.netlify.com/api/v1/badges/18203119-e5b6-4cf3-96b3-58b01f955cb6/deploy-status)](https://app.netlify.com/projects/mynotes69/deploys)
 
 "mynotes is a lightweight web app for securely organizing and accessing your personal notes online, designed for individuals who want a simple, private note-taking solution."  
 
