@@ -64,8 +64,18 @@ export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // 緩存中沒有，嘗試從網絡載入
         if (navigator.onLine) {
           console.log(`I18n: Loading translations for ${lang} from network`);
-          const response = await fetch(`/locales/${lang}.json`, {
-            cache: 'force-cache'
+          
+          // 使用絕對 URL 和適當的請求選項
+          const baseUrl = window.location.origin;
+          const response = await fetch(`${baseUrl}/locales/${lang}.json`, {
+            method: 'GET',
+            mode: 'cors',
+            credentials: 'same-origin',
+            cache: 'default',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            }
           });
           
           if (!response.ok) {
@@ -128,7 +138,18 @@ export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // 在背景中更新翻譯
     const updateTranslationsInBackground = async (lang: Language) => {
       try {
-        const response = await fetch(`/locales/${lang}.json`);
+        const baseUrl = window.location.origin;
+        const response = await fetch(`${baseUrl}/locales/${lang}.json`, {
+          method: 'GET',
+          mode: 'cors',
+          credentials: 'same-origin',
+          cache: 'no-cache',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
+        
         if (response.ok) {
           const data: Translations = await response.json();
           if (data && typeof data === 'object' && Object.keys(data).length > 0) {

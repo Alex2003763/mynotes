@@ -21,12 +21,18 @@ export default defineConfig(({ mode }) => {
         react(),
         VitePWA({
           registerType: 'prompt',
+          includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+          devOptions: {
+            enabled: false
+          },
           workbox: {
-            globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
+            globPatterns: ['**/*.{js,css,html,ico,png,svg,json,woff2,woff,ttf}'],
             maximumFileSizeToCacheInBytes: 5242880, // 5 MB
             skipWaiting: true,
             clientsClaim: true,
             cleanupOutdatedCaches: true,
+            navigateFallback: '/index.html',
+            navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/],
             runtimeCaching: [
               {
                 urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -134,8 +140,8 @@ export default defineConfig(({ mode }) => {
             ]
           },
           manifest: {
-            name: 'mynotes',
-            short_name: 'mynotes',
+            name: 'MyNotes - 離線筆記應用',
+            short_name: 'MyNotes',
             description: 'A powerful, offline-first, intelligent note-taking application.',
             theme_color: '#4f46e5',
             background_color: '#f5f7fb',
@@ -143,6 +149,9 @@ export default defineConfig(({ mode }) => {
             orientation: 'portrait-primary',
             scope: '/',
             start_url: '/',
+            id: '/',
+            categories: ['productivity', 'utilities'],
+            prefer_related_applications: false,
             icons: [
               {
                 src: '/icons/icon-192x192.png',

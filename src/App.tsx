@@ -10,6 +10,7 @@ import { useSettings } from './contexts/SettingsContext';
 import { useNotes } from './contexts/NoteContext';
 import { Resizer } from './components/Resizer';
 import { OfflineStatusIndicator } from './components/OfflineStatusIndicator';
+import { ProductionDebugPanel } from './components/ProductionDebugPanel';
 import OfflineCacheService from './services/offlineCacheService';
 import TranslationCacheService from './services/translationCacheService';
 
@@ -222,6 +223,7 @@ const App: React.FC = () => {
       </div>
       {isSettingsModalOpen && <SettingsModal onClose={closeSettingsModal} />}
       <OfflineStatusIndicator />
+      <ProductionDebugPanel />
     </div>
   );
 };

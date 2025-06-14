@@ -38,14 +38,29 @@ class OfflineCacheService {
         return;
       }
 
+      // 檢查是否為 HTTPS 或 localhost（Service Worker 要求）
+      const isSecureContext = window.isSecureContext ||
+                             location.protocol === 'https:' ||
+                             location.hostname === 'localhost' ||
+                             location.hostname === '127.0.0.1';
+      
+      if (!isSecureContext) {
+        console.warn('Offline Cache: Secure context required for full functionality');
+      }
+
       // 清理過期的快取
       await this.cleanupExpiredCaches();
       
       // 設置離線監聽器
       this.setupOfflineListeners();
       
-      // 預載入關鍵資源
-      await this.preloadCriticalResources();
+      // 預載入關鍵資源（在安全上下文中）
+      if (isSecureContext) {
+        await this.preloadCriticalResources();
+      }
+      
+      // 註冊 Service Worker（如果可用）
+      await this.registerServiceWorker();
       
       console.log('Offline Cache: Initialized successfully');
     } catch (error) {
@@ -268,6 +283,29 @@ class OfflineCacheService {
   }
 
   /**
+   * 註冊 Service Worker
+   */
+  private static async registerServiceWorker(): Promise<void> {
+    if (!('serviceWorker' in navigator)) {
+      console.log('Offline Cache: Service Worker not supported');
+      return;
+    }
+
+    try {
+      const registration = await navigator.serviceWorker.register('/sw.js');
+      console.log('Offline Cache: Service Worker registered', registration.scope);
+      
+      // 監聽 SW 更新
+      registration.addEventListener('updatefound', () => {
+        console.log('Offline Cache: Service Worker update found');
+      });
+      
+    } catch (error) {
+      console.warn('Offline Cache: Service Worker registration failed:', error);
+    }
+  }
+
+  /**
    * 預載入關鍵資源
    */
   private static async preloadCriticalResources(): Promise<void> {
@@ -279,21 +317,28 @@ class OfflineCacheService {
     try {
       const cache = await caches.open(`${this.CACHE_NAME_PREFIX}static`);
       
+      // 使用絕對 URL 以避免跨域問題
+      const baseUrl = window.location.origin;
       const criticalUrls = [
-        '/',
-        '/index.html',
-        '/locales/en.json',
-        '/locales/zh.json'
+        `${baseUrl}/`,
+        `${baseUrl}/index.html`,
+        `${baseUrl}/locales/en.json`,
+        `${baseUrl}/locales/zh.json`
       ];
 
       const preloadPromises = criticalUrls.map(async (url) => {
         try {
           const cachedResponse = await cache.match(url);
           if (!cachedResponse) {
-            const response = await fetch(url);
+            const response = await fetch(url, {
+              mode: 'cors',
+              credentials: 'same-origin'
+            });
             if (response.ok) {
               await cache.put(url, response.clone());
               console.log(`Offline Cache: Preloaded ${url}`);
+            } else {
+              console.warn(`Offline Cache: Failed to preload ${url}, status: ${response.status}`);
             }
           }
         } catch (error) {

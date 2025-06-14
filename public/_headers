@@ -1,17 +1,30 @@
 /*
   Cache-Control: public, max-age=31536000, immutable
+  Cross-Origin-Embedder-Policy: credentialless
+  Cross-Origin-Opener-Policy: same-origin
 
 /
   Cache-Control: public, max-age=0, must-revalidate
+  Cross-Origin-Embedder-Policy: credentialless
+  Cross-Origin-Opener-Policy: same-origin
 
 /index.html
   Cache-Control: public, max-age=0, must-revalidate
+  Cross-Origin-Embedder-Policy: credentialless
+  Cross-Origin-Opener-Policy: same-origin
 
 /sw.js
   Cache-Control: public, max-age=0, must-revalidate
+  Service-Worker-Allowed: /
 
 /manifest.webmanifest
   Cache-Control: public, max-age=31536000, immutable
+
+/locales/*.json
+  Cache-Control: public, max-age=86400
+  Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET, OPTIONS
+  Access-Control-Allow-Headers: Content-Type
 
 /*.js
   Cache-Control: public, max-age=31536000, immutable
