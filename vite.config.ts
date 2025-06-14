@@ -26,7 +26,7 @@ export default defineConfig(({ mode }) => {
           filename: 'sw.ts',
           registerType: 'autoUpdate',
           devOptions: {
-            enabled: true,
+            enabled: false,
           },
           manifest: {
             name: 'MyNotes - 智能筆記應用',
@@ -37,7 +37,7 @@ export default defineConfig(({ mode }) => {
             display: 'standalone',
             orientation: 'portrait-primary',
             scope: '/',
-            start_url: 'index.html',
+            start_url: '/',
             id: '/',
             categories: ['productivity', 'utilities'],
             prefer_related_applications: false,
