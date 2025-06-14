@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { useSettings } from './SettingsContext';
 import { Language, Translations, TranslationKey } from '../types';
 import TranslationCacheService from '../services/translationCacheService';
+import iOSSafariService from '../services/iOSSafariService';
 import type { Locale as DateFnsLocale } from 'date-fns/locale/types';
 
 // Dynamically import date-fns locales using full URLs
@@ -48,7 +49,52 @@ export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const loadTranslations = async (lang: Language) => {
       try {
-        // 首先嘗試從緩存載入（現在是異步的）
+        // iOS Safari 優先處理
+        if (iOSSafariService.isIOSSafari()) {
+          console.log(`I18n: iOS Safari - Loading translations for ${lang}`);
+          
+          // 嘗試從 iOS Safari 專用快取獲取
+          const cachedData = iOSSafariService.getCachedFile(`/locales/${lang}.json`);
+          if (cachedData) {
+            try {
+              const translationData = JSON.parse(cachedData);
+              if (translationData && typeof translationData === 'object') {
+                setTranslations(translationData);
+                console.log(`I18n: iOS Safari - Using cached translations for ${lang}`);
+                return;
+              }
+            } catch (error) {
+              console.warn(`I18n: iOS Safari - Failed to parse cached translations for ${lang}:`, error);
+            }
+          }
+          
+          // iOS Safari 快取中沒有，嘗試直接載入
+          if (navigator.onLine) {
+            try {
+              const baseUrl = window.location.origin;
+              const response = await fetch(`${baseUrl}/locales/${lang}.json`, {
+                method: 'GET',
+                cache: 'no-cache',
+                headers: { 'Cache-Control': 'no-cache' }
+              });
+              
+              if (response.ok) {
+                const data: Translations = await response.json();
+                setTranslations(data);
+                console.log(`I18n: iOS Safari - Loaded ${lang} translations from network`);
+                return;
+              }
+            } catch (error) {
+              console.error(`I18n: iOS Safari - Network load failed for ${lang}:`, error);
+            }
+          }
+          
+          // iOS Safari 最終回退
+          loadMinimalTranslations(lang);
+          return;
+        }
+        
+        // 標準瀏覽器處理
         const cachedTranslations = await TranslationCacheService.getCachedTranslations(lang);
         if (cachedTranslations) {
           console.log(`I18n: Using cached translations for ${lang}`);
@@ -113,23 +159,31 @@ export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           return;
         }
         
-        // 最後的備用方案：設置基本的錯誤翻譯
-        console.error("I18n: All translation loading attempts failed. Setting minimal translations.");
-        const minimalTranslations: Translations = {
-          "error": "翻譯載入失敗 / Translations loading failed",
-          "general": {
-            "error": "錯誤 / Error",
-            "loading": "載入中... / Loading...",
-            "success": "成功 / Success",
-            "info": "資訊 / Info"
-          },
-          "header": {
-            "title": "我的筆記 / MyNotes",
-            "settings": "設定 / Settings",
-            "newNote": "新筆記 / New Note"
-          }
-        };
-        setTranslations(minimalTranslations);
+        // 最後的備用方案
+        loadMinimalTranslations(lang);
+      }
+    };
+
+    // 載入最小翻譯集合
+    const loadMinimalTranslations = async (lang: Language) => {
+      console.error("I18n: All translation loading attempts failed. Setting minimal translations.");
+      const minimalTranslations: Translations = {
+        "error": "翻譯載入失敗 / Translations loading failed",
+        "general": {
+          "error": "錯誤 / Error",
+          "loading": "載入中... / Loading...",
+          "success": "成功 / Success",
+          "info": "資訊 / Info"
+        },
+        "header": {
+          "title": "我的筆記 / MyNotes",
+          "settings": "設定 / Settings",
+          "newNote": "新筆記 / New Note"
+        }
+      };
+      setTranslations(minimalTranslations);
+      
+      if (!iOSSafariService.isIOSSafari()) {
         await TranslationCacheService.cacheTranslations(lang, minimalTranslations);
       }
     };

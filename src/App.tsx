@@ -10,9 +10,9 @@ import { useSettings } from './contexts/SettingsContext';
 import { useNotes } from './contexts/NoteContext';
 import { Resizer } from './components/Resizer';
 import { OfflineStatusIndicator } from './components/OfflineStatusIndicator';
-import { ProductionDebugPanel } from './components/ProductionDebugPanel';
 import OfflineCacheService from './services/offlineCacheService';
 import TranslationCacheService from './services/translationCacheService';
+import iOSSafariService from './services/iOSSafariService';
 
 const MIN_SIDEBAR_WIDTH = 200; // px
 const MAX_SIDEBAR_WIDTH = 500; // px
@@ -51,11 +51,18 @@ const App: React.FC = () => {
   }, [settings.theme, settings.language]);
 
   // 初始化離線快取系統
+  // 初始化離線快取系統
   useEffect(() => {
     const initializeOfflineSupport = async () => {
       try {
-        // 初始化離線快取服務
-        await OfflineCacheService.initialize();
+        // iOS Safari 優先處理
+        if (iOSSafariService.isIOSSafari()) {
+          console.log('App: iOS Safari detected, using specialized service');
+          await iOSSafariService.forceInitialize();
+        } else {
+          // 標準瀏覽器使用完整的離線快取服務
+          await OfflineCacheService.initialize();
+        }
         
         // 預載入翻譯檔案
         await TranslationCacheService.preloadTranslations();
@@ -72,9 +79,9 @@ const App: React.FC = () => {
     if (typeof window !== 'undefined') {
       (window as any).OfflineCacheService = OfflineCacheService;
       (window as any).TranslationCacheService = TranslationCacheService;
+      (window as any).iOSSafariService = iOSSafariService;
     }
   }, []);
-
   // 監聽快取狀態變化
   useEffect(() => {
     const handleCacheStatusChange = (event: Event) => {
@@ -223,7 +230,6 @@ const App: React.FC = () => {
       </div>
       {isSettingsModalOpen && <SettingsModal onClose={closeSettingsModal} />}
       <OfflineStatusIndicator />
-      <ProductionDebugPanel />
     </div>
   );
 };
