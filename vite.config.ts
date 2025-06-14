@@ -30,6 +30,19 @@ export default defineConfig(({ mode }) => {
             globPatterns: ['**/*.{js,css,html,ico,png,svg,json,woff2,woff,ttf}'],
             maximumFileSizeToCacheInBytes: 5242880, // 5 MB
             
+            // iOS Safari 導航回退策略
+            navigateFallback: '/index.html',
+            navigateFallbackDenylist: [
+              /^\/_/,
+              /\/[^/?]+\.[^/]+$/,
+              /\/api\//
+            ],
+            
+            // 確保快取完整性
+            skipWaiting: false,
+            clientsClaim: false,
+            cleanupOutdatedCaches: true,
+            
             // 運行時快取策略
             runtimeCaching: [
               // Google Fonts
@@ -116,10 +129,10 @@ export default defineConfig(({ mode }) => {
                   }
                 }
               },
-              // 導航請求 (HTML): 網路優先策略
+              // 導航請求 (HTML): iOS Safari 優化策略
               {
                 urlPattern: ({ request }) => request.mode === 'navigate',
-                handler: 'NetworkFirst',
+                handler: 'StaleWhileRevalidate',
                 options: {
                   cacheName: 'mynotes-pages',
                   expiration: {

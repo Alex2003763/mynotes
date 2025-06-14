@@ -15,6 +15,7 @@ import InstallPrompt from './components/ui/InstallPrompt';
 import OfflineCacheService from './services/offlineCacheService';
 import TranslationCacheService from './services/translationCacheService';
 import iOSSafariService from './services/iOSSafariService';
+import { initIOSSafariPWAFix } from './utils/iosSafariPWAFix';
 
 const MIN_SIDEBAR_WIDTH = 200; // px
 const MAX_SIDEBAR_WIDTH = 500; // px
@@ -52,11 +53,13 @@ const App: React.FC = () => {
     // SettingsContext now handles theme and lang attribute on html tag
   }, [settings.theme, settings.language]);
 
-  // 初始化離線快取系統
-  // 初始化離線快取系統
+  // 初始化離線快取系統和 PWA 修正
   useEffect(() => {
     const initializeOfflineSupport = async () => {
       try {
+        // 先初始化 iOS Safari PWA 修正
+        await initIOSSafariPWAFix();
+        
         // iOS Safari 優先處理
         if (iOSSafariService.isIOSSafari()) {
           console.log('App: iOS Safari detected, using specialized service');
