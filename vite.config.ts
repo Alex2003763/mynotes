@@ -25,7 +25,53 @@ export default defineConfig(({ mode }) => {
             globPatterns: ['**/*.{js,css,html,json,wasm}'],
             maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 10 MB
             navigateFallback: 'index.html',
+            navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/],
+            cleanupOutdatedCaches: true,
+            skipWaiting: true,
+            clientsClaim: true,
             runtimeCaching: [
+              {
+                urlPattern: /^https:\/\/cdn\.tailwindcss\.com\/.*/i,
+                handler: 'CacheFirst',
+                options: {
+                  cacheName: 'tailwind-css-cache',
+                  expiration: {
+                    maxEntries: 10,
+                    maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+                  },
+                  cacheableResponse: {
+                    statuses: [0, 200]
+                  }
+                }
+              },
+              {
+                urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/.*/i,
+                handler: 'CacheFirst',
+                options: {
+                  cacheName: 'jsdelivr-cache',
+                  expiration: {
+                    maxEntries: 20,
+                    maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+                  },
+                  cacheableResponse: {
+                    statuses: [0, 200]
+                  }
+                }
+              },
+              {
+                urlPattern: /^https:\/\/esm\.sh\/.*/i,
+                handler: 'CacheFirst',
+                options: {
+                  cacheName: 'esm-sh-cache',
+                  expiration: {
+                    maxEntries: 50,
+                    maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+                  },
+                  cacheableResponse: {
+                    statuses: [0, 200]
+                  }
+                }
+              },
               {
                 urlPattern: ({ url }) => url.origin === 'https://openrouter.ai',
                 handler: 'NetworkFirst',
@@ -59,17 +105,6 @@ export default defineConfig(({ mode }) => {
                   expiration: {
                     maxEntries: 10,
                     maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
-                  }
-                }
-              },
-              {
-                urlPattern: /^https:\/\/cdn\.tailwindcss\.com\/.*/i,
-                handler: 'StaleWhileRevalidate',
-                options: {
-                  cacheName: 'tailwind-css-cache',
-                  expiration: {
-                    maxEntries: 5,
-                    maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
                   }
                 }
               },
