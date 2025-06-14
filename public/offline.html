@@ -6,166 +6,121 @@
     <title>MyNotes - 離線模式</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             margin: 0;
             padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #4361ee 0%, #3f37c9 100%);
+            color: white;
             min-height: 100vh;
             display: flex;
-            align-items: center;
+            flex-direction: column;
             justify-content: center;
-            color: white;
-        }
-        .container {
+            align-items: center;
             text-align: center;
-            max-width: 500px;
-            padding: 40px;
+        }
+        
+        .offline-container {
+            max-width: 400px;
+            padding: 2rem;
             background: rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
+            border-radius: 16px;
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
+        
         .icon {
-            font-size: 64px;
-            margin-bottom: 20px;
+            font-size: 4rem;
+            margin-bottom: 1rem;
         }
+        
         h1 {
-            margin: 0 0 16px 0;
-            font-size: 32px;
-            font-weight: 300;
+            margin: 0 0 1rem 0;
+            font-size: 1.5rem;
         }
+        
         p {
-            margin: 0 0 32px 0;
-            font-size: 18px;
+            margin: 0 0 2rem 0;
             opacity: 0.9;
             line-height: 1.6;
         }
+        
         .retry-btn {
             background: rgba(255, 255, 255, 0.2);
             border: 2px solid rgba(255, 255, 255, 0.3);
             color: white;
             padding: 12px 24px;
-            border-radius: 25px;
-            font-size: 16px;
+            border-radius: 8px;
             cursor: pointer;
+            font-size: 1rem;
             transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
         }
+        
         .retry-btn:hover {
             background: rgba(255, 255, 255, 0.3);
-            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.5);
         }
-        .status {
-            margin-top: 30px;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            font-size: 14px;
-            opacity: 0.8;
-        }
+        
         .features {
-            margin-top: 20px;
+            margin-top: 2rem;
             text-align: left;
         }
-        .features h3 {
-            margin: 0 0 10px 0;
-            font-size: 18px;
+        
+        .feature-item {
+            display: flex;
+            align-items: center;
+            margin: 0.5rem 0;
+            font-size: 0.9rem;
+            opacity: 0.8;
         }
-        .features ul {
-            margin: 0;
-            padding-left: 20px;
-        }
-        .features li {
-            margin-bottom: 8px;
-            font-size: 14px;
-            opacity: 0.9;
-        }
-        @media (max-width: 600px) {
-            .container {
-                margin: 20px;
-                padding: 30px 20px;
-            }
-            h1 {
-                font-size: 28px;
-            }
-            .icon {
-                font-size: 48px;
-            }
+        
+        .feature-icon {
+            margin-right: 0.5rem;
         }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="offline-container">
         <div class="icon">📱</div>
         <h1>MyNotes 離線模式</h1>
-        <p>您目前處於離線狀態，但 MyNotes 仍可使用！</p>
+        <p>您目前處於離線狀態。MyNotes 的許多功能仍然可以使用：</p>
         
         <div class="features">
-            <h3>🔄 離線功能：</h3>
-            <ul>
-                <li>✅ 瀏覽已快取的筆記</li>
-                <li>✅ 建立和編輯新筆記</li>
-                <li>✅ 搜尋和篩選功能</li>
-                <li>✅ 應用程式設定</li>
-            </ul>
+            <div class="feature-item">
+                <span class="feature-icon">✍️</span>
+                查看和編輯現有筆記
+            </div>
+            <div class="feature-item">
+                <span class="feature-icon">🔍</span>
+                搜索本地筆記
+            </div>
+            <div class="feature-item">
+                <span class="feature-icon">🏷️</span>
+                管理標籤和分類
+            </div>
+            <div class="feature-item">
+                <span class="feature-icon">💾</span>
+                創建新筆記（將在線上時同步）
+            </div>
         </div>
         
-        <button class="retry-btn" onclick="checkConnection()">重新連線</button>
-        
-        <div class="status" id="status">
-            正在檢查網路連線狀態...
-        </div>
+        <button class="retry-btn" onclick="window.location.reload()">
+            重新連線
+        </button>
     </div>
 
     <script>
-        function updateStatus() {
-            const statusEl = document.getElementById('status');
-            const isOnline = navigator.onLine;
-            
-            if (isOnline) {
-                statusEl.innerHTML = '🟢 網路已連線 - 點擊重新連線按鈕返回應用程式';
-                statusEl.style.background = 'rgba(76, 175, 80, 0.3)';
-            } else {
-                statusEl.innerHTML = '🔴 目前離線 - 您仍可使用已快取的功能';
-                statusEl.style.background = 'rgba(244, 67, 54, 0.3)';
-            }
-        }
-        
-        function checkConnection() {
+        // 檢查網路狀態
+        function checkOnlineStatus() {
             if (navigator.onLine) {
-                // 嘗試重新載入主應用程式
                 window.location.href = '/';
-            } else {
-                alert('仍然處於離線狀態，請檢查網路連線');
             }
         }
         
         // 監聽網路狀態變化
-        window.addEventListener('online', updateStatus);
-        window.addEventListener('offline', updateStatus);
+        window.addEventListener('online', checkOnlineStatus);
         
-        // 初始化狀態檢查
-        updateStatus();
-        
-        // 每5秒檢查一次連線狀態
-        setInterval(updateStatus, 5000);
-        
-        // 自動重新連線檢測
-        setInterval(() => {
-            if (navigator.onLine) {
-                // 嘗試 ping 主伺服器
-                fetch('/', { method: 'HEAD', cache: 'no-cache' })
-                    .then(() => {
-                        // 成功連線，顯示返回選項
-                        const statusEl = document.getElementById('status');
-                        statusEl.innerHTML = '🟢 網路已恢復 - <a href="/" style="color: white; text-decoration: underline;">點擊這裡返回應用程式</a>';
-                    })
-                    .catch(() => {
-                        // 仍然無法連線
-                    });
-            }
-        }, 10000);
+        // 定期檢查連線狀態
+        setInterval(checkOnlineStatus, 5000);
     </script>
 </body>
 </html>
