@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => {
           filename: 'sw.ts',
           injectRegister: null,
           includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
-          workbox: {
+          injectManifest: {
             maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB
           },
           manifest: {
