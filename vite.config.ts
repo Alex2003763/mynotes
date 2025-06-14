@@ -27,11 +27,7 @@ export default defineConfig(({ mode }) => {
           // Workbox 配置
           workbox: {
             // 預快取檔案模式 - 包含更多開發檔案
-            globPatterns: [
-              '**/*.{js,css,html,ico,png,svg,json,woff2,woff,ttf}',
-              'index.html',
-              'offline.html'
-            ],
+            globPatterns: ['**/*.{js,css,html,ico,png,svg,json,woff2,woff,ttf}'],
             maximumFileSizeToCacheInBytes: 5242880, // 5 MB
             
             // 手動添加開發模式需要的檔案
@@ -172,7 +168,7 @@ export default defineConfig(({ mode }) => {
             display: 'standalone',
             orientation: 'portrait-primary',
             scope: '/',
-            start_url: '/',
+            start_url: 'index.html',
             id: '/',
             categories: ['productivity', 'utilities'],
             prefer_related_applications: false,
@@ -206,7 +202,7 @@ export default defineConfig(({ mode }) => {
           
           // 開發選項
           devOptions: {
-            enabled: true // 開發時也啟用，方便測試
+            enabled: false // 開發時禁用，避免與 Vite Dev Server 衝突
           }
         })
       ]
