@@ -48,42 +48,48 @@ export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const loadTranslations = async (lang: Language) => {
       try {
-        // 首先嘗試從緩存載入
-        const cachedTranslations = TranslationCacheService.getCachedTranslations(lang);
+        // 首先嘗試從緩存載入（現在是異步的）
+        const cachedTranslations = await TranslationCacheService.getCachedTranslations(lang);
         if (cachedTranslations) {
           console.log(`I18n: Using cached translations for ${lang}`);
           setTranslations(cachedTranslations);
           
-          // 在背景中更新翻譯
-          updateTranslationsInBackground(lang);
+          // 在背景中更新翻譯（僅在線上時）
+          if (navigator.onLine) {
+            updateTranslationsInBackground(lang);
+          }
           return;
         }
 
         // 緩存中沒有，嘗試從網絡載入
-        console.log(`I18n: Loading translations for ${lang} from network`);
-        const response = await fetch(`/locales/${lang}.json`, {
-          cache: 'force-cache'
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Failed to load ${lang}.json, status: ${response.status}`);
-        }
-        
-        const data: Translations = await response.json();
-        
-        // 驗證數據完整性
-        if (data && typeof data === 'object' && Object.keys(data).length > 0) {
-          setTranslations(data);
-          TranslationCacheService.cacheTranslations(lang, data);
-          console.log(`I18n: Successfully loaded and cached ${lang} translations`);
+        if (navigator.onLine) {
+          console.log(`I18n: Loading translations for ${lang} from network`);
+          const response = await fetch(`/locales/${lang}.json`, {
+            cache: 'force-cache'
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Failed to load ${lang}.json, status: ${response.status}`);
+          }
+          
+          const data: Translations = await response.json();
+          
+          // 驗證數據完整性
+          if (data && typeof data === 'object' && Object.keys(data).length > 0) {
+            setTranslations(data);
+            await TranslationCacheService.cacheTranslations(lang, data);
+            console.log(`I18n: Successfully loaded and cached ${lang} translations`);
+          } else {
+            throw new Error('Invalid translation data received');
+          }
         } else {
-          throw new Error('Invalid translation data received');
+          throw new Error('Offline and no cached translations available');
         }
       } catch (error) {
         console.error(`I18n: Failed to load translations for ${lang}:`, error);
         
-        // 嘗試獲取最佳可用的翻譯
-        const fallbackTranslations = TranslationCacheService.getBestAvailableTranslations(lang);
+        // 嘗試獲取最佳可用的翻譯（現在是異步的）
+        const fallbackTranslations = await TranslationCacheService.getBestAvailableTranslations(lang);
         if (fallbackTranslations) {
           setTranslations(fallbackTranslations);
           console.log(`I18n: Using fallback translations`);
@@ -114,10 +120,11 @@ export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           }
         };
         setTranslations(minimalTranslations);
-        TranslationCacheService.cacheTranslations(lang, minimalTranslations);
+        await TranslationCacheService.cacheTranslations(lang, minimalTranslations);
       }
     };
 
+    // 在背景中更新翻譯
     // 在背景中更新翻譯
     const updateTranslationsInBackground = async (lang: Language) => {
       try {
@@ -125,7 +132,7 @@ export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (response.ok) {
           const data: Translations = await response.json();
           if (data && typeof data === 'object' && Object.keys(data).length > 0) {
-            TranslationCacheService.cacheTranslations(lang, data);
+            await TranslationCacheService.cacheTranslations(lang, data);
             console.log(`I18n: Background update completed for ${lang}`);
           }
         }
@@ -134,7 +141,6 @@ export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // 忽略背景更新的錯誤
       }
     };
-
     const loadDateFnsLocale = async (lang: Language) => {
         try {
             const localeModule = await dateFnsLocales[lang]();

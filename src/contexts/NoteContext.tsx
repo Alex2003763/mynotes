@@ -15,6 +15,7 @@ import {
 } from '../services/dbService';
 import { useSettings } from './SettingsContext';
 import { useFilteredNotes, useDebouncedCallback } from '../utils/performance';
+import OfflineCacheService from '../services/offlineCacheService';
 
 interface NotesContextType {
   notes: Note[];
@@ -52,6 +53,7 @@ export const NotesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [currentNote, setCurrentNote] = useState<Note | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [isOffline, setIsOffline] = useState<boolean>(!navigator.onLine);
   
   const [currentSort, setCurrentSort] = useState<SortOption>(settings.defaultSort);
   const [currentFilterTags, setCurrentFilterTags] = useState<string[]>([]);
@@ -61,6 +63,41 @@ export const NotesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   useEffect(() => {
     setCurrentSort(settings.defaultSort);
   }, [settings.defaultSort]);
+
+  // 離線狀態監聽
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOffline(false);
+      console.log('Notes: Back online, syncing data...');
+      // 重新獲取最新數據
+      fetchNotes();
+      fetchTags();
+    };
+
+    const handleOffline = () => {
+      setIsOffline(true);
+      console.log('Notes: Gone offline, using cached data');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('cache-back-online', handleOnline);
+    window.addEventListener('cache-offline-mode', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('cache-back-online', handleOnline);
+      window.removeEventListener('cache-offline-mode', handleOffline);
+    };
+  }, []);
+
+  // 初始化離線快取服務
+  useEffect(() => {
+    OfflineCacheService.initialize().catch(error => {
+      console.warn('Failed to initialize offline cache service:', error);
+    });
+  }, []);
 
   // Memoized filtered and sorted notes
   const notes = useMemo(() => {
@@ -126,17 +163,54 @@ export const NotesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     return { ...note, pages: note.pages || [] };
   };
 
-  // Optimized fetch function that only fetches from DB when necessary
+  // 增強的獲取函數，支援離線模式
   const fetchNotes = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      // Fetch all notes without filtering - filtering is now done in memory
-      const fetchedNotes = await dbGetAllNotes();
+      let fetchedNotes: Note[] = [];
+      
+      if (navigator.onLine) {
+        // 在線時從數據庫獲取
+        fetchedNotes = await dbGetAllNotes();
+        
+        // 緩存到離線存儲
+        await OfflineCacheService.cacheNotes(fetchedNotes);
+      } else {
+        // 離線時嘗試從快取獲取
+        const cachedNotes = await OfflineCacheService.getCachedNotes();
+        if (cachedNotes) {
+          fetchedNotes = cachedNotes;
+          console.log('Notes: Using cached notes (offline mode)');
+        } else {
+          // 如果沒有快取，嘗試從數據庫獲取（可能失敗）
+          try {
+            fetchedNotes = await dbGetAllNotes();
+          } catch (dbError) {
+            console.warn('Notes: Failed to fetch from DB while offline:', dbError);
+            setError('離線模式下無法載入筆記。請檢查網路連線。');
+            setLoading(false);
+            return;
+          }
+        }
+      }
+      
       setAllNotes(fetchedNotes.map(migrateNote));
     } catch (e) {
       console.error("Failed to fetch notes:", e);
-      setError(e instanceof Error ? e.message : 'Failed to fetch notes');
+      
+      // 在錯誤情況下嘗試從快取獲取
+      try {
+        const cachedNotes = await OfflineCacheService.getCachedNotes();
+        if (cachedNotes) {
+          setAllNotes(cachedNotes.map(migrateNote));
+          console.log('Notes: Using cached notes as fallback');
+        } else {
+          setError(e instanceof Error ? e.message : 'Failed to fetch notes');
+        }
+      } catch (cacheError) {
+        setError(e instanceof Error ? e.message : 'Failed to fetch notes');
+      }
     } finally {
       setLoading(false);
     }
@@ -155,7 +229,7 @@ export const NotesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   useEffect(() => {
     fetchNotes();
     fetchTags();
-  }, []); // Only fetch once on mount - filtering/sorting now handled in memory
+  }, [fetchNotes, fetchTags]); // Only fetch once on mount - filtering/sorting now handled in memory
 
   const addNote = async (noteData: Omit<Note, 'id' | 'createdAt' | 'updatedAt' | 'pages' | 'isPinned' | 'isFavorite'> & { pages?: NotePage[] }): Promise<Note | null> => {
     setLoading(true);
@@ -169,8 +243,18 @@ export const NotesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         isPinned: false,
         isFavorite: false,
       } as Note;
+      
       await dbAddNote(newNote);
-      await fetchNotes(); // Refresh notes list
+      
+      // 更新本地狀態
+      const updatedNotes = [...allNotes, newNote];
+      setAllNotes(updatedNotes);
+      
+      // 更新快取
+      if (navigator.onLine) {
+        await OfflineCacheService.cacheNotes(updatedNotes);
+      }
+      
       await fetchTags(); // Refresh tags list
       selectNote(newNote.id);
       return newNote;
@@ -203,7 +287,16 @@ export const NotesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       const updatedNoteWithTimestamp = { ...note, updatedAt: Date.now() };
       await dbUpdateNote(updatedNoteWithTimestamp);
       setCurrentNote(updatedNoteWithTimestamp);
-      await fetchNotes(); // Refresh notes list
+      
+      // 更新本地狀態
+      const updatedNotes = allNotes.map(n => n.id === note.id ? updatedNoteWithTimestamp : n);
+      setAllNotes(updatedNotes);
+      
+      // 更新快取
+      if (navigator.onLine) {
+        await OfflineCacheService.cacheNotes(updatedNotes);
+      }
+      
       await fetchTags(); // Refresh tags list
     } catch (e) {
       console.error("Failed to update note:", e);
@@ -220,7 +313,16 @@ export const NotesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       if (selectedNoteId === id) {
         selectNote(null); // This call already sets currentNote to null
       }
-      await fetchNotes(); // Refresh notes list
+      
+      // 更新本地狀態
+      const updatedNotes = allNotes.filter(n => n.id !== id);
+      setAllNotes(updatedNotes);
+      
+      // 更新快取
+      if (navigator.onLine) {
+        await OfflineCacheService.cacheNotes(updatedNotes);
+      }
+      
       await fetchTags(); // Refresh tags list
     } catch (e) {
       console.error("Failed to delete note:", e);

@@ -24,6 +24,9 @@ export default defineConfig(({ mode }) => {
           workbox: {
             globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
             maximumFileSizeToCacheInBytes: 5242880, // 5 MB
+            skipWaiting: true,
+            clientsClaim: true,
+            cleanupOutdatedCaches: true,
             runtimeCaching: [
               {
                 urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -93,11 +96,37 @@ export default defineConfig(({ mode }) => {
               },
               {
                 urlPattern: /^.*\/locales\/.*\.json$/i,
-                handler: 'CacheFirst',
+                handler: 'StaleWhileRevalidate',
                 options: {
-                  cacheName: 'translations-cache',
+                  cacheName: 'mynotes-translations',
                   expiration: {
                     maxEntries: 10,
+                    maxAgeSeconds: 60 * 60 * 24 * 30 // <== 30 days
+                  }
+                }
+              },
+              {
+                urlPattern: ({ request }: { request: Request }) => {
+                  return request.destination === 'document' ||
+                         request.destination === 'script' ||
+                         request.destination === 'style';
+                },
+                handler: 'StaleWhileRevalidate',
+                options: {
+                  cacheName: 'mynotes-app-cache',
+                  expiration: {
+                    maxEntries: 50,
+                    maxAgeSeconds: 60 * 60 * 24 * 7 // <== 7 days
+                  }
+                }
+              },
+              {
+                urlPattern: /\.(png|jpg|jpeg|svg|gif|webp|ico)$/,
+                handler: 'CacheFirst',
+                options: {
+                  cacheName: 'mynotes-images',
+                  expiration: {
+                    maxEntries: 100,
                     maxAgeSeconds: 60 * 60 * 24 * 30 // <== 30 days
                   }
                 }

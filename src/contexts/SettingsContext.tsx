@@ -5,6 +5,7 @@ import { AppSettings, SortOption, Language } from '../types';
 import { getSettings as dbGetSettings, saveSettings as dbSaveSettings } from '../services/dbService';
 import { checkApiKeyValidity, updateOpenRouterApiKey as setGlobalOpenRouterKey } from '../services/openRouterService';
 import { DEFAULT_SETTINGS_KEY, PREDEFINED_THEME_COLORS, DEFAULT_AI_MODEL_ID } from '../constants';
+import OfflineCacheService from '../services/offlineCacheService';
 
 interface SettingsContextType {
   settings: AppSettings;
@@ -91,27 +92,83 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
   useEffect(() => {
     const loadSettings = async () => {
       setIsLoadingSettings(true);
-      const storedSettings = await dbGetSettings();
       let activeSettings = defaultSettings;
-      if (storedSettings) {
-        // Ensure all keys from defaultSettings are present, especially new ones
-        activeSettings = { 
-            ...defaultSettings, 
-            ...storedSettings, 
-            key: storedSettings.key || DEFAULT_SETTINGS_KEY,
-            aiModel: storedSettings.aiModel || DEFAULT_AI_MODEL_ID,
-            // autosaveDelay: storedSettings.autosaveDelay ?? DEFAULT_AUTOSAVE_DELAY_MS, // REMOVED
-        };
-      } else {
-        await dbSaveSettings(defaultSettings); 
+      
+      try {
+        if (navigator.onLine) {
+          // 在線時從數據庫獲取
+          const storedSettings = await dbGetSettings();
+          if (storedSettings) {
+            // Ensure all keys from defaultSettings are present, especially new ones
+            activeSettings = {
+                ...defaultSettings,
+                ...storedSettings,
+                key: storedSettings.key || DEFAULT_SETTINGS_KEY,
+                aiModel: storedSettings.aiModel || DEFAULT_AI_MODEL_ID,
+            };
+            
+            // 緩存設置到離線存儲
+            await OfflineCacheService.cacheSettings(activeSettings);
+          } else {
+            await dbSaveSettings(defaultSettings);
+            await OfflineCacheService.cacheSettings(defaultSettings);
+          }
+        } else {
+          // 離線時嘗試從快取獲取
+          const cachedSettings = await OfflineCacheService.getCachedSettings();
+          if (cachedSettings) {
+            activeSettings = {
+              ...defaultSettings,
+              ...cachedSettings,
+              key: cachedSettings.key || DEFAULT_SETTINGS_KEY,
+              aiModel: cachedSettings.aiModel || DEFAULT_AI_MODEL_ID,
+            };
+            console.log('Settings: Using cached settings (offline mode)');
+          } else {
+            // 如果沒有快取，嘗試從數據庫獲取（可能失敗）
+            try {
+              const storedSettings = await dbGetSettings();
+              if (storedSettings) {
+                activeSettings = {
+                    ...defaultSettings,
+                    ...storedSettings,
+                    key: storedSettings.key || DEFAULT_SETTINGS_KEY,
+                    aiModel: storedSettings.aiModel || DEFAULT_AI_MODEL_ID,
+                };
+              }
+            } catch (dbError) {
+              console.warn('Settings: Failed to fetch from DB while offline, using defaults:', dbError);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Settings: Failed to load settings:', error);
+        
+        // 在錯誤情況下嘗試從快取獲取
+        try {
+          const cachedSettings = await OfflineCacheService.getCachedSettings();
+          if (cachedSettings) {
+            activeSettings = {
+              ...defaultSettings,
+              ...cachedSettings,
+              key: cachedSettings.key || DEFAULT_SETTINGS_KEY,
+              aiModel: cachedSettings.aiModel || DEFAULT_AI_MODEL_ID,
+            };
+            console.log('Settings: Using cached settings as fallback');
+          }
+        } catch (cacheError) {
+          console.warn('Settings: Failed to load from cache, using defaults:', cacheError);
+        }
       }
       
       setSettings(activeSettings);
       setGlobalOpenRouterKey(activeSettings.openRouterApiKey);
       
       if (activeSettings.openRouterApiKey) {
-        setSettings(prev => ({ ...prev, openRouterApiKeyStatus: 'set' })); 
-        await verifyApiKey(activeSettings.openRouterApiKey);
+        setSettings(prev => ({ ...prev, openRouterApiKeyStatus: 'set' }));
+        if (navigator.onLine) {
+          await verifyApiKey(activeSettings.openRouterApiKey);
+        }
       } else {
         setSettings(prev => ({ ...prev, openRouterApiKeyStatus: 'unset' }));
       }
@@ -141,17 +198,24 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
         applyThemeColors(newSettings.primaryColor);
       }
       if (newSettings.openRouterApiKey !== undefined && newSettings.openRouterApiKey !== prevSettings.openRouterApiKey) {
-        keyToReverify = newSettings.openRouterApiKey; 
+        keyToReverify = newSettings.openRouterApiKey;
         setGlobalOpenRouterKey(newSettings.openRouterApiKey || '');
         updated.openRouterApiKeyStatus = newSettings.openRouterApiKey ? 'set' : 'unset';
       }
       // No immediate DOM effect for aiModel, fontSize, defaultSort - they are used by components
 
+      // 保存到數據庫和快取
       dbSaveSettings(updated);
+      if (navigator.onLine) {
+        OfflineCacheService.cacheSettings(updated).catch(error => {
+          console.warn('Settings: Failed to cache settings:', error);
+        });
+      }
+      
       return updated;
     });
 
-    if (keyToReverify !== undefined) { 
+    if (keyToReverify !== undefined && navigator.onLine) {
         await verifyApiKey(keyToReverify);
     }
 

@@ -1,7 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './src/App';
-import PWABadge from './src/components/PWABadge';
 import { NotesProvider } from './src/contexts/NoteContext';
 import { SettingsProvider } from './src/contexts/SettingsContext';
 import { I18nProvider } from './src/contexts/I18nContext';
@@ -22,7 +21,6 @@ root.render(
           <NotesProvider>
             <EditorInteractionProvider>
               <App />
-              <PWABadge />
             </EditorInteractionProvider>
           </NotesProvider>
         </I18nProvider>

@@ -9,6 +9,9 @@ import { PerformanceMonitor } from './components/PerformanceMonitor';
 import { useSettings } from './contexts/SettingsContext';
 import { useNotes } from './contexts/NoteContext';
 import { Resizer } from './components/Resizer';
+import { OfflineStatusIndicator } from './components/OfflineStatusIndicator';
+import OfflineCacheService from './services/offlineCacheService';
+import TranslationCacheService from './services/translationCacheService';
 
 const MIN_SIDEBAR_WIDTH = 200; // px
 const MAX_SIDEBAR_WIDTH = 500; // px
@@ -45,6 +48,54 @@ const App: React.FC = () => {
   useEffect(() => {
     // SettingsContext now handles theme and lang attribute on html tag
   }, [settings.theme, settings.language]);
+
+  // 初始化離線快取系統
+  useEffect(() => {
+    const initializeOfflineSupport = async () => {
+      try {
+        // 初始化離線快取服務
+        await OfflineCacheService.initialize();
+        
+        // 預載入翻譯檔案
+        await TranslationCacheService.preloadTranslations();
+        
+        console.log('App: Offline support initialized successfully');
+      } catch (error) {
+        console.warn('App: Failed to initialize offline support:', error);
+      }
+    };
+
+    initializeOfflineSupport();
+    
+    // 將快取服務導出到全域，方便測試和除錯
+    if (typeof window !== 'undefined') {
+      (window as any).OfflineCacheService = OfflineCacheService;
+      (window as any).TranslationCacheService = TranslationCacheService;
+    }
+  }, []);
+
+  // 監聽快取狀態變化
+  useEffect(() => {
+    const handleCacheStatusChange = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      console.log('App: Cache status changed:', customEvent.type);
+      
+      // 可以在這裡添加 UI 提示，告知用戶離線狀態
+      if (customEvent.type === 'cache-offline-mode') {
+        // 顯示離線模式提示
+      } else if (customEvent.type === 'cache-back-online') {
+        // 顯示重新連線提示
+      }
+    };
+
+    window.addEventListener('cache-offline-mode', handleCacheStatusChange);
+    window.addEventListener('cache-back-online', handleCacheStatusChange);
+
+    return () => {
+      window.removeEventListener('cache-offline-mode', handleCacheStatusChange);
+      window.removeEventListener('cache-back-online', handleCacheStatusChange);
+    };
+  }, []);
 
   useEffect(() => {
     if (loading) return;
@@ -170,6 +221,7 @@ const App: React.FC = () => {
         )}
       </div>
       {isSettingsModalOpen && <SettingsModal onClose={closeSettingsModal} />}
+      <OfflineStatusIndicator />
     </div>
   );
 };
