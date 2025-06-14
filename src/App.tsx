@@ -6,7 +6,6 @@ import { Sidebar } from './components/Sidebar';
 import { RightSidebar } from './components/RightSidebar';
 import { SettingsModal } from './components/SettingsModal';
 import { PerformanceMonitor } from './components/PerformanceMonitor';
-import UpdatePrompt from './components/UpdatePrompt';
 import { useSettings } from './contexts/SettingsContext';
 import { useNotes } from './contexts/NoteContext';
 import { Resizer } from './components/Resizer';
@@ -130,7 +129,6 @@ const App: React.FC = () => {
   return (
     <div className="flex flex-col h-screen selection:bg-primary/30 selection:text-primary-dark dark:selection:text-primary-light">
       <PerformanceMonitor />
-      <UpdatePrompt />
       <Header
         onToggleLeftSidebar={() => setIsLeftSidebarOpen(!isLeftSidebarOpen)}
       />
