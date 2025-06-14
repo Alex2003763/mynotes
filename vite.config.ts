@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => {
       plugins: [
         react(),
         VitePWA({
-          registerType: 'autoUpdate',
+          registerType: 'prompt',
           includeAssets: ['**/*.{png,ico,svg,woff2,woff,ttf,eot}'],
           manifest: {
             name: 'MyNotes - 智能筆記應用',
@@ -37,14 +37,15 @@ export default defineConfig(({ mode }) => {
                 type: 'image/png'
               },
               {
-                src: '/icon-192.png',
+                src: '/pwa-192x192.png',
                 sizes: '192x192',
                 type: 'image/png'
               },
               {
-                src: '/icon-192.png',
+                src: '/pwa-512x512.png',
                 sizes: '512x512',
-                type: 'image/png'
+                type: 'image/png',
+                purpose: 'any maskable'
               }
             ]
           },
@@ -57,7 +58,7 @@ export default defineConfig(({ mode }) => {
             navigateFallback: 'index.html',
             navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/, /\/api\//],
             cleanupOutdatedCaches: true,
-            skipWaiting: true,
+            skipWaiting: false, // 改為 false 以配合 prompt 模式
             clientsClaim: true,
             runtimeCaching: [
               {
@@ -81,6 +82,20 @@ export default defineConfig(({ mode }) => {
                   cacheName: 'jsdelivr-cache',
                   expiration: {
                     maxEntries: 20,
+                    maxAgeSeconds: 60 * 60 * 24 * 365
+                  },
+                  cacheableResponse: {
+                    statuses: [0, 200]
+                  }
+                }
+              },
+              {
+                urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+                handler: 'CacheFirst',
+                options: {
+                  cacheName: 'google-fonts-cache',
+                  expiration: {
+                    maxEntries: 10,
                     maxAgeSeconds: 60 * 60 * 24 * 365
                   },
                   cacheableResponse: {
