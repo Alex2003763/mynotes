@@ -8,6 +8,7 @@ export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
     return {
+      base: './',
       define: {
         'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
       },
