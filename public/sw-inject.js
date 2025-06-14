@@ -16,7 +16,6 @@ self.addEventListener('install', (event) => {
         });
 
         // 使用 Workbox 的 API 來執行預快取
-        // 使用 Workbox 的 API 來執行預快取
         const precacheController = new self.workbox.precaching.PrecacheController();
         precacheController.addToCacheList(self.__WB_MANIFEST);
         await precacheController.install();
