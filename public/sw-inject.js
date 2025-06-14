@@ -5,15 +5,20 @@ self.addEventListener('install', (event) => {
     (async () => {
       // 強制執行預快取
       try {
-        const cache = await caches.open('workbox-precache-v2-' + self.location.origin + '/');
-        console.log('[SW] Precache created:', cache);
-        
-        // 如果有預快取清單，執行它
-        if (self.__WB_MANIFEST && self.__WB_MANIFEST.length > 0) {
-          console.log('[SW] Precaching manifest items:', self.__WB_MANIFEST.length);
-          const urls = self.__WB_MANIFEST.map(entry => entry.url);
-          await cache.addAll(urls);
-        }
+        // 等待 Workbox 核心加載
+        await new Promise(resolve => {
+          const interval = setInterval(() => {
+            if (self.workbox) {
+              clearInterval(interval);
+              resolve();
+            }
+          }, 100);
+        });
+
+        // 使用 Workbox 的 API 來執行預快取
+        const precacheController = new self.workbox.precaching.PrecacheController();
+        precacheController.addToCacheList(self.__WB_MANIFEST);
+        await precacheController.install();
       } catch (error) {
         console.error('[SW] Precache failed:', error);
       }
@@ -24,5 +29,22 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   console.log('[SW] Activate event - claiming clients');
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    (async () => {
+      // 等待 Workbox 核心加載
+      await new Promise(resolve => {
+        const interval = setInterval(() => {
+          if (self.workbox) {
+            clearInterval(interval);
+            resolve();
+          }
+        }, 100);
+      });
+
+      // 使用 Workbox 的 API 來清理過期的快取
+      const precacheController = new self.workbox.precaching.PrecacheController();
+      await precacheController.activate();
+      self.clients.claim();
+    })()
+  );
 });
