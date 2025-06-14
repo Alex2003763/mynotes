@@ -57,4 +57,4 @@
   to = "/index.html"
   status = 200
   force = false
-  conditions = {Role = ["!admin"]}
+  conditions = {Path = ["!/sw.js", "!/workbox-*.js"]}
