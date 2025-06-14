@@ -49,13 +49,20 @@ export default defineConfig(({ mode }) => {
             ]
           },
           workbox: {
-            globPatterns: ['**/*.{js,css,html,json,wasm,png,ico,svg,woff2,woff,ttf,eot}'],
+            globPatterns: ['**/*.{js,css,json,wasm,png,ico,svg,woff2,woff,ttf,eot}'],
+            globIgnores: ['**/index.html'],
             maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 10 MB
-            navigateFallback: 'index.html',
+            navigateFallback: '/index.html',
             navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/],
             cleanupOutdatedCaches: true,
             skipWaiting: true,
             clientsClaim: true,
+            additionalManifestEntries: [
+              {
+                url: '/index.html',
+                revision: null
+              }
+            ],
             runtimeCaching: [
               {
                 urlPattern: /^https:\/\/cdn\.tailwindcss\.com\/.*/i,
