@@ -17,7 +17,11 @@
     "tailwindcss": "^4.1.10",
     "typescript": "~5.7.2",
     "vite": "^6.2.0",
-    "vite-plugin-pwa": "^0.21.0"
+    "vite-plugin-pwa": "^0.21.0",
+    "workbox-expiration": "^7.3.0",
+    "workbox-precaching": "^7.3.0",
+    "workbox-routing": "^7.3.0",
+    "workbox-strategies": "^7.3.0"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.5.2",
@@ -29,9 +33,6 @@
     "react-router-dom": "^7.6.2",
     "tinycolor2": "^1.6.0",
     "workbox-core": "^7.1.0",
-    "workbox-precaching": "^7.1.0",
-    "workbox-routing": "^7.1.0",
-    "workbox-strategies": "^7.1.0",
     "workbox-window": "^7.1.0"
   }
 }

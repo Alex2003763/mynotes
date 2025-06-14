@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>離線測試</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>離線功能測試</h1>
+    <button onclick="testOffline()">測試離線功能</button>
+    <div id="results"></div>
+    
+    <script>
+        async function testOffline() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>測試中...</p>';
+            
+            const tests = [
+                { name: 'Service Worker 註冊', test: () => 'serviceWorker' in navigator },
+                { name: 'Service Worker 啟用', test: async () => {
+                    const reg = await navigator.serviceWorker.getRegistration();
+                    return reg && reg.active;
+                }},
+                { name: 'Cache API 支援', test: () => 'caches' in window },
+                { name: '快取存在', test: async () => {
+                    const names = await caches.keys();
+                    return names.length > 0;
+                }},
+                { name: '網路狀態檢測', test: () => typeof navigator.onLine !== 'undefined' }
+            ];
+            
+            results.innerHTML = '';
+            
+            for (const { name, test } of tests) {
+                try {
+                    const result = await test();
+                    const div = document.createElement('div');
+                    div.className = `test-result ${result ? 'success' : 'error'}`;
+                    div.textContent = `${result ? '✅' : '❌'} ${name}`;
+                    results.appendChild(div);
+                } catch (error) {
+                    const div = document.createElement('div');
+                    div.className = 'test-result error';
+                    div.textContent = `❌ ${name}: ${error.message}`;
+                    results.appendChild(div);
+                }
+            }
+            
+            // 顯示快取詳情
+            try {
+                const names = await caches.keys();
+                const div = document.createElement('div');
+                div.className = 'test-result success';
+                div.innerHTML = `<strong>快取列表:</strong><br>${names.join('<br>')}`;
+                results.appendChild(div);
+            } catch (error) {
+                console.error('無法獲取快取列表:', error);
+            }
+        }
+        
+        // 自動執行測試
+        testOffline();
+    </script>
+</body>
+</html>

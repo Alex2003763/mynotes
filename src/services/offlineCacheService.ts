@@ -296,7 +296,7 @@ class OfflineCacheService {
   }
 
   /**
-   * 註冊 Service Worker
+   * 檢查 Service Worker 狀態（由 Vite PWA 插件處理註冊）
    */
   private static async registerServiceWorker(): Promise<void> {
     if (!('serviceWorker' in navigator)) {
@@ -305,16 +305,21 @@ class OfflineCacheService {
     }
 
     try {
-      const registration = await navigator.serviceWorker.register('/sw.js');
-      console.log('Offline Cache: Service Worker registered', registration.scope);
-      
-      // 監聽 SW 更新
-      registration.addEventListener('updatefound', () => {
-        console.log('Offline Cache: Service Worker update found');
-      });
+      // 檢查是否已有 Service Worker 註冊（由 Vite PWA 處理）
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (registration) {
+        console.log('Offline Cache: Service Worker already registered by Vite PWA', registration.scope);
+        
+        // 監聽 SW 更新
+        registration.addEventListener('updatefound', () => {
+          console.log('Offline Cache: Service Worker update found');
+        });
+      } else {
+        console.log('Offline Cache: Waiting for Vite PWA to register Service Worker');
+      }
       
     } catch (error) {
-      console.warn('Offline Cache: Service Worker registration failed:', error);
+      console.warn('Offline Cache: Service Worker check failed:', error);
     }
   }
 

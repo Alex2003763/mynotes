@@ -26,50 +26,83 @@ export default defineConfig(({ mode }) => {
           
           // Workbox 配置
           workbox: {
-            // 預快取檔案模式
-            globPatterns: ['**/*.{js,css,html,ico,png,svg,json,woff2,woff,ttf}'],
+            // 預快取檔案模式 - 包含更多開發檔案
+            globPatterns: [
+              '**/*.{js,css,html,ico,png,svg,json,woff2,woff,ttf}',
+              'index.html',
+              'offline.html'
+            ],
             maximumFileSizeToCacheInBytes: 5242880, // 5 MB
             
-            // iOS Safari 導航回退策略
-            navigateFallback: '/index.html',
+            // 手動添加開發模式需要的檔案
+            additionalManifestEntries: [
+              { url: '/', revision: '1' },
+              { url: '/index.html', revision: '1' },
+              { url: '/offline.html', revision: '1' }
+            ],
+            
+            // 導航回退策略（重要！）
+            navigateFallback: '/app-shell.html',
             navigateFallbackDenylist: [
               /^\/_/,
               /\/[^/?]+\.[^/]+$/,
-              /\/api\//
+              /\/sw-test\.html$/,
+              /\/test-offline\.html$/,
+              /\/offline\.html$/,
+              /\/app-shell\.html$/
             ],
             
-            // 確保快取完整性
-            skipWaiting: false,
-            clientsClaim: false,
+            // 跳過等待並立即接管頁面
+            skipWaiting: true,
+            clientsClaim: true,
+            
+            // 清理過期快取
             cleanupOutdatedCaches: true,
             
             // 運行時快取策略
             runtimeCaching: [
-              // Google Fonts
+              // 開發模式的 Vite 資源（重要！）
               {
-                urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-                handler: 'CacheFirst',
+                urlPattern: /^.*\/@vite\/.*/i,
+                handler: 'StaleWhileRevalidate',
                 options: {
-                  cacheName: 'google-fonts-cache',
+                  cacheName: 'vite-dev-cache',
                   expiration: {
                     maxEntries: 10,
-                    maxAgeSeconds: 60 * 60 * 24 * 365 // 365 天
+                    maxAgeSeconds: 60 * 60 * 24 // 1 天
                   }
                 }
               },
-              // Google Fonts 靜態資源
+              // 開發模式的應用資源
               {
-                urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-                handler: 'CacheFirst',
+                urlPattern: ({ url }) => {
+                  return url.pathname.endsWith('.tsx') ||
+                         url.pathname.endsWith('.ts') ||
+                         url.pathname.endsWith('.css') ||
+                         url.pathname.endsWith('.js');
+                },
+                handler: 'StaleWhileRevalidate',
                 options: {
-                  cacheName: 'gstatic-fonts-cache',
+                  cacheName: 'dev-app-cache',
                   expiration: {
-                    maxEntries: 10,
-                    maxAgeSeconds: 60 * 60 * 24 * 365 // 365 天
+                    maxEntries: 50,
+                    maxAgeSeconds: 60 * 60 * 24 // 1 天
                   }
                 }
               },
-              // Tailwind CSS CDN
+              // 主頁面和 HTML 檔案
+              {
+                urlPattern: ({ request }) => request.mode === 'navigate',
+                handler: 'StaleWhileRevalidate',
+                options: {
+                  cacheName: 'pages-cache',
+                  expiration: {
+                    maxEntries: 10,
+                    maxAgeSeconds: 60 * 60 * 24 // 1 天
+                  }
+                }
+              },
+              // CDN 資源快取
               {
                 urlPattern: /^https:\/\/cdn\.tailwindcss\.com\/.*/i,
                 handler: 'StaleWhileRevalidate',
@@ -81,19 +114,6 @@ export default defineConfig(({ mode }) => {
                   }
                 }
               },
-              // Cloudflare CDN
-              {
-                urlPattern: /^https:\/\/cdnjs\.cloudflare\.com\/.*/i,
-                handler: 'CacheFirst',
-                options: {
-                  cacheName: 'cloudflare-cdn-cache',
-                  expiration: {
-                    maxEntries: 20,
-                    maxAgeSeconds: 60 * 60 * 24 * 365 // 365 天
-                  }
-                }
-              },
-              // ESM.sh 模組
               {
                 urlPattern: /^https:\/\/esm\.sh\/.*/i,
                 handler: 'StaleWhileRevalidate',
@@ -105,7 +125,6 @@ export default defineConfig(({ mode }) => {
                   }
                 }
               },
-              // jsDelivr CDN
               {
                 urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/.*/i,
                 handler: 'CacheFirst',
@@ -129,42 +148,14 @@ export default defineConfig(({ mode }) => {
                   }
                 }
               },
-              // 導航請求 (HTML): iOS Safari 優化策略
+              // 靜態資源（圖片、字體等）
               {
-                urlPattern: ({ request }) => request.mode === 'navigate',
-                handler: 'StaleWhileRevalidate',
-                options: {
-                  cacheName: 'mynotes-pages',
-                  expiration: {
-                    maxEntries: 10,
-                    maxAgeSeconds: 60 * 60 * 24 * 7 // 7 天
-                  }
-                }
-              },
-              // 應用程式資源: 快取優先，背景更新
-              {
-                urlPattern: ({ request }) => {
-                  return request.destination === 'script' ||
-                         request.destination === 'style' ||
-                         request.destination === 'worker';
-                },
-                handler: 'StaleWhileRevalidate',
-                options: {
-                  cacheName: 'mynotes-app-cache',
-                  expiration: {
-                    maxEntries: 50,
-                    maxAgeSeconds: 60 * 60 * 24 * 7 // 7 天
-                  }
-                }
-              },
-              // 圖片資源: 快取優先
-              {
-                urlPattern: /\.(png|jpg|jpeg|svg|gif|webp|ico)$/,
+                urlPattern: /\.(png|jpg|jpeg|svg|gif|webp|ico|woff|woff2|ttf)$/,
                 handler: 'CacheFirst',
                 options: {
-                  cacheName: 'mynotes-images',
+                  cacheName: 'static-assets-cache',
                   expiration: {
-                    maxEntries: 100,
+                    maxEntries: 60,
                     maxAgeSeconds: 60 * 60 * 24 * 30 // 30 天
                   }
                 }
@@ -216,7 +207,7 @@ export default defineConfig(({ mode }) => {
           
           // 開發選項
           devOptions: {
-            enabled: false // 開發時關閉，生產時啟用
+            enabled: true // 開發時也啟用，方便測試
           }
         })
       ]

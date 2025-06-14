@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Worker 測試</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        .loading { background-color: #fff3cd; border: 1px solid #ffeaa7; color: #856404; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Service Worker 測試頁面</h1>
+    
+    <div id="sw-status" class="status loading">檢查 Service Worker 狀態中...</div>
+    <div id="cache-status" class="status loading">檢查快取狀態中...</div>
+    <div id="network-status" class="status loading">檢查網路狀態中...</div>
+    
+    <h2>操作</h2>
+    <button onclick="testServiceWorker()">重新檢查 Service Worker</button>
+    <button onclick="testCache()">測試快取功能</button>
+    <button onclick="clearCache()">清除快取</button>
+    <button onclick="goOffline()">模擬離線狀態</button>
+    
+    <h2>詳細資訊</h2>
+    <pre id="details"></pre>
+
+    <script>
+        let swRegistration = null;
+        
+        async function updateStatus() {
+            await testServiceWorker();
+            await testCache();
+            await testNetwork();
+        }
+        
+        async function testServiceWorker() {
+            const statusDiv = document.getElementById('sw-status');
+            const detailsDiv = document.getElementById('details');
+            
+            if ('serviceWorker' in navigator) {
+                try {
+                    swRegistration = await navigator.serviceWorker.getRegistration();
+                    
+                    if (swRegistration) {
+                        statusDiv.className = 'status success';
+                        statusDiv.textContent = `✅ Service Worker 已註冊 (Scope: ${swRegistration.scope})`;
+                        
+                        let details = `Service Worker 詳細資訊:\n`;
+                        details += `- Scope: ${swRegistration.scope}\n`;
+                        details += `- Active: ${swRegistration.active ? '✅' : '❌'}\n`;
+                        details += `- Waiting: ${swRegistration.waiting ? '✅' : '❌'}\n`;
+                        details += `- Installing: ${swRegistration.installing ? '✅' : '❌'}\n`;
+                        
+                        if (swRegistration.active) {
+                            details += `- Script URL: ${swRegistration.active.scriptURL}\n`;
+                            details += `- State: ${swRegistration.active.state}\n`;
+                        }
+                        
+                        detailsDiv.textContent = details;
+                    } else {
+                        statusDiv.className = 'status error';
+                        statusDiv.textContent = '❌ Service Worker 未註冊';
+                        detailsDiv.textContent = 'Service Worker 未找到註冊';
+                    }
+                } catch (error) {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = `❌ Service Worker 檢查失敗: ${error.message}`;
+                    detailsDiv.textContent = `錯誤: ${error}`;
+                }
+            } else {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ 瀏覽器不支援 Service Worker';
+            }
+        }
+        
+        async function testCache() {
+            const statusDiv = document.getElementById('cache-status');
+            
+            if ('caches' in window) {
+                try {
+                    const cacheNames = await caches.keys();
+                    const myNotesCaches = cacheNames.filter(name => 
+                        name.includes('mynotes') || name.includes('workbox')
+                    );
+                    
+                    if (myNotesCaches.length > 0) {
+                        statusDiv.className = 'status success';
+                        statusDiv.textContent = `✅ 找到 ${myNotesCaches.length} 個快取: ${myNotesCaches.join(', ')}`;
+                    } else {
+                        statusDiv.className = 'status info';
+                        statusDiv.textContent = `⚠️ 未找到 MyNotes 快取，總共 ${cacheNames.length} 個快取`;
+                    }
+                } catch (error) {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = `❌ 快取檢查失敗: ${error.message}`;
+                }
+            } else {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ 瀏覽器不支援 Cache API';
+            }
+        }
+        
+        async function testNetwork() {
+            const statusDiv = document.getElementById('network-status');
+            
+            const isOnline = navigator.onLine;
+            if (isOnline) {
+                statusDiv.className = 'status success';
+                statusDiv.textContent = '✅ 網路連線正常';
+            } else {
+                statusDiv.className = 'status info';
+                statusDiv.textContent = '⚠️ 目前處於離線狀態';
+            }
+        }
+        
+        async function clearCache() {
+            if ('caches' in window) {
+                try {
+                    const cacheNames = await caches.keys();
+                    const deleted = await Promise.all(
+                        cacheNames.map(name => caches.delete(name))
+                    );
+                    alert(`已清除 ${deleted.filter(Boolean).length} 個快取`);
+                    await testCache();
+                } catch (error) {
+                    alert(`清除快取失敗: ${error.message}`);
+                }
+            }
+        }
+        
+        function goOffline() {
+            alert('請使用瀏覽器開發者工具的 Network 選項卡來模擬離線狀態');
+        }
+        
+        // 監聽網路狀態變化
+        window.addEventListener('online', testNetwork);
+        window.addEventListener('offline', testNetwork);
+        
+        // 初始化
+        updateStatus();
+        
+        // 每5秒更新一次狀態
+        setInterval(updateStatus, 5000);
+    </script>
+</body>
+</html>
