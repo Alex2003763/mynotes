@@ -60,14 +60,8 @@ const App: React.FC = () => {
         // 先初始化 iOS Safari PWA 修正
         await initIOSSafariPWAFix();
         
-        // iOS Safari 優先處理
-        if (iOSSafariService.isIOSSafari()) {
-          console.log('App: iOS Safari detected, using specialized service');
-          await iOSSafariService.forceInitialize();
-        } else {
-          // 標準瀏覽器使用完整的離線快取服務
-          await OfflineCacheService.initialize();
-        }
+        // 使用更新後的離線快取服務（自動處理iOS Safari）
+        await OfflineCacheService.initialize();
         
         // 預載入翻譯檔案
         await TranslationCacheService.preloadTranslations();
@@ -81,10 +75,10 @@ const App: React.FC = () => {
     initializeOfflineSupport();
     
     // 將快取服務導出到全域，方便測試和除錯
+    // 將快取服務導出到全域，方便測試和除錯
     if (typeof window !== 'undefined') {
       (window as any).OfflineCacheService = OfflineCacheService;
       (window as any).TranslationCacheService = TranslationCacheService;
-      (window as any).iOSSafariService = iOSSafariService;
     }
   }, []);
   // 監聽快取狀態變化

@@ -23,76 +23,12 @@ export const isPWAMode = (): boolean => {
 
 /**
  * iOS Safari PWA 初始化修正
+ *
+ * 注意：現在這個函數是空的，因為 iOS Safari 的特殊處理已經整合到 OfflineCacheService 中
+ * 保留這個函數是為了向後兼容，但它不會執行任何操作
  */
 export const initIOSSafariPWAFix = async (): Promise<void> => {
-  if (!isIOSSafari() || !isPWAMode()) {
-    return;
-  }
-
-  console.log('iOS Safari PWA: 正在應用修正...');
-
-  // 1. 防止頁面刷新時的網路錯誤
-  if ('serviceWorker' in navigator) {
-    try {
-      // 等待 Service Worker 準備就緒
-      await navigator.serviceWorker.ready;
-      
-      // 監聽 Service Worker 狀態
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        console.log('iOS Safari PWA: Service Worker 控制器已更改');
-      });
-
-      // 檢查是否有等待中的 Service Worker
-      const registration = await navigator.serviceWorker.getRegistration();
-      if (registration && registration.waiting) {
-        console.log('iOS Safari PWA: 發現等待中的 Service Worker');
-        
-        // 詢問用戶是否更新
-        if (window.confirm('檢測到應用更新，是否立即重新載入？')) {
-          registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-          window.location.reload();
-        }
-      }
-    } catch (error) {
-      console.warn('iOS Safari PWA: Service Worker 初始化失敗:', error);
-    }
-  }
-
-  // 2. 處理頁面可見性變化
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-      console.log('iOS Safari PWA: 頁面重新變為可見');
-      
-      // 檢查網路連線狀態
-      if (!navigator.onLine) {
-        console.log('iOS Safari PWA: 檢測到離線狀態');
-        showOfflineMessage();
-      }
-    }
-  });
-
-  // 3. 網路狀態監聽
-  window.addEventListener('online', () => {
-    console.log('iOS Safari PWA: 網路重新連線');
-    hideOfflineMessage();
-  });
-
-  window.addEventListener('offline', () => {
-    console.log('iOS Safari PWA: 網路連線中斷');
-    showOfflineMessage();
-  });
-
-  // 4. 防止意外的頁面刷新
-  window.addEventListener('beforeunload', (event) => {
-    if (isPWAMode() && isIOSSafari()) {
-      // 在 iOS Safari PWA 模式下，警告用戶關於刷新的問題
-      const message = '在 iOS Safari PWA 模式下刷新可能會遇到問題。建議使用應用內導航。';
-      event.returnValue = message;
-      return message;
-    }
-  });
-
-  console.log('iOS Safari PWA: 修正已完成');
+  console.log('iOS Safari PWA Fix: 此函數已被棄用，不再執行任何操作');
 };
 
 /**

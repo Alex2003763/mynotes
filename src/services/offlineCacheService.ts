@@ -68,11 +68,11 @@ class OfflineCacheService {
         await this.preloadCriticalResourcesForIOS();
       }
       
-      // 註冊 Service Worker（如果可用）
-      if (!isIOSSafari) {
+      // 嘗試註冊 Service Worker（包括 iOS）
+      try {
         await this.registerServiceWorker();
-      } else {
-        console.log('Offline Cache: Skipping SW registration on iOS Safari due to limitations');
+      } catch (error) {
+        console.warn('Offline Cache: Service Worker registration failed, using fallbacks', error);
       }
       
       console.log('Offline Cache: Initialized successfully');
@@ -615,6 +615,9 @@ class OfflineCacheService {
       // iOS Safari 對 Cache API 有限制，使用 localStorage 作為主要快取
       const baseUrl = window.location.origin;
       const criticalUrls = [
+        `${baseUrl}/`,
+        `${baseUrl}/index.html`,
+        `${baseUrl}/manifest.json`,
         `${baseUrl}/locales/en.json`,
         `${baseUrl}/locales/zh.json`
       ];
@@ -630,17 +633,20 @@ class OfflineCacheService {
           
           if (response.ok) {
             const data = await response.text();
-            // 存儲到 localStorage（iOS Safari 更可靠）
-            const cacheKey = `ios-cache-${url.split('/').pop()}`;
+            // 為 iOS 建立更可靠的快取鍵名
+            const cacheKey = `ios-cache-${btoa(url).replace(/[^a-zA-Z0-9]/g, '')}`;
             try {
+              // 使用更小的儲存方式
               localStorage.setItem(cacheKey, JSON.stringify({
-                data: data,
-                timestamp: Date.now(),
-                url: url
+                d: data,          // 壓縮鍵名
+                t: Date.now(),
+                u: url
               }));
               console.log(`Offline Cache: iOS cached ${url}`);
             } catch (storageError) {
               console.warn(`Offline Cache: iOS storage failed for ${url}:`, storageError);
+              // 嘗試清除舊的快取以釋放空間
+              this.clearOldIOSCaches();
             }
           }
         } catch (error) {
@@ -652,6 +658,31 @@ class OfflineCacheService {
     } catch (error) {
       console.warn('Offline Cache: iOS preload failed:', error);
     }
+  }
+
+  /**
+   * 清理舊的 iOS 快取
+   */
+  private static clearOldIOSCaches(): void {
+    const now = Date.now();
+    const keysToRemove = [];
+    
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('ios-cache-')) {
+        try {
+          const item = JSON.parse(localStorage.getItem(key) || '{}');
+          if (now - (item.t || 0) > 7 * 24 * 60 * 60 * 1000) { // 保留7天
+            keysToRemove.push(key);
+          }
+        } catch {
+          keysToRemove.push(key);
+        }
+      }
+    }
+    
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    console.log(`Cleared ${keysToRemove.length} old iOS caches`);
   }
 }
 
