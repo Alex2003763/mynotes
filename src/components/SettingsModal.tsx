@@ -1,4 +1,3 @@
-
 import React, { useState, ChangeEvent, useRef, useEffect } from 'react';
 import { Modal } from './Modal';
 import { useSettings } from '../contexts/SettingsContext';
@@ -12,6 +11,7 @@ import { useImport } from '../hooks/useImport';
 import { ConfirmationDialog } from './dialogs/ConfirmationDialog';
 import { ConflictResolutionModal, ConflictResolution } from './dialogs/ConflictResolutionModal';
 import { Note } from '../types';
+import { PWATestPanel } from './PWATestPanel';
 
 interface SettingsModalProps {
   onClose: () => void;
@@ -27,6 +27,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [customColor, setCustomColor] = useState(settings.primaryColor);
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [isPwaPanelOpen, setIsPwaPanelOpen] = useState(false);
   const [dialogState, setDialogState] = useState<
     { type: 'confirm_settings'; settings: AppSettings; resolve: (value: boolean) => void; } |
     { type: 'resolve_conflict'; note: Note; resolve: (value: ConflictResolution) => void; } |
@@ -155,6 +156,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
   );
 
   return (
+    <>
     <Modal isOpen={true} onClose={onClose} title={t('settingsModal.title')} size="2xl" footer={modalFooter}>
       <div className="space-y-6 sm:space-y-8">
         {/* General Settings Section */}
@@ -364,6 +366,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
             </p>
           )}
         </section>
+
+        {/* PWA Diagnostics Section */}
+        <section className="border-t border-slate-200 dark:border-slate-700 pt-6">
+            <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-3">PWA Diagnostics</h3>
+            <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                    onClick={() => setIsPwaPanelOpen(true)}
+                    className="w-full sm:w-auto px-4 py-2.5 border border-secondary text-secondary rounded-lg hover:bg-secondary/10 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-secondary-light transition-colors text-sm font-medium"
+                >
+                    Open PWA Diagnostics
+                </button>
+            </div>
+        </section>
       </div>
      {dialogState?.type === 'confirm_settings' && (
        <ConfirmationDialog
@@ -391,5 +406,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
        />
      )}
    </Modal>
+   <PWATestPanel isOpen={isPwaPanelOpen} onClose={() => setIsPwaPanelOpen(false)} />
+   </>
  );
 };

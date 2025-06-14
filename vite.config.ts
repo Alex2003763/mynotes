@@ -84,6 +84,14 @@ export default defineConfig(({ mode }) => {
                 },
               },
             ],
+            // This is crucial for SPAs. It ensures that all navigation requests
+            // are handled by the service worker, which will serve the index.html
+            // file from the cache, allowing the client-side router to take over.
+            navigateFallback: 'index.html',
+            // You might want to define a denylist for routes that should not be
+            // handled by the service worker, e.g., API endpoints that must be
+            // fetched from the network.
+            navigateFallbackDenylist: [/^\/api/],
           },
           manifest: {
             name: 'MyNotes - 智能筆記應用',

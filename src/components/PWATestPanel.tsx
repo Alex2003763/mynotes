@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 
-export const PWATestPanel: React.FC = () => {
-  const [isOpen, setIsOpen] = useState(false);
+interface PWATestPanelProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export const PWATestPanel: React.FC<PWATestPanelProps> = ({ isOpen, onClose }) => {
   const [testResults, setTestResults] = useState<string[]>([]);
 
   const runPWATests = async () => {
@@ -160,55 +164,49 @@ export const PWATestPanel: React.FC = () => {
   };
 
   if (!isOpen) {
-    return (
-      <button
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-4 left-4 bg-slate-800 hover:bg-slate-700 text-white px-3 py-2 rounded-full shadow-lg z-50 text-xs font-medium transition-colors"
-        title="PWA Diagnostics"
-      >
-        🔧
-      </button>
-    );
+    return null;
   }
 
   return (
-    <div className="fixed bottom-4 left-4 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-xl z-50 w-80 max-h-96 overflow-y-auto text-xs">
-      <div className="sticky top-0 bg-white dark:bg-slate-800 p-2 border-b border-slate-200 dark:border-slate-600 flex justify-between items-center">
-        <h3 className="font-semibold text-slate-900 dark:text-slate-100">PWA Diagnostics</h3>
-        <button
-          onClick={() => setIsOpen(false)}
-          className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 text-lg"
-        >
-          &times;
-        </button>
-      </div>
-      
-      <div className="p-2">
-        <pre className="whitespace-pre-wrap font-mono text-slate-700 dark:text-slate-300">
-          {testResults.join('\n')}
-        </pre>
-        
-        <div className="pt-2 mt-2 border-t border-slate-200 dark:border-slate-600 space-y-2">
-          <button
-            onClick={runPWATests}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-1.5 px-3 rounded font-medium transition-colors"
-          >
-            Refresh Diagnostics
-          </button>
-          <button
-            onClick={fixCacheConflicts}
-            className="w-full bg-orange-600 hover:bg-orange-700 text-white py-1.5 px-3 rounded font-medium transition-colors"
-          >
-            Fix Cache Conflicts
-          </button>
-          <button
-            onClick={clearPWAState}
-            className="w-full bg-red-600 hover:bg-red-700 text-white py-1.5 px-3 rounded font-medium transition-colors"
-          >
-            Clear All Caches & SW
-          </button>
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+        <div className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-xl z-50 w-full max-w-lg max-h-[80vh] overflow-y-auto text-xs flex flex-col">
+            <div className="sticky top-0 bg-white dark:bg-slate-800 p-2 border-b border-slate-200 dark:border-slate-600 flex justify-between items-center">
+                <h3 className="font-semibold text-slate-900 dark:text-slate-100">PWA Diagnostics</h3>
+                <button
+                onClick={onClose}
+                className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 text-lg"
+                >
+                &times;
+                </button>
+            </div>
+            
+            <div className="p-2 flex-grow">
+                <pre className="whitespace-pre-wrap font-mono text-slate-700 dark:text-slate-300">
+                {testResults.join('\n')}
+                </pre>
+            </div>
+
+            <div className="p-2 border-t border-slate-200 dark:border-slate-600 space-y-2">
+                <button
+                    onClick={runPWATests}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-1.5 px-3 rounded font-medium transition-colors"
+                >
+                    Refresh Diagnostics
+                </button>
+                <button
+                    onClick={fixCacheConflicts}
+                    className="w-full bg-orange-600 hover:bg-orange-700 text-white py-1.5 px-3 rounded font-medium transition-colors"
+                >
+                    Fix Cache Conflicts
+                </button>
+                <button
+                    onClick={clearPWAState}
+                    className="w-full bg-red-600 hover:bg-red-700 text-white py-1.5 px-3 rounded font-medium transition-colors"
+                >
+                    Clear All Caches & SW
+                </button>
+            </div>
         </div>
-      </div>
     </div>
   );
 };

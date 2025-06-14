@@ -7,7 +7,6 @@ import { RightSidebar } from './components/RightSidebar';
 import { SettingsModal } from './components/SettingsModal';
 import { PerformanceMonitor } from './components/PerformanceMonitor';
 import { UpdatePrompt } from './components/ui/UpdatePrompt';
-import { PWATestPanel } from './components/PWATestPanel';
 import { useSettings } from './contexts/SettingsContext';
 import { useNotes } from './contexts/NoteContext';
 import { Resizer } from './components/Resizer';
@@ -173,7 +172,6 @@ const App: React.FC = () => {
           )}
         </div>
       {isSettingsModalOpen && <SettingsModal onClose={closeSettingsModal} />}
-      <PWATestPanel />
     </div>
   );
 };
