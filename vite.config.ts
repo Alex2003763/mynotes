@@ -49,20 +49,16 @@ export default defineConfig(({ mode }) => {
             ]
           },
           workbox: {
-            globPatterns: ['**/*.{js,css,json,wasm,png,ico,svg,woff2,woff,ttf,eot}'],
-            globIgnores: ['**/index.html'],
+            globPatterns: [
+              '**/*.{js,css,html,ico,png,svg,woff2,woff,ttf,eot}',
+              'locales/*.json'
+            ],
             maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 10 MB
-            navigateFallback: '/index.html',
-            navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/],
+            navigateFallback: 'index.html',
+            navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/, /\/api\//],
             cleanupOutdatedCaches: true,
             skipWaiting: true,
             clientsClaim: true,
-            additionalManifestEntries: [
-              {
-                url: '/index.html',
-                revision: null
-              }
-            ],
             runtimeCaching: [
               {
                 urlPattern: /^https:\/\/cdn\.tailwindcss\.com\/.*/i,
@@ -71,7 +67,7 @@ export default defineConfig(({ mode }) => {
                   cacheName: 'tailwind-css-cache',
                   expiration: {
                     maxEntries: 10,
-                    maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+                    maxAgeSeconds: 60 * 60 * 24 * 365
                   },
                   cacheableResponse: {
                     statuses: [0, 200]
@@ -85,21 +81,7 @@ export default defineConfig(({ mode }) => {
                   cacheName: 'jsdelivr-cache',
                   expiration: {
                     maxEntries: 20,
-                    maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
-                  },
-                  cacheableResponse: {
-                    statuses: [0, 200]
-                  }
-                }
-              },
-              {
-                urlPattern: /^https:\/\/esm\.sh\/.*/i,
-                handler: 'CacheFirst',
-                options: {
-                  cacheName: 'esm-sh-cache',
-                  expiration: {
-                    maxEntries: 50,
-                    maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+                    maxAgeSeconds: 60 * 60 * 24 * 365
                   },
                   cacheableResponse: {
                     statuses: [0, 200]
@@ -113,21 +95,21 @@ export default defineConfig(({ mode }) => {
                   cacheName: 'api-cache',
                   expiration: {
                     maxEntries: 10,
-                    maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
+                    maxAgeSeconds: 60 * 60 * 24 * 365
                   },
                   cacheableResponse: {
-                    statuses: [0, 200],
-                  },
-                },
+                    statuses: [0, 200]
+                  }
+                }
               },
-               {
+              {
                 urlPattern: ({ request }) => request.destination === 'font' || request.destination === 'style',
                 handler: 'StaleWhileRevalidate',
                 options: {
                   cacheName: 'assets-cache',
                   expiration: {
                     maxEntries: 50,
-                    maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+                    maxAgeSeconds: 60 * 60 * 24 * 365
                   }
                 }
               },
@@ -138,18 +120,7 @@ export default defineConfig(({ mode }) => {
                   cacheName: 'gstatic-fonts-cache',
                   expiration: {
                     maxEntries: 10,
-                    maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
-                  }
-                }
-              },
-              {
-                urlPattern: /^https:\/\/cdnjs\.cloudflare\.com\/.*/i,
-                handler: 'CacheFirst',
-                options: {
-                  cacheName: 'cloudflare-cdn-cache',
-                  expiration: {
-                    maxEntries: 20,
-                    maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
+                    maxAgeSeconds: 60 * 60 * 24 * 365
                   }
                 }
               },
@@ -160,16 +131,15 @@ export default defineConfig(({ mode }) => {
                   cacheName: 'image-cache',
                   expiration: {
                     maxEntries: 50,
-                    maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+                    maxAgeSeconds: 60 * 60 * 24 * 365
                   },
                   cacheableResponse: {
                     statuses: [0, 200]
                   }
                 }
-              },
-            ],
-          },
-          // 移除 manifest 配置，使用 public/manifest.webmanifest
+              }
+            ]
+          }
         })
       ]
     };
