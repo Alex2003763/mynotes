@@ -46,6 +46,27 @@ class TranslationCacheService {
    */
   static async getCachedTranslations(language: Language): Promise<Translations | null> {
     try {
+      // 檢查是否為 iOS Safari
+      const isIOSSafari = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+      
+      // iOS Safari 優先檢查專用快取
+      if (isIOSSafari) {
+        const iOSCacheKey = `ios-cache-${language}.json`;
+        const iOSCachedData = localStorage.getItem(iOSCacheKey);
+        if (iOSCachedData) {
+          try {
+            const parsedCache = JSON.parse(iOSCachedData);
+            const translationData = JSON.parse(parsedCache.data);
+            if (this.validateTranslations(translationData)) {
+              console.log(`Translation cache: Retrieved ${language} translations from iOS Safari cache`);
+              return translationData;
+            }
+          } catch (error) {
+            console.warn(`Translation cache: Failed to parse iOS cache for ${language}:`, error);
+          }
+        }
+      }
+      
       // 首先嘗試從新的離線快取服務獲取
       const offlineCached = await OfflineCacheService.getCachedTranslations(language);
       if (offlineCached && this.validateTranslations(offlineCached)) {

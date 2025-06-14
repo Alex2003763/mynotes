@@ -48,19 +48,32 @@ class OfflineCacheService {
         console.warn('Offline Cache: Secure context required for full functionality');
       }
 
+      // iOS Safari 特殊處理
+      const isIOSSafari = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+      if (isIOSSafari) {
+        console.log('Offline Cache: iOS Safari detected, using compatible mode');
+      }
+
       // 清理過期的快取
       await this.cleanupExpiredCaches();
       
       // 設置離線監聽器
       this.setupOfflineListeners();
       
-      // 預載入關鍵資源（在安全上下文中）
-      if (isSecureContext) {
+      // 預載入關鍵資源（在安全上下文中，但跳過 iOS Safari 的問題）
+      if (isSecureContext && !isIOSSafari) {
         await this.preloadCriticalResources();
+      } else if (isIOSSafari) {
+        // iOS Safari 使用簡化的預載入
+        await this.preloadCriticalResourcesForIOS();
       }
       
       // 註冊 Service Worker（如果可用）
-      await this.registerServiceWorker();
+      if (!isIOSSafari) {
+        await this.registerServiceWorker();
+      } else {
+        console.log('Offline Cache: Skipping SW registration on iOS Safari due to limitations');
+      }
       
       console.log('Offline Cache: Initialized successfully');
     } catch (error) {
@@ -586,6 +599,58 @@ class OfflineCacheService {
       console.log('Offline Cache: Cleared all caches');
     } catch (error) {
       console.error('Offline Cache: Failed to clear caches:', error);
+    }
+  }
+
+  /**
+   * iOS Safari 專用的簡化預載入
+   */
+  private static async preloadCriticalResourcesForIOS(): Promise<void> {
+    if (!this.isOnline()) {
+      console.log('Offline Cache: Skipping iOS preload - offline');
+      return;
+    }
+
+    try {
+      // iOS Safari 對 Cache API 有限制，使用 localStorage 作為主要快取
+      const baseUrl = window.location.origin;
+      const criticalUrls = [
+        `${baseUrl}/locales/en.json`,
+        `${baseUrl}/locales/zh.json`
+      ];
+
+      const preloadPromises = criticalUrls.map(async (url) => {
+        try {
+          const response = await fetch(url, {
+            method: 'GET',
+            mode: 'cors',
+            credentials: 'same-origin',
+            cache: 'default'
+          });
+          
+          if (response.ok) {
+            const data = await response.text();
+            // 存儲到 localStorage（iOS Safari 更可靠）
+            const cacheKey = `ios-cache-${url.split('/').pop()}`;
+            try {
+              localStorage.setItem(cacheKey, JSON.stringify({
+                data: data,
+                timestamp: Date.now(),
+                url: url
+              }));
+              console.log(`Offline Cache: iOS cached ${url}`);
+            } catch (storageError) {
+              console.warn(`Offline Cache: iOS storage failed for ${url}:`, storageError);
+            }
+          }
+        } catch (error) {
+          console.warn(`Offline Cache: iOS preload failed for ${url}:`, error);
+        }
+      });
+
+      await Promise.all(preloadPromises);
+    } catch (error) {
+      console.warn('Offline Cache: iOS preload failed:', error);
     }
   }
 }

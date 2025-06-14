@@ -28,11 +28,14 @@ export default defineConfig(({ mode }) => {
           workbox: {
             globPatterns: ['**/*.{js,css,html,ico,png,svg,json,woff2,woff,ttf}'],
             maximumFileSizeToCacheInBytes: 5242880, // 5 MB
-            skipWaiting: true,
-            clientsClaim: true,
+            skipWaiting: false,
+            clientsClaim: false,
             cleanupOutdatedCaches: true,
             navigateFallback: '/index.html',
             navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/],
+            // iOS Safari 特殊處理
+            mode: 'production',
+            offlineGoogleAnalytics: false,
             runtimeCaching: [
               {
                 urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
