@@ -1,42 +1,38 @@
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
-    const __dirname = path.dirname(fileURLToPath(import.meta.url));
     return {
+      // 環境變數配置
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
         'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
       },
+      
       resolve: {
         alias: {
           '@': path.resolve(__dirname, '.'),
         }
       },
+      
       plugins: [
         react(),
         VitePWA({
+          // 更新策略: 'autoUpdate' 或 'prompt'
           registerType: 'prompt',
-          includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
-          devOptions: {
-            enabled: false
-          },
+          
+          // Workbox 配置
           workbox: {
+            // 預快取檔案模式
             globPatterns: ['**/*.{js,css,html,ico,png,svg,json,woff2,woff,ttf}'],
             maximumFileSizeToCacheInBytes: 5242880, // 5 MB
-            skipWaiting: false,
-            clientsClaim: false,
-            cleanupOutdatedCaches: true,
-            navigateFallback: '/index.html',
-            navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/],
-            // iOS Safari 特殊處理
-            mode: 'production',
-            offlineGoogleAnalytics: false,
+            
+            // 運行時快取策略
             runtimeCaching: [
+              // Google Fonts
               {
                 urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
                 handler: 'CacheFirst',
@@ -44,10 +40,11 @@ export default defineConfig(({ mode }) => {
                   cacheName: 'google-fonts-cache',
                   expiration: {
                     maxEntries: 10,
-                    maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
+                    maxAgeSeconds: 60 * 60 * 24 * 365 // 365 天
                   }
                 }
               },
+              // Google Fonts 靜態資源
               {
                 urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
                 handler: 'CacheFirst',
@@ -55,10 +52,11 @@ export default defineConfig(({ mode }) => {
                   cacheName: 'gstatic-fonts-cache',
                   expiration: {
                     maxEntries: 10,
-                    maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
+                    maxAgeSeconds: 60 * 60 * 24 * 365 // 365 天
                   }
                 }
               },
+              // Tailwind CSS CDN
               {
                 urlPattern: /^https:\/\/cdn\.tailwindcss\.com\/.*/i,
                 handler: 'StaleWhileRevalidate',
@@ -66,10 +64,11 @@ export default defineConfig(({ mode }) => {
                   cacheName: 'tailwind-css-cache',
                   expiration: {
                     maxEntries: 5,
-                    maxAgeSeconds: 60 * 60 * 24 * 30 // <== 30 days
+                    maxAgeSeconds: 60 * 60 * 24 * 30 // 30 天
                   }
                 }
               },
+              // Cloudflare CDN
               {
                 urlPattern: /^https:\/\/cdnjs\.cloudflare\.com\/.*/i,
                 handler: 'CacheFirst',
@@ -77,10 +76,11 @@ export default defineConfig(({ mode }) => {
                   cacheName: 'cloudflare-cdn-cache',
                   expiration: {
                     maxEntries: 20,
-                    maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
+                    maxAgeSeconds: 60 * 60 * 24 * 365 // 365 天
                   }
                 }
               },
+              // ESM.sh 模組
               {
                 urlPattern: /^https:\/\/esm\.sh\/.*/i,
                 handler: 'StaleWhileRevalidate',
@@ -88,10 +88,11 @@ export default defineConfig(({ mode }) => {
                   cacheName: 'esm-modules-cache',
                   expiration: {
                     maxEntries: 50,
-                    maxAgeSeconds: 60 * 60 * 24 * 7 // <== 7 days
+                    maxAgeSeconds: 60 * 60 * 24 * 7 // 7 天
                   }
                 }
               },
+              // jsDelivr CDN
               {
                 urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/.*/i,
                 handler: 'CacheFirst',
@@ -99,36 +100,51 @@ export default defineConfig(({ mode }) => {
                   cacheName: 'jsdelivr-cdn-cache',
                   expiration: {
                     maxEntries: 20,
-                    maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
+                    maxAgeSeconds: 60 * 60 * 24 * 365 // 365 天
                   }
                 }
               },
+              // 本地化檔案
               {
                 urlPattern: /^.*\/locales\/.*\.json$/i,
-                handler: 'StaleWhileRevalidate',
+                handler: 'CacheFirst',
                 options: {
-                  cacheName: 'mynotes-translations',
+                  cacheName: 'translations-cache',
                   expiration: {
                     maxEntries: 10,
-                    maxAgeSeconds: 60 * 60 * 24 * 30 // <== 30 days
+                    maxAgeSeconds: 60 * 60 * 24 * 30 // 30 天
                   }
                 }
               },
+              // 導航請求 (HTML): 網路優先策略
               {
-                urlPattern: ({ request }: { request: Request }) => {
-                  return request.destination === 'document' ||
-                         request.destination === 'script' ||
-                         request.destination === 'style';
+                urlPattern: ({ request }) => request.mode === 'navigate',
+                handler: 'NetworkFirst',
+                options: {
+                  cacheName: 'mynotes-pages',
+                  expiration: {
+                    maxEntries: 10,
+                    maxAgeSeconds: 60 * 60 * 24 * 7 // 7 天
+                  }
+                }
+              },
+              // 應用程式資源: 快取優先，背景更新
+              {
+                urlPattern: ({ request }) => {
+                  return request.destination === 'script' ||
+                         request.destination === 'style' ||
+                         request.destination === 'worker';
                 },
                 handler: 'StaleWhileRevalidate',
                 options: {
                   cacheName: 'mynotes-app-cache',
                   expiration: {
                     maxEntries: 50,
-                    maxAgeSeconds: 60 * 60 * 24 * 7 // <== 7 days
+                    maxAgeSeconds: 60 * 60 * 24 * 7 // 7 天
                   }
                 }
               },
+              // 圖片資源: 快取優先
               {
                 urlPattern: /\.(png|jpg|jpeg|svg|gif|webp|ico)$/,
                 handler: 'CacheFirst',
@@ -136,17 +152,19 @@ export default defineConfig(({ mode }) => {
                   cacheName: 'mynotes-images',
                   expiration: {
                     maxEntries: 100,
-                    maxAgeSeconds: 60 * 60 * 24 * 30 // <== 30 days
+                    maxAgeSeconds: 60 * 60 * 24 * 30 // 30 天
                   }
                 }
               }
             ]
           },
+          
+          // PWA Manifest 配置
           manifest: {
-            name: 'MyNotes - 離線筆記應用',
+            name: 'MyNotes - 智能筆記應用',
             short_name: 'MyNotes',
-            description: 'A powerful, offline-first, intelligent note-taking application.',
-            theme_color: '#4f46e5',
+            description: 'A powerful, offline-first, intelligent note-taking application with AI features.',
+            theme_color: '#4361ee',
             background_color: '#f5f7fb',
             display: 'standalone',
             orientation: 'portrait-primary',
@@ -181,6 +199,11 @@ export default defineConfig(({ mode }) => {
                 purpose: 'maskable'
               }
             ]
+          },
+          
+          // 開發選項
+          devOptions: {
+            enabled: false // 開發時關閉，生產時啟用
           }
         })
       ]

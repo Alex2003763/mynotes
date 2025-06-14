@@ -10,6 +10,8 @@ import { useSettings } from './contexts/SettingsContext';
 import { useNotes } from './contexts/NoteContext';
 import { Resizer } from './components/Resizer';
 import { OfflineStatusIndicator } from './components/OfflineStatusIndicator';
+import UpdatePrompt from './components/ui/UpdatePrompt';
+import InstallPrompt from './components/ui/InstallPrompt';
 import OfflineCacheService from './services/offlineCacheService';
 import TranslationCacheService from './services/translationCacheService';
 import iOSSafariService from './services/iOSSafariService';
@@ -230,6 +232,10 @@ const App: React.FC = () => {
       </div>
       {isSettingsModalOpen && <SettingsModal onClose={closeSettingsModal} />}
       <OfflineStatusIndicator />
+      
+      {/* PWA 功能組件 */}
+      <UpdatePrompt />
+      <InstallPrompt />
     </div>
   );
 };
