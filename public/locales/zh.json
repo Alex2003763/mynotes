@@ -1,0 +1,301 @@
+{
+  "appName": "我的筆記",
+  "header": {
+    "title": "我的筆記",
+    "newNote": "新建筆記",
+    "settings": "設定",
+    "toggleSidebarOpen": "關閉側邊欄",
+    "toggleSidebarClose": "開啟側邊欄",
+    "themeSwitch": "切換到{{theme}}模式"
+  },
+  "sidebar": {
+    "notesTitle": "筆記",
+    "searchPlaceholder": "搜尋筆記...",
+    "searchOrTagPlaceholder": "搜尋內容或輸入 # 新增標籤",
+    "searchInFiltered": "在已篩選的筆記中搜尋...",
+    "availableTags": "可用標籤",
+    "andMoreTags": "還有 {{count}} 個...",
+    "sortTitle": "排序方式",
+    "filterTitle": "篩選方式",
+    "filterTagsTitle": "按標籤篩選",
+    "noTagsAvailable": "沒有可用的標籤。",
+    "tagsTitle": "標籤",
+    "addTag": "新增標籤"
+  },
+  "noteList": {
+    "loading": "正在載入筆記...",
+    "error": "錯誤：{{message}}",
+    "noNotesFound": "找不到筆記。",
+    "createNewNote": "建立新筆記"
+  },
+  "noteItem": {
+    "untitled": "無標題筆記",
+    "noContent": "尚無內容...",
+    "moreTags": "+{{count}} 個更多",
+    "viewNote": "查看 {{title}}"
+  },
+  "noteEditor": {
+    "titlePlaceholder": "筆記標題",
+    "saveButton": "儲存",
+    "exportButtonTitle": "匯出筆記",
+    "exportOptions": {
+      "md": "Markdown (.md)",
+      "txt": "文字 (.txt)",
+      "json": "JSON (.json)",
+      "jsonFull": "JSON (完整編輯器數據)"
+    },
+    "deleteButtonTitle": "刪除筆記",
+    "deleteConfirmation": "您確定要刪除此筆記嗎？",
+    "saveBeforeExport": "請在匯出前儲存筆記。",
+    "emptyNoteError": "無法儲存空筆記。請新增標題或一些內容。",
+    "saveSuccess": "筆記儲存成功！",
+    "createSuccess": "筆記建立成功！",
+    "saveError": "儲存筆記失敗。",
+    "loading": "正在載入筆記...",
+    "notFound": {
+      "title": "找不到筆記",
+      "message": "您要找的筆記不存在或已被刪除。",
+      "goToList": "前往筆記列表"
+    },
+    "contentPlaceholder": "開始撰寫您的筆記。輸入 '/' 查看區塊選項...",
+    "showPreview": "顯示預覽",
+    "aiFeatures": {
+      "toggle": "AI 工具",
+      "checkingKey": "（正在檢查金鑰...）",
+      "keyInvalid": "（金鑰無效）",
+      "keyMissing": "（缺少金鑰）",
+      "keyNotSet": "OpenRouter API 金鑰無效或未設定"
+    },
+    "backButton": "返回"
+  },
+  "tagInput": {
+    "label": "標籤",
+    "placeholderAdd": "新增更多標籤...",
+    "placeholderNew": "新增標籤（按 Enter 或逗號）",
+    "removeTag": "移除標籤 {{tag}}"
+  },
+  "sortOptions": {
+    "updatedAtDesc": "最後修改 (最新)",
+    "updatedAtAsc": "最後修改 (最舊)",
+    "createdAtDesc": "建立日期 (最新)",
+    "createdAtAsc": "建立日期 (最舊)",
+    "titleAsc": "標題 (A-Z)",
+    "titleDesc": "標題 (Z-A)"
+  },
+  "filterOptions": {
+    "all": "所有筆記",
+    "favorites": "收藏"
+  },
+  "settingsModal": {
+    "title": "應用程式設定",
+    "generalSectionTitle": "通用設定",
+    "loading": "正在載入設定...",
+    "theme": "主題",
+    "lightTheme": "淺色",
+    "darkTheme": "深色",
+    "fontSize": "字型大小 (編輯器)",
+    "smallFont": "小",
+    "mediumFont": "中",
+    "largeFont": "大",
+    "defaultSort": "預設筆記排序",
+     "general": {
+    },
+    "openRouterApi": {
+      "title": "AI 設定 (OpenRouter)",
+      "keyLabel": "API 金鑰:",
+      "keyPlaceholder": "輸入您的 OpenRouter API 金鑰",
+      "statusLabel": "狀態:",
+      "status": {
+        "unset": "未設定 API 金鑰。請輸入您的金鑰。",
+        "set": "已輸入API金鑰，待驗證。",
+        "checking": "正在驗證 API 金鑰...",
+        "valid": "API 金鑰有效且作用中。",
+        "invalid": "API 金鑰無效或有問題。請檢查並重新輸入。",
+        "notSetSimple": "未設定"
+      },
+      "saveAndVerify": "儲存並驗證金鑰",
+      "keyHelp": "API 金鑰將儲存在您瀏覽器的本地資料庫中。",
+      "modelLabel": "AI 模型 ID (OpenRouter)",
+      "modelPlaceholder": "輸入模型 ID，例如 openai/gpt-3.5-turbo",
+      "modelHelp": "輸入 OpenRouter.ai 上的任何有效模型 ID。建議列表可供參考。"
+    },
+    "dataManagement": {
+      "title": "資料管理",
+      "exportAll": "匯出所有資料 (JSON)",
+      "import": "匯入資料 (JSON)",
+      "importing": "正在匯入資料...",
+      "importSuccess": "成功匯入 {{count}} 篇筆記！",
+      "importSuccessNotesOnly": "成功匯入 {{count}} 篇筆記。設定未找到或根據您的選擇未匯入。",
+      "importSuccessFull": "成功匯入 {{count}} 篇筆記及應用程式設定！",
+      "importSuccessNotesSkippedSettings": "成功匯入 {{count}} 篇筆記。設定匯入已略過。",
+      "importFailed": "匯入失敗：{{message}}",
+      "confirmImportSettings": "匯入的檔案同時包含應用程式設定（包括 API 金鑰和主題）。您想要套用這些設定嗎？您目前的設定將被覆寫。",
+      "confirmImportSettingsTitle": "匯入設定"
+    },
+    "customTheme": {
+        "title": "主題顏色",
+        "customColorLabel": "自訂顏色 (HEX):",
+        "customColorPlaceholder": "#RRGGBB"
+    },
+    "language": "語言",
+    "closeButton": "關閉"
+  },
+  "aiPanel": {
+    "title": "AI 助手",
+    "summarizeShort": "簡短摘要",
+    "summarizeBullet": "重點條列",
+    "correctText": "校正文字",
+    "suggestTags": "建議標籤",
+    "expandRewriteLabel": "擴展/改寫 (作用於整篇筆記):",
+    "expandPlaceholder": "例如：使其更正式",
+    "expandButton": "處理",
+    "qnaLabel": "針對此筆記提問:",
+    "qnaPlaceholder": "例如：主要結論是什麼？",
+    "qnaButton": "提問",
+    "qnaAnswerPrefix": "答案：",
+    "loadingContext": "正在初始化 AI 工具...",
+    "ready": "就緒",
+    "streaming": "生成中...",
+    "frequentTools": "常用工具",
+    "quickTools": "快速工具",
+    "quickImprove": "快速改進",
+    "makeFormal": "正式化",
+    "makeCasual": "口語化",
+    "summarizeInline": "內嵌摘要",
+    "quickImprove.instruction": "改進這段文字的表達和結構，使其更清晰、更有說服力",
+    "makeFormal.instruction": "將這段文字改寫為更正式的語調和措辭",
+    "makeCasual.instruction": "將這段文字改寫為更輕鬆、口語化的表達方式",
+    "error": {
+      "noTextSelected": "未選取文字或無可用文字。",
+      "noContentToProcess": "筆記中沒有可處理的內容。",
+      "noInstruction": "請提供指示。",
+      "noQuestion": "請輸入問題。",
+      "actionFailed": "AI 操作失敗：{{message}}",
+      "unknownError": "未知錯誤"
+    },
+    "success": {
+      "summaryGenerated": "摘要已產生並可供檢閱。",
+      "correctionGenerated": "校正文字已產生並可供檢閱。",
+      "expansionGenerated": "內容已處理並可供檢閱。",
+      "contentGenerated": "內容已產生並可供檢閱。",
+      "summaryApplied": "摘要已產生並套用於筆記。",
+      "bulletSummaryApplied": "重點摘要已產生並套用於筆記。",
+      "correctionApplied": "文法和拼寫校正已套用於筆記。",
+      "expansionApplied": "內容已處理並套用於筆記。",
+      "tagsSuggested": "建議標籤：{{tags}}。",
+      "answerReceived": "已收到答案。",
+      "quickImproveGenerated": "快速改進內容已產生並可供檢閱。",
+      "formalGenerated": "正式化內容已產生並可供檢閱。",
+      "casualGenerated": "口語化內容已產生並可供檢閱。"
+    },
+    "info": {
+      "noNewTags": "沒有新的標籤建議或 AI 無法建議標籤。",
+      "tagsCannotBeAppliedInViewMode": "建議的標籤無法在查看模式下直接應用。請編輯筆記以添加它們。"
+    },
+    "processing": "正在處理 {{label}}...",
+    "preview": {
+      "title": "AI 產生內容",
+      "contentAreaLabel": "AI 產生內容預覽",
+      "apply": "套用至編輯器",
+      "copy": "複製",
+      "copied": "已複製到剪貼簿！",
+      "copyFailed": "複製失敗",
+      "discard": "捨棄",
+      "createNew": "建立新筆記",
+      "editCurrent": "編輯目前筆記",
+      "newNoteTitlePrefix": "AI: ",
+      "applied": "內容已套用"
+    },
+    "statsTitle": "筆記統計",
+    "totalNotes": "總筆記數",
+    "wordsToday": "今日字數",
+    "weeklyAvg": "每週平均",
+    "tagsUsed": "已用標籤"
+  },
+  "welcomeScreen": {
+    "title": "歡迎使用 我的筆記",
+    "defaultMessage": "您的個人化、離線優先、AI 驅動的筆記本。",
+    "selectOrCreate": "從側邊欄選取一篇筆記開始編輯，或建立一篇新筆記。",
+    "createFirstNote": "建立您的第一篇筆記",
+    "feature1": {
+      "title": "快速筆記",
+      "description": "立即記錄和整理您的想法"
+    },
+    "feature2": {
+      "title": "智能搜尋",
+      "description": "透過強大的搜尋和標籤功能找到任何筆記"
+    },
+    "feature3": {
+      "title": "AI 驅動",
+      "description": "獲得寫作和內容整理的智能協助"
+    }
+  },
+  "general":{
+    "error": "錯誤",
+    "success": "成功",
+    "info": "資訊"
+  },
+  "viewNote": {
+    "editButton": "編輯筆記",
+    "createdAt": "建立時間",
+    "updatedAt": "最後更新"
+  },
+  "noteCard": {
+    "title": "筆記卡片",
+    "view": "查看",
+    "edit": "編輯",
+    "delete": "刪除",
+    "favorite": "收藏",
+    "unfavorite": "取消收藏",
+    "createdAgo": "建立於 {{time}}",
+    "updatedAgo": "更新於 {{time}}",
+    "edited": "已編輯",
+    "moreTags": "+{{count}} 個更多",
+    "loading": "載入中...",
+    "deleting": "正在刪除...",
+    "noContent": "尚無內容...",
+    "untitled": "無標題筆記"
+  },
+  "mainContent": {
+    "welcome": "歡迎使用您的筆記",
+    "yourNotes": "您的筆記",
+    "welcomeSubtitle": "開始使用強大的 AI 增強筆記體驗整理您的想法。",
+    "notesSubtitle": "透過智能搜尋和篩選功能管理您的 {{count}} 篇筆記。"
+  },
+  "noteGrid": {
+    "title": "筆記 ({{count}})",
+    "viewModes": {
+      "grid": "網格",
+      "list": "列表"
+    },
+    "sortModes": {
+      "updated": "最近更新",
+      "created": "建立時間",
+      "title": "標題",
+      "tags": "標籤數量"
+    },
+    "newNote": "新筆記",
+    "filters": "篩選選項",
+    "noNotes": {
+      "title": "還沒有筆記",
+      "message": "開始創建您的第一篇筆記，記錄重要的想法和資訊。",
+      "createButton": "建立您的第一篇筆記"
+    },
+    "loadError": {
+      "title": "載入失敗",
+      "message": "無法載入筆記，請重試。"
+    },
+    "filtersComingSoon": "篩選功能即將推出..."
+  },
+ "confirmationDialog": {
+   "confirm": "確認",
+   "cancel": "取消"
+ },
+ "conflictResolutionModal": {
+   "title": "匯入衝突",
+   "message": "一篇標題為「{{title}}」的筆記已存在。您希望如何處理？",
+   "overwrite": "覆蓋",
+   "skip": "略過",
+   "keepBoth": "保留兩者 (新增筆記)"
+ }
+}

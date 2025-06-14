@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PWA 測試頁面</title>
+</head>
+<body>
+    <h1>PWA 功能測試</h1>
+    <div id="test-results"></div>
+    
+    <script>
+        const results = document.getElementById('test-results');
+        
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.style.margin = '5px 0';
+            div.style.padding = '5px';
+            div.style.backgroundColor = type === 'error' ? '#ffebee' : type === 'success' ? '#e8f5e8' : '#f5f5f5';
+            div.textContent = `[${type.toUpperCase()}] ${message}`;
+            results.appendChild(div);
+        }
+        
+        // 測試 Service Worker 支援
+        if ('serviceWorker' in navigator) {
+            log('✅ Service Worker 支援可用', 'success');
+            
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+                if (registrations.length > 0) {
+                    log(`✅ 找到 ${registrations.length} 個已註冊的 Service Worker`, 'success');
+                    registrations.forEach((reg, i) => {
+                        log(`SW ${i+1}: ${reg.scope}`, 'info');
+                    });
+                } else {
+                    log('❌ 沒有找到已註冊的 Service Worker', 'error');
+                }
+            });
+            
+            if (navigator.serviceWorker.controller) {
+                log('✅ 目前頁面有 Service Worker 控制', 'success');
+            } else {
+                log('❌ 目前頁面沒有 Service Worker 控制', 'error');
+            }
+        } else {
+            log('❌ 瀏覽器不支援 Service Worker', 'error');
+        }
+        
+        // 測試 Manifest
+        const manifestLink = document.querySelector('link[rel="manifest"]');
+        if (manifestLink) {
+            log(`✅ 找到 manifest 連結: ${manifestLink.href}`, 'success');
+            
+            fetch(manifestLink.href)
+                .then(response => {
+                    if (response.ok) {
+                        log('✅ Manifest 文件可以載入', 'success');
+                        return response.json();
+                    } else {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                })
+                .then(manifest => {
+                    log(`✅ Manifest 解析成功: ${manifest.name || manifest.short_name || '未命名'}`, 'success');
+                })
+                .catch(err => {
+                    log(`❌ Manifest 載入失敗: ${err.message}`, 'error');
+                });
+        } else {
+            log('❌ 沒有找到 manifest 連結', 'error');
+        }
+        
+        // 測試快取 API
+        if ('caches' in window) {
+            log('✅ Cache API 支援可用', 'success');
+            
+            caches.keys().then(cacheNames => {
+                if (cacheNames.length > 0) {
+                    log(`✅ 找到 ${cacheNames.length} 個快取: ${cacheNames.join(', ')}`, 'success');
+                } else {
+                    log('❌ 沒有找到任何快取', 'error');
+                }
+            });
+        } else {
+            log('❌ 瀏覽器不支援 Cache API', 'error');
+        }
+        
+        // 測試網路狀態
+        if ('onLine' in navigator) {
+            log(`網路狀態: ${navigator.onLine ? '線上' : '離線'}`, navigator.onLine ? 'success' : 'error');
+        }
+        
+        // 測試 PWA 安裝提示
+        window.addEventListener('beforeinstallprompt', (e) => {
+            log('✅ PWA 安裝提示事件觸發', 'success');
+        });
+        
+        // 檢查是否已安裝為 PWA
+        if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
+            log('✅ 應用程式以獨立模式運行（已安裝為 PWA）', 'success');
+        } else {
+            log('❌ 應用程式未以獨立模式運行', 'error');
+        }
+    </script>
+</body>
+</html>

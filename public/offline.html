@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>離線模式 - MyNotes</title>
+    <meta name="theme-color" content="#4f46e5">
+    <link rel="icon" type="image/png" href="/pencil.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 500px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+        }
+        
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+        
+        p {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+        
+        .features {
+            list-style: none;
+            margin: 20px 0;
+            text-align: left;
+        }
+        
+        .features li {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            font-size: 0.95rem;
+        }
+        
+        .features li::before {
+            content: "✓";
+            color: #4ade80;
+            font-weight: bold;
+            margin-right: 10px;
+            font-size: 1.2rem;
+        }
+        
+        .retry-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 20px;
+        }
+        
+        .retry-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            font-size: 0.9rem;
+        }
+        
+        .online {
+            background: rgba(74, 222, 128, 0.2);
+            border: 1px solid rgba(74, 222, 128, 0.3);
+        }
+        
+        .offline {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                padding: 30px 20px;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            p {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">📱</div>
+        <h1>離線模式</h1>
+        <p>您目前處於離線狀態，但仍可使用 MyNotes 的核心功能！</p>
+        
+        <ul class="features">
+            <li>查看已快取的筆記</li>
+            <li>創建和編輯新筆記</li>
+            <li>使用標籤和分類功能</li>
+            <li>資料自動同步（連線恢復後）</li>
+        </ul>
+        
+        <div id="status" class="status offline">
+            🔴 離線狀態
+        </div>
+        
+        <a href="/" class="retry-btn" id="retryBtn">返回應用程式</a>
+    </div>
+    
+    <script>
+        function updateNetworkStatus() {
+            const status = document.getElementById('status');
+            const retryBtn = document.getElementById('retryBtn');
+            
+            if (navigator.onLine) {
+                status.textContent = '🟢 網路已連線';
+                status.className = 'status online';
+                retryBtn.textContent = '返回應用程式';
+            } else {
+                status.textContent = '🔴 離線狀態';
+                status.className = 'status offline';
+                retryBtn.textContent = '離線使用應用程式';
+            }
+        }
+        
+        // 監聽網路狀態變化
+        window.addEventListener('online', updateNetworkStatus);
+        window.addEventListener('offline', updateNetworkStatus);
+        
+        // 初始狀態檢查
+        updateNetworkStatus();
+        
+        // 每隔幾秒檢查一次網路狀態
+        setInterval(updateNetworkStatus, 3000);
+        
+        // 點擊重試按鈕時的行為
+        document.getElementById('retryBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            if (navigator.onLine) {
+                // 如果網路已恢復，直接跳轉
+                window.location.href = '/';
+            } else {
+                // 離線狀態下也允許返回應用
+                window.location.href = '/';
+            }
+        });
+    </script>
+</body>
+</html>
