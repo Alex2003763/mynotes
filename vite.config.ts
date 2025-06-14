@@ -19,18 +19,26 @@ export default defineConfig(({ mode }) => {
       plugins: [
         react(),
         VitePWA({
-          registerType: 'autoUpdate',
-          includeAssets: ['pencil.png', 'icons/*.png'],
+          registerType: 'prompt',
+          strategies: 'injectManifest',
+          injectManifest: {
+            swSrc: 'public/service-worker.js',
+            swDest: 'dist/service-worker.js',
+            globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
+            maximumFileSizeToCacheInBytes: 10 * 1024 * 1024 // 10 MB
+          },
+          
           manifest: {
             name: 'MyNotes - 智能筆記應用',
             short_name: 'MyNotes',
-            description: '一個功能強大的智能筆記應用，支援離線使用',
+            description: '個人智能筆記管理器，具有 AI 驅動的筆記輔助功能',
             theme_color: '#4f46e5',
             background_color: '#ffffff',
             display: 'standalone',
-            orientation: 'portrait',
+            orientation: 'portrait-primary',
             scope: '/',
             start_url: '/',
+            lang: 'zh-TW',
             icons: [
               {
                 src: 'icons/icon-192x192.png',
@@ -54,75 +62,22 @@ export default defineConfig(({ mode }) => {
                 type: 'image/png',
                 purpose: 'maskable'
               }
-            ]
-          },
-          workbox: {
-            globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-            maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 10 MB
-            navigateFallback: null, // 禁用導航回退，允許訪問靜態 HTML 文件
-            runtimeCaching: [
+            ],
+            screenshots: [
               {
-                urlPattern: /^https:\/\/cdn\.tailwindcss\.com\/.*/i,
-                handler: 'CacheFirst',
-                options: {
-                  cacheName: 'tailwind-css-cache',
-                  expiration: {
-                    maxEntries: 10,
-                    maxAgeSeconds: 60 * 60 * 24 * 365 // 365 days
-                  }
-                }
-              },
-              {
-                urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/.*/i,
-                handler: 'CacheFirst',
-                options: {
-                  cacheName: 'jsdelivr-cache',
-                  expiration: {
-                    maxEntries: 30,
-                    maxAgeSeconds: 60 * 60 * 24 * 365 // 365 days
-                  }
-                }
-              },
-              {
-                urlPattern: /^https:\/\/esm\.sh\/.*/i,
-                handler: 'CacheFirst',
-                options: {
-                  cacheName: 'esm-modules-cache',
-                  expiration: {
-                    maxEntries: 50,
-                    maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
-                  }
-                }
-              },
-              {
-                urlPattern: ({ request }) => request.destination === 'document',
-                handler: 'NetworkFirst',
-                options: {
-                  cacheName: 'pages-cache',
-                  expiration: {
-                    maxEntries: 20,
-                    maxAgeSeconds: 60 * 60 * 24 * 7 // 7 days
-                  }
-                }
-              },
-              {
-                urlPattern: ({ request }) =>
-                  request.destination === 'image' ||
-                  request.destination === 'style' ||
-                  request.destination === 'script',
-                handler: 'StaleWhileRevalidate',
-                options: {
-                  cacheName: 'static-resources-cache',
-                  expiration: {
-                    maxEntries: 100,
-                    maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
-                  }
-                }
+                src: 'icons/icon-512x512.png',
+                sizes: '512x512',
+                type: 'image/png',
+                label: 'MyNotes 應用程式主畫面'
               }
-            ]
+            ],
+            categories: ['productivity', 'utilities'],
+            prefer_related_applications: false
           },
+          
           devOptions: {
-            enabled: true
+            enabled: true,
+            type: 'module',
           }
         })
       ]

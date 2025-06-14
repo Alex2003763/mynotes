@@ -14,8 +14,8 @@
   <meta name="format-detection" content="telephone=no">
   <meta name="msapplication-tap-highlight" content="no">
   <link rel="icon" type="image/png" href="/pencil.png">
-  <link rel="apple-touch-icon" href="/pencil.png">
-  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+  <link rel="manifest" href="/manifest.json">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cherry-markdown@latest/dist/cherry-markdown.min.css"/>
   <script>
@@ -124,6 +124,16 @@
 
 
 
+    /* PWA 動畫樣式 */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .animate-fadeIn {
+      animation: fadeIn 0.3s ease-out;
+    }
+
   </style>
 <script type="importmap">
 {
@@ -136,7 +146,7 @@
     "date-fns": "https://esm.sh/date-fns@^4.1.0",
     "date-fns/": "https://esm.sh/date-fns@^4.1.0/",
     "tinycolor2": "https://esm.sh/tinycolor2@^1.6.0",
-    "cherry-markdown": "https://cdn.jsdelivr.net/npm/cherry-markdown@latest/dist/cherry-markdown.esm.js",
+    "cherry-markdown": "https://cdn.jsdelivr.net/npm/cherry-markdown@latest/dist/cherry-markdown.esm.js"
   }
 }
 </script>

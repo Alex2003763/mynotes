@@ -6,7 +6,7 @@ import { Sidebar } from './components/Sidebar';
 import { RightSidebar } from './components/RightSidebar';
 import { SettingsModal } from './components/SettingsModal';
 import { PerformanceMonitor } from './components/PerformanceMonitor';
-import { PWAManager } from './components/PWAManager';
+import { UpdatePrompt } from './components/ui/UpdatePrompt';
 import { PWATestPanel } from './components/PWATestPanel';
 import { useSettings } from './contexts/SettingsContext';
 import { useNotes } from './contexts/NoteContext';
@@ -129,12 +129,12 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <PWAManager>
-      <div className="flex flex-col h-screen selection:bg-primary/30 selection:text-primary-dark dark:selection:text-primary-light">
-        <PerformanceMonitor />
-        <Header
-          onToggleLeftSidebar={() => setIsLeftSidebarOpen(!isLeftSidebarOpen)}
-        />
+    <div className="flex flex-col h-screen selection:bg-primary/30 selection:text-primary-dark dark:selection:text-primary-light">
+      <PerformanceMonitor />
+      <UpdatePrompt />
+      <Header
+        onToggleLeftSidebar={() => setIsLeftSidebarOpen(!isLeftSidebarOpen)}
+      />
         <div className="flex flex-1 min-h-0 relative">
           {/* Mobile overlay */}
           {isLeftSidebarOpen && window.innerWidth <= 768 && (
@@ -172,10 +172,9 @@ const App: React.FC = () => {
             </>
           )}
         </div>
-        {isSettingsModalOpen && <SettingsModal onClose={closeSettingsModal} />}
-        <PWATestPanel />
-      </div>
-    </PWAManager>
+      {isSettingsModalOpen && <SettingsModal onClose={closeSettingsModal} />}
+      <PWATestPanel />
+    </div>
   );
 };
 
