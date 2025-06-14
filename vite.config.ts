@@ -20,13 +20,69 @@ export default defineConfig(({ mode }) => {
         react(),
         VitePWA({
           registerType: 'autoUpdate',
-          strategies: 'injectManifest',
-          srcDir: 'src',
-          filename: 'sw.ts',
-          injectRegister: null,
+          strategies: 'generateSW',
+          injectRegister: 'auto',
           includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
-          injectManifest: {
+          workbox: {
+            globPatterns: ['**/*.{js,css,html,ico,png,svg,json,woff2,woff,ttf,eot}'],
             maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB
+            runtimeCaching: [
+              {
+                urlPattern: ({ url }) => url.origin === 'https://cdn.tailwindcss.com',
+                handler: 'CacheFirst',
+                options: {
+                  cacheName: 'tailwind-css-cache',
+                  expiration: {
+                    maxEntries: 5,
+                    maxAgeSeconds: 365 * 24 * 60 * 60, // 365 days
+                  },
+                },
+              },
+              {
+                urlPattern: ({ url }) => url.origin === 'https://cdn.jsdelivr.net' && url.pathname.includes('cherry-markdown'),
+                handler: 'StaleWhileRevalidate',
+                options: {
+                  cacheName: 'cherry-markdown-cache',
+                  expiration: {
+                    maxEntries: 10,
+                    maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
+                  },
+                },
+              },
+              {
+                urlPattern: ({ url }) => url.origin === 'https://esm.sh',
+                handler: 'StaleWhileRevalidate',
+                options: {
+                  cacheName: 'esm-modules-cache',
+                  expiration: {
+                    maxEntries: 50,
+                    maxAgeSeconds: 7 * 24 * 60 * 60, // 7 days
+                  },
+                },
+              },
+              {
+                urlPattern: ({ request }) => request.destination === 'image',
+                handler: 'CacheFirst',
+                options: {
+                  cacheName: 'images-cache',
+                  expiration: {
+                    maxEntries: 60,
+                    maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
+                  },
+                },
+              },
+              {
+                urlPattern: ({ request }) => request.destination === 'style' || request.destination === 'script',
+                handler: 'StaleWhileRevalidate',
+                options: {
+                  cacheName: 'static-resources-cache',
+                  expiration: {
+                    maxEntries: 60,
+                    maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
+                  },
+                },
+              },
+            ],
           },
           manifest: {
             name: 'MyNotes - 智能筆記應用',
