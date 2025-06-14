@@ -22,7 +22,7 @@ export default defineConfig(({ mode }) => {
         react(),
         VitePWA({
           // 更新策略: 'autoUpdate' 或 'prompt'
-          registerType: 'prompt',
+          registerType: 'autoUpdate',
           
           // Workbox 配置
           workbox: {
