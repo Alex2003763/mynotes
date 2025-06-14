@@ -21,144 +21,13 @@ export default defineConfig(({ mode }) => {
       plugins: [
         react(),
         VitePWA({
-          // 更新策略: 'autoUpdate' 或 'prompt'
+          strategies: 'injectManifest',
+          srcDir: 'src',
+          filename: 'sw.ts',
           registerType: 'autoUpdate',
-          
-          // Workbox 配置
-          workbox: {
-            // 預快取檔案模式 - 包含更多開發檔案
-            globPatterns: ['**/*.{js,css,html,ico,png,svg,json,woff2,woff,ttf}'],
-            maximumFileSizeToCacheInBytes: 5242880, // 5 MB
-            
-            // 手動添加開發模式需要的檔案
-            additionalManifestEntries: [
-              { url: '/', revision: '1' },
-              { url: '/index.html', revision: '1' },
-              { url: '/offline.html', revision: '1' }
-            ],
-            
-            // 導航回退策略（重要！）
-            navigateFallback: 'index.html',
-            navigateFallbackDenylist: [
-              /^\/_/,
-              /\/[^/?]+\.[^/]+$/,
-              /\/sw-test\.html$/,
-              /\/test-offline\.html$/,
-              /\/offline\.html$/
-            ],
-            
-            // 跳過等待並立即接管頁面
-            skipWaiting: true,
-            clientsClaim: true,
-            
-            // 清理過期快取
-            cleanupOutdatedCaches: true,
-            
-            // 運行時快取策略
-            runtimeCaching: [
-              // 開發模式的 Vite 資源（重要！）
-              {
-                urlPattern: /^.*\/@vite\/.*/i,
-                handler: 'StaleWhileRevalidate',
-                options: {
-                  cacheName: 'vite-dev-cache',
-                  expiration: {
-                    maxEntries: 10,
-                    maxAgeSeconds: 60 * 60 * 24 // 1 天
-                  }
-                }
-              },
-              // 開發模式的應用資源
-              {
-                urlPattern: ({ url }) => {
-                  return url.pathname.endsWith('.tsx') ||
-                         url.pathname.endsWith('.ts') ||
-                         url.pathname.endsWith('.css') ||
-                         url.pathname.endsWith('.js');
-                },
-                handler: 'StaleWhileRevalidate',
-                options: {
-                  cacheName: 'dev-app-cache',
-                  expiration: {
-                    maxEntries: 50,
-                    maxAgeSeconds: 60 * 60 * 24 // 1 天
-                  }
-                }
-              },
-              // 主頁面和 HTML 檔案
-              {
-                urlPattern: ({ request }) => request.mode === 'navigate',
-                handler: 'StaleWhileRevalidate',
-                options: {
-                  cacheName: 'pages-cache',
-                  expiration: {
-                    maxEntries: 10,
-                    maxAgeSeconds: 60 * 60 * 24 // 1 天
-                  }
-                }
-              },
-              // CDN 資源快取
-              {
-                urlPattern: /^https:\/\/cdn\.tailwindcss\.com\/.*/i,
-                handler: 'StaleWhileRevalidate',
-                options: {
-                  cacheName: 'tailwind-css-cache',
-                  expiration: {
-                    maxEntries: 5,
-                    maxAgeSeconds: 60 * 60 * 24 * 30 // 30 天
-                  }
-                }
-              },
-              {
-                urlPattern: /^https:\/\/esm\.sh\/.*/i,
-                handler: 'StaleWhileRevalidate',
-                options: {
-                  cacheName: 'esm-modules-cache',
-                  expiration: {
-                    maxEntries: 50,
-                    maxAgeSeconds: 60 * 60 * 24 * 7 // 7 天
-                  }
-                }
-              },
-              {
-                urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/.*/i,
-                handler: 'CacheFirst',
-                options: {
-                  cacheName: 'jsdelivr-cdn-cache',
-                  expiration: {
-                    maxEntries: 20,
-                    maxAgeSeconds: 60 * 60 * 24 * 365 // 365 天
-                  }
-                }
-              },
-              // 本地化檔案
-              {
-                urlPattern: /^.*\/locales\/.*\.json$/i,
-                handler: 'CacheFirst',
-                options: {
-                  cacheName: 'translations-cache',
-                  expiration: {
-                    maxEntries: 10,
-                    maxAgeSeconds: 60 * 60 * 24 * 30 // 30 天
-                  }
-                }
-              },
-              // 靜態資源（圖片、字體等）
-              {
-                urlPattern: /\.(png|jpg|jpeg|svg|gif|webp|ico|woff|woff2|ttf)$/,
-                handler: 'CacheFirst',
-                options: {
-                  cacheName: 'static-assets-cache',
-                  expiration: {
-                    maxEntries: 60,
-                    maxAgeSeconds: 60 * 60 * 24 * 30 // 30 天
-                  }
-                }
-              }
-            ]
+          devOptions: {
+            enabled: true,
           },
-          
-          // PWA Manifest 配置
           manifest: {
             name: 'MyNotes - 智能筆記應用',
             short_name: 'MyNotes',
@@ -199,11 +68,6 @@ export default defineConfig(({ mode }) => {
               }
             ]
           },
-          
-          // 開發選項
-          devOptions: {
-            enabled: false // 開發時禁用，避免與 Vite Dev Server 衝突
-          }
         })
       ]
     };
