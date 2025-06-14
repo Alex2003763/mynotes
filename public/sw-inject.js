@@ -50,19 +50,22 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request, { ignoreSearch: true, ignoreVary: true }).then(cachedResponse => {
-      if (cachedResponse) {
-        console.log('Serving from cache:', event.request.url);
-        return cachedResponse;
-      }
-      return fetch(event.request).then(networkResponse => {
-        return caches.open('api-cache-v1').then(cache => {
-          console.log('Caching new response:', event.request.url);
-          cache.put(event.request, networkResponse.clone());
-          return networkResponse;
+  // 只處理與 Service Worker 作用域匹配的請求
+  if (event.request.url.startsWith(self.location.origin)) {
+    event.respondWith(
+      caches.match(event.request, { ignoreSearch: true, ignoreVary: true }).then(cachedResponse => {
+        if (cachedResponse) {
+          console.log('Serving from cache:', event.request.url);
+          return cachedResponse;
+        }
+        return fetch(event.request).then(networkResponse => {
+          return caches.open('api-cache-v1').then(cache => {
+            console.log('Caching new response:', event.request.url);
+            cache.put(event.request, networkResponse.clone());
+            return networkResponse;
+          });
         });
-      });
-    })
-  );
+      })
+    );
+  }
 });
