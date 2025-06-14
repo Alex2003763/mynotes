@@ -52,6 +52,39 @@ export default defineConfig(({ mode }) => {
                 }
               },
               {
+                urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+                handler: 'CacheFirst',
+                options: {
+                  cacheName: 'gstatic-fonts-cache',
+                  expiration: {
+                    maxEntries: 10,
+                    maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
+                  }
+                }
+              },
+              {
+                urlPattern: /^https:\/\/cdn\.tailwindcss\.com\/.*/i,
+                handler: 'StaleWhileRevalidate',
+                options: {
+                  cacheName: 'tailwind-css-cache',
+                  expiration: {
+                    maxEntries: 5,
+                    maxAgeSeconds: 60 * 60 * 24 * 30 // <== 30 days
+                  }
+                }
+              },
+              {
+                urlPattern: /^https:\/\/cdnjs\.cloudflare\.com\/.*/i,
+                handler: 'CacheFirst',
+                options: {
+                  cacheName: 'cloudflare-cdn-cache',
+                  expiration: {
+                    maxEntries: 20,
+                    maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
+                  }
+                }
+              },
+              {
                 urlPattern: ({ request }) => request.destination === 'image',
                 handler: 'CacheFirst',
                 options: {
@@ -65,40 +98,9 @@ export default defineConfig(({ mode }) => {
                   }
                 }
               },
-              {
-                urlPattern: /cherry-markdown/,
-                handler: 'CacheFirst',
-                options: {
-                  cacheName: 'cherry-markdown-cache',
-                  expiration: {
-                    maxEntries: 10,
-                    maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
-                  }
-                }
-              }
             ],
           },
-          manifest: {
-            name: 'MyNotes',
-            short_name: 'MyNotes',
-            description: 'A simple note-taking app',
-            theme_color: '#ffffff',
-            background_color: '#ffffff',
-            display: 'standalone',
-            start_url: '/',
-            icons: [
-              {
-                src: 'pwa-192x192.png',
-                sizes: '192x192',
-                type: 'image/png',
-              },
-              {
-                src: 'pwa-512x512.png',
-                sizes: '512x512',
-                type: 'image/png',
-              },
-            ],
-          },
+          // 移除 manifest 配置，使用 public/manifest.webmanifest
         })
       ]
     };
