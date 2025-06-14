@@ -26,12 +26,18 @@ export default defineConfig(({ mode }) => {
               '**/*.{js,css,html,ico,png,svg,json,woff2,woff,ttf}',
               '**/assets/**/*'
             ],
+            globIgnores: [
+              '**/sw.js',
+              '**/workbox-*.js',
+              '**/dev-dist/**/*'
+            ],
+            dontCacheBustURLsMatching: /\.\w{8}\./,
             maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 10 MB
             navigateFallback: '/index.html',
-            navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/],
+            navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/, /^\/sw\.js$/, /^\/workbox-.*\.js$/],
             cleanupOutdatedCaches: true,
-            skipWaiting: true,
-            clientsClaim: true,
+            skipWaiting: false,
+            clientsClaim: false,
             runtimeCaching: [
               // Tailwind CSS CDN - 長期緩存
               {
@@ -124,16 +130,21 @@ export default defineConfig(({ mode }) => {
                   networkTimeoutSeconds: 3,
                 },
               },
-              // 應用程式殼層 - 確保離線可用
+              // 應用程式殼層 - 生產環境適配
               {
-                urlPattern: new RegExp('^https://mynotess\\.usefultools\\.dpdns\\.org/$'),
-                handler: 'CacheFirst',
+                urlPattern: ({ url }) => {
+                  return url.pathname === '/' ||
+                         url.pathname === '/index.html' ||
+                         (url.hostname.includes('mynotes') && url.pathname === '/');
+                },
+                handler: 'NetworkFirst',
                 options: {
                   cacheName: 'app-shell-cache',
                   expiration: {
                     maxEntries: 5,
-                    maxAgeSeconds: 60 * 60 * 24 * 7, // 7 天
+                    maxAgeSeconds: 60 * 60 * 24, // 1 天
                   },
+                  networkTimeoutSeconds: 3,
                 },
               },
               // 其他 GET 請求的回退策略

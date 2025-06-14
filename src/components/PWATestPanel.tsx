@@ -84,22 +84,78 @@ export const PWATestPanel: React.FC = () => {
 
   const clearPWAState = async () => {
     try {
-      if ('serviceWorker' in navigator) {
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        for (const registration of registrations) {
-          await registration.unregister();
-        }
-      }
+      // 先清除所有快取
       if ('caches' in window) {
         const keys = await caches.keys();
         for (const key of keys) {
           await caches.delete(key);
         }
       }
-      alert('PWA caches and service workers cleared. Please fully close and reopen the app.');
-      runPWATests();
+
+      // 然後取消註冊所有 Service Workers
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const registration of registrations) {
+          await registration.unregister();
+        }
+      }
+
+      // 清除 localStorage 中的 Workbox 相關資料
+      Object.keys(localStorage).forEach(key => {
+        if (key.includes('workbox') || key.includes('sw-precache')) {
+          localStorage.removeItem(key);
+        }
+      });
+
+      alert('PWA 快取和 Service Workers 已清除。請完全關閉並重新開啟應用程式。');
+      
+      // 強制重新載入頁面以確保清除生效
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+      
     } catch (error) {
-      alert(`Error clearing PWA state: ${error}`);
+      alert(`清除 PWA 狀態時發生錯誤: ${error}`);
+    }
+  };
+
+  const fixCacheConflicts = async () => {
+    try {
+      const results: string[] = [];
+      
+      // 專門針對生產環境的快取衝突問題
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        
+        // 查找並刪除有問題的快取
+        for (const cacheName of cacheNames) {
+          if (cacheName.includes('precache') || cacheName.includes('workbox')) {
+            const cache = await caches.open(cacheName);
+            const requests = await cache.keys();
+            
+            // 檢查是否有重複的 index.html 條目
+            const indexEntries = requests.filter(req =>
+              req.url.includes('/index.html') || req.url.endsWith('/')
+            );
+            
+            if (indexEntries.length > 1) {
+              // 刪除整個快取以解決衝突
+              await caches.delete(cacheName);
+              results.push(`🔧 已刪除有衝突的快取: ${cacheName}`);
+            }
+          }
+        }
+      }
+      
+      if (results.length > 0) {
+        alert(`快取衝突已修復:\n${results.join('\n')}\n\n請重新載入頁面。`);
+        setTimeout(() => window.location.reload(), 500);
+      } else {
+        alert('未發現快取衝突問題。');
+      }
+      
+    } catch (error) {
+      alert(`修復快取衝突時發生錯誤: ${error}`);
     }
   };
 
@@ -140,10 +196,16 @@ export const PWATestPanel: React.FC = () => {
             Refresh Diagnostics
           </button>
           <button
+            onClick={fixCacheConflicts}
+            className="w-full bg-orange-600 hover:bg-orange-700 text-white py-1.5 px-3 rounded font-medium transition-colors"
+          >
+            Fix Cache Conflicts
+          </button>
+          <button
             onClick={clearPWAState}
             className="w-full bg-red-600 hover:bg-red-700 text-white py-1.5 px-3 rounded font-medium transition-colors"
           >
-            Clear Caches & Unregister SW
+            Clear All Caches & SW
           </button>
         </div>
       </div>
