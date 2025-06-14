@@ -22,8 +22,16 @@ export default defineConfig(({ mode }) => {
           registerType: 'prompt',
           strategies: 'generateSW',
           workbox: {
-            globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
+            globPatterns: [
+              '**/*.{js,css,html,ico,png,svg,json,woff2,woff,ttf}',
+              '**/assets/**/*'
+            ],
             maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 10 MB
+            navigateFallback: '/index.html',
+            navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/],
+            cleanupOutdatedCaches: true,
+            skipWaiting: true,
+            clientsClaim: true,
             runtimeCaching: [
               // Tailwind CSS CDN - 長期緩存
               {
@@ -103,7 +111,7 @@ export default defineConfig(({ mode }) => {
                   },
                 },
               },
-              // HTML 頁面
+              // HTML 頁面 - 改善離線支援
               {
                 urlPattern: ({ request }) => request.mode === 'navigate',
                 handler: 'NetworkFirst',
@@ -114,6 +122,18 @@ export default defineConfig(({ mode }) => {
                     maxAgeSeconds: 60 * 60 * 24, // 1 天
                   },
                   networkTimeoutSeconds: 3,
+                },
+              },
+              // 應用程式殼層 - 確保離線可用
+              {
+                urlPattern: new RegExp('^https://mynotess\\.usefultools\\.dpdns\\.org/$'),
+                handler: 'CacheFirst',
+                options: {
+                  cacheName: 'app-shell-cache',
+                  expiration: {
+                    maxEntries: 5,
+                    maxAgeSeconds: 60 * 60 * 24 * 7, // 7 天
+                  },
                 },
               },
               // 其他 GET 請求的回退策略
