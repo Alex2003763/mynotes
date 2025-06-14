@@ -28,6 +28,9 @@ export default defineConfig(({ mode }) => {
           devOptions: {
             enabled: false,
           },
+          injectManifest: {
+            maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 10 MB
+          },
           manifest: {
             name: 'MyNotes - 智能筆記應用',
             short_name: 'MyNotes',
