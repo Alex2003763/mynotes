@@ -19,8 +19,9 @@ export default defineConfig(({ mode }) => {
       plugins: [
         react(),
         VitePWA({
-          registerType: 'prompt',
+          registerType: 'autoUpdate',
           strategies: 'generateSW',
+          injectRegister: 'auto',
           workbox: {
             globPatterns: [
               '**/*.{js,css,html,ico,png,svg,json,woff2,woff,ttf}',
@@ -36,8 +37,9 @@ export default defineConfig(({ mode }) => {
             navigateFallback: '/index.html',
             navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/, /^\/sw\.js$/, /^\/workbox-.*\.js$/],
             cleanupOutdatedCaches: true,
-            skipWaiting: false,
-            clientsClaim: false,
+            skipWaiting: true,
+            clientsClaim: true,
+            mode: 'production',
             runtimeCaching: [
               // Tailwind CSS CDN - 改善生產環境快取
               {

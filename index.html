@@ -220,7 +220,7 @@
       }
     });
 
-    // Service Worker 註冊狀態檢查
+    // Service Worker 註冊狀態檢查和手動觸發
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.ready.then(function(registration) {
         console.log('Service Worker 已準備就緒:', registration.scope);
@@ -229,9 +229,35 @@
         registration.addEventListener('updatefound', () => {
           console.log('發現 Service Worker 更新');
         });
+
+        // 強制觸發 Service Worker 消息以啟動預快取
+        if (registration.active) {
+          registration.active.postMessage({ type: 'SKIP_WAITING' });
+        }
       }).catch(function(error) {
         console.log('Service Worker 註冊失敗:', error);
       });
+
+      // 監聽 Service Worker 消息
+      navigator.serviceWorker.addEventListener('message', event => {
+        if (event.data && event.data.type === 'CACHE_UPDATED') {
+          console.log('快取已更新');
+        }
+      });
+
+      // 生產環境強制刷新快取
+      if (window.location.hostname !== 'localhost' &&
+          window.location.hostname !== '127.0.0.1' &&
+          !window.location.hostname.includes('netlify.app')) {
+        // 這是生產環境，強制重新載入 Service Worker
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          if (registrations.length === 0) {
+            // 沒有註冊的 SW，重新載入頁面
+            console.log('生產環境：沒有找到 Service Worker，重新載入...');
+            setTimeout(() => window.location.reload(), 1000);
+          }
+        });
+      }
     }
   </script>
   <script type="module" src="/index.tsx"></script>

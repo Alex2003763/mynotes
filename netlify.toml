@@ -51,14 +51,9 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
+# SPA fallback - 確保不干擾 Service Worker
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-  conditions = {Role = ["admin"]}
-
-# SPA fallback
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+  force = false
