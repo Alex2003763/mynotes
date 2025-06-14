@@ -39,7 +39,7 @@ export default defineConfig(({ mode }) => {
             skipWaiting: false,
             clientsClaim: false,
             runtimeCaching: [
-              // Tailwind CSS CDN - 長期緩存
+              // Tailwind CSS CDN - 改善生產環境快取
               {
                 urlPattern: /^https:\/\/cdn\.tailwindcss\.com\/.*/i,
                 handler: 'CacheFirst',
@@ -130,12 +130,10 @@ export default defineConfig(({ mode }) => {
                   networkTimeoutSeconds: 3,
                 },
               },
-              // 應用程式殼層 - 生產環境適配
+              // 應用程式殼層 - 生產環境適配 (移除域名限制)
               {
                 urlPattern: ({ url }) => {
-                  return url.pathname === '/' ||
-                         url.pathname === '/index.html' ||
-                         (url.hostname.includes('mynotes') && url.pathname === '/');
+                  return url.pathname === '/' || url.pathname === '/index.html';
                 },
                 handler: 'NetworkFirst',
                 options: {
