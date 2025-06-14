@@ -130,6 +130,10 @@ export default defineConfig(({ mode }) => {
             categories: ['productivity', 'utilities'],
             prefer_related_applications: false
           },
+          devOptions: {
+            enabled: true,
+            type: 'module',
+          },
         })
       ]
     };
