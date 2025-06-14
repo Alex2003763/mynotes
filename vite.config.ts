@@ -20,24 +20,42 @@ export default defineConfig(({ mode }) => {
         react(),
         VitePWA({
           registerType: 'autoUpdate',
-          devOptions: {
-            enabled: true
-          },
           includeAssets: ['**/*.{png,ico,svg,woff2,woff,ttf,eot}'],
+          manifest: {
+            name: 'MyNotes - 智能筆記應用',
+            short_name: 'MyNotes',
+            description: '一個功能強大的智能筆記應用，支援離線使用',
+            theme_color: '#4f46e5',
+            background_color: '#ffffff',
+            display: 'standalone',
+            scope: '/',
+            start_url: '/',
+            icons: [
+              {
+                src: '/pencil.png',
+                sizes: '48x48',
+                type: 'image/png'
+              },
+              {
+                src: '/icon-192.png',
+                sizes: '192x192',
+                type: 'image/png'
+              },
+              {
+                src: '/icon-192.png',
+                sizes: '512x512',
+                type: 'image/png'
+              }
+            ]
+          },
           workbox: {
             globPatterns: ['**/*.{js,css,html,json,wasm,png,ico,svg,woff2,woff,ttf,eot}'],
             maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 10 MB
             navigateFallback: 'index.html',
-            navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/, /^\/api\//],
+            navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/],
             cleanupOutdatedCaches: true,
             skipWaiting: true,
             clientsClaim: true,
-            mode: 'production',
-            swDest: 'dist/sw.js',
-            additionalManifestEntries: [
-              { url: '/', revision: null },
-              { url: '/index.html', revision: null }
-            ],
             runtimeCaching: [
               {
                 urlPattern: /^https:\/\/cdn\.tailwindcss\.com\/.*/i,

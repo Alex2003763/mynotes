@@ -15,7 +15,6 @@
   <meta name="msapplication-tap-highlight" content="no">
   <link rel="icon" type="image/png" href="/pencil.png">
   <link rel="apple-touch-icon" href="/pencil.png">
-  <link rel="manifest" href="/manifest.webmanifest">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cherry-markdown@latest/dist/cherry-markdown.min.css"/>
   <script>
@@ -145,39 +144,6 @@
 <body class="bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 antialiased">
   <div id="root"></div>
   <script>
-    // 強化的 Service Worker 註冊，特別針對 iOS Safari
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function() {
-        navigator.serviceWorker.register('/sw.js', { scope: '/' })
-          .then(function(registration) {
-            console.log('SW registered: ', registration);
-            
-            // 強制更新檢查
-            registration.addEventListener('updatefound', function() {
-              const newWorker = registration.installing;
-              if (newWorker) {
-                newWorker.addEventListener('statechange', function() {
-                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    // 新版本可用
-                    if (confirm('應用程式有新版本可用，是否立即更新？')) {
-                      window.location.reload();
-                    }
-                  }
-                });
-              }
-            });
-          })
-          .catch(function(error) {
-            console.log('SW registration failed: ', error);
-          });
-      });
-      
-      // 處理 Service Worker 控制器變更
-      navigator.serviceWorker.addEventListener('controllerchange', function() {
-        window.location.reload();
-      });
-    }
-    
     // iOS Safari 特殊處理
     if (/iP(ad|hone|od)/.test(navigator.userAgent)) {
       // 防止 iOS Safari 的快取問題
@@ -186,16 +152,6 @@
           window.location.reload();
         }
       });
-      
-      // 強制 PWA 模式檢查
-      if (window.navigator.standalone === false) {
-        // 在一般瀏覽器模式下，確保資源正確載入
-        window.addEventListener('beforeunload', function() {
-          if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-            navigator.serviceWorker.controller.postMessage({ type: 'PREPARE_OFFLINE' });
-          }
-        });
-      }
     }
   </script>
   <script type="module" src="/index.tsx"></script>
