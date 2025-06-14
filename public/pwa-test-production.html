@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PWA 生產環境測試</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: system-ui; padding: 20px; line-height: 1.6; }
+        .result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        .warning { background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; margin: 5px; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .install-btn { background: #28a745; }
+        .install-btn:hover { background: #1e7e34; }
+        .update-btn { background: #ffc107; color: #000; }
+        .update-btn:hover { background: #e0a800; }
+    </style>
+</head>
+<body>
+    <h1>🔧 PWA 生產環境功能測試</h1>
+    <div id="results"></div>
+    
+    <div style="margin-top: 20px;">
+        <button id="installBtn" class="install-btn" style="display: none;">📱 安裝 PWA</button>
+        <button id="updateBtn" class="update-btn" style="display: none;">🔄 更新應用程式</button>
+        <button onclick="location.reload()">🔄 重新整理頁面</button>
+        <button onclick="testOffline()">📴 測試離線模擬</button>
+        <button onclick="clearCaches()">🗑️ 清除所有快取</button>
+    </div>
+    
+    <div style="margin-top: 20px;">
+        <h3>快速測試指南：</h3>
+        <ol>
+            <li>確認所有項目顯示 ✅ 成功狀態</li>
+            <li>如果出現安裝按鈕，點擊測試 PWA 安裝</li>
+            <li>開啟開發者工具 → Application → Service Workers 檢查狀態</li>
+            <li>切換到 Network 標籤，勾選 "Offline" 測試離線功能</li>
+            <li>在手機上測試：瀏覽器選單 → "加到主畫面"</li>
+        </ol>
+    </div>
+    
+    <script>
+        const results = document.getElementById('results');
+        let installPrompt = null;
+        let updateSW = null;
+        
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = message;
+            results.appendChild(div);
+        }
+        
+        function clear() {
+            results.innerHTML = '';
+        }
+        
+        async function runTests() {
+            clear();
+            log('🚀 開始 PWA 功能測試...', 'info');
+            
+            // 1. Service Worker 測試
+            if ('serviceWorker' in navigator) {
+                log('✅ Service Worker API 支援', 'success');
+                
+                try {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    if (registrations.length > 0) {
+                        log(`✅ 找到 ${registrations.length} 個已註冊的 Service Worker`, 'success');
+                        
+                        registrations.forEach((reg, i) => {
+                            const state = reg.active ? reg.active.state : '未知';
+                            log(`   SW ${i+1}: ${reg.scope} (狀態: ${state})`, 'info');
+                        });
+                    } else {
+                        log('❌ 沒有找到已註冊的 Service Worker', 'error');
+                    }
+                    
+                    if (navigator.serviceWorker.controller) {
+                        log('✅ 目前頁面有 Service Worker 控制', 'success');
+                    } else {
+                        log('❌ 目前頁面沒有 Service Worker 控制', 'error');
+                    }
+                } catch (error) {
+                    log(`❌ Service Worker 檢查失敗: ${error.message}`, 'error');
+                }
+            } else {
+                log('❌ 瀏覽器不支援 Service Worker', 'error');
+            }
+            
+            // 2. Manifest 測試
+            const manifestLink = document.querySelector('link[rel="manifest"]');
+            if (manifestLink) {
+                log(`✅ 找到 manifest 連結: ${manifestLink.href}`, 'success');
+                
+                try {
+                    const response = await fetch(manifestLink.href);
+                    if (response.ok) {
+                        const manifest = await response.json();
+                        log(`✅ Manifest 載入成功: ${manifest.name || manifest.short_name}`, 'success');
+                        log(`   描述: ${manifest.description || '無'}`, 'info');
+                        log(`   圖示: ${manifest.icons ? manifest.icons.length : 0} 個`, 'info');
+                        log(`   顯示模式: ${manifest.display || '未設定'}`, 'info');
+                    } else {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                } catch (error) {
+                    log(`❌ Manifest 載入失敗: ${error.message}`, 'error');
+                }
+            } else {
+                log('❌ 沒有找到 manifest 連結', 'error');
+            }
+            
+            // 3. Cache API 測試
+            if ('caches' in window) {
+                log('✅ Cache API 支援', 'success');
+                
+                try {
+                    const cacheNames = await caches.keys();
+                    if (cacheNames.length > 0) {
+                        log(`✅ 找到 ${cacheNames.length} 個快取`, 'success');
+                        
+                        for (const cacheName of cacheNames) {
+                            const cache = await caches.open(cacheName);
+                            const keys = await cache.keys();
+                            log(`   📦 ${cacheName}: ${keys.length} 個項目`, 'info');
+                        }
+                    } else {
+                        log('⚠️ 沒有找到任何快取', 'warning');
+                    }
+                } catch (error) {
+                    log(`❌ 快取檢查失敗: ${error.message}`, 'error');
+                }
+            } else {
+                log('❌ 瀏覽器不支援 Cache API', 'error');
+            }
+            
+            // 4. 安裝狀態檢查
+            if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
+                log('✅ 應用程式以獨立模式運行（已安裝為 PWA）', 'success');
+            } else {
+                log('📱 應用程式未以獨立模式運行（可安裝為 PWA）', 'info');
+            }
+            
+            // 5. 網路狀態
+            const onlineStatus = navigator.onLine ? '線上' : '離線';
+            const statusType = navigator.onLine ? 'success' : 'warning';
+            log(`🌐 網路狀態: ${onlineStatus}`, statusType);
+            
+            // 6. 推送通知支援
+            if ('Notification' in window) {
+                log(`🔔 推送通知支援: ${Notification.permission}`, 'info');
+            } else {
+                log('❌ 瀏覽器不支援推送通知', 'error');
+            }
+            
+            log('✅ PWA 功能測試完成！', 'success');
+        }
+        
+        // PWA 安裝提示處理
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            installPrompt = e;
+            document.getElementById('installBtn').style.display = 'inline-block';
+            log('✅ PWA 安裝提示已準備就緒', 'success');
+        });
+        
+        document.getElementById('installBtn').addEventListener('click', async () => {
+            if (installPrompt) {
+                installPrompt.prompt();
+                const result = await installPrompt.userChoice;
+                if (result.outcome === 'accepted') {
+                    log('✅ 用戶接受了 PWA 安裝', 'success');
+                } else {
+                    log('❌ 用戶拒絕了 PWA 安裝', 'warning');
+                }
+                installPrompt = null;
+                document.getElementById('installBtn').style.display = 'none';
+            }
+        });
+        
+        // Service Worker 更新處理
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.addEventListener('message', (event) => {
+                if (event.data && event.data.type === 'SKIP_WAITING') {
+                    document.getElementById('updateBtn').style.display = 'inline-block';
+                }
+            });
+        }
+        
+        document.getElementById('updateBtn').addEventListener('click', () => {
+            if (updateSW) {
+                updateSW();
+                document.getElementById('updateBtn').style.display = 'none';
+                log('🔄 應用程式更新中...', 'info');
+            }
+        });
+        
+        // 測試功能
+        async function testOffline() {
+            log('📴 模擬離線測試（請在開發者工具中手動切換到離線模式）', 'info');
+            
+            // 嘗試載入一個不存在的資源來測試離線處理
+            try {
+                const response = await fetch('/test-offline-' + Date.now());
+                if (response.ok) {
+                    log('⚠️ 意外成功 - 可能沒有正確設定離線模式', 'warning');
+                } else {
+                    log('✅ 離線請求正確處理', 'success');
+                }
+            } catch (error) {
+                log('✅ 離線請求被正確攔截', 'success');
+            }
+        }
+        
+        async function clearCaches() {
+            if ('caches' in window) {
+                const cacheNames = await caches.keys();
+                await Promise.all(cacheNames.map(name => caches.delete(name)));
+                log('🗑️ 所有快取已清除', 'info');
+                
+                // 重新註冊 Service Worker
+                if ('serviceWorker' in navigator) {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    await Promise.all(registrations.map(reg => reg.unregister()));
+                    log('🗑️ Service Worker 已取消註冊', 'info');
+                }
+                
+                log('🔄 建議重新整理頁面以重新初始化', 'warning');
+            }
+        }
+        
+        // 監聽網路狀態變化
+        window.addEventListener('online', () => log('🌐 網路連線已恢復', 'success'));
+        window.addEventListener('offline', () => log('📴 網路連線已中斷', 'warning'));
+        
+        // 自動執行測試
+        window.addEventListener('load', runTests);
+    </script>
+</body>
+</html>

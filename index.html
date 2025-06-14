@@ -2,19 +2,37 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>MyNotes - 智能筆記應用</title>
   <meta name="description" content="一個功能強大的智能筆記應用，支援離線使用">
   <meta name="theme-color" content="#4f46e5">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="MyNotes">
   <meta name="apple-touch-fullscreen" content="yes">
   <meta name="format-detection" content="telephone=no">
   <meta name="msapplication-tap-highlight" content="no">
   <link rel="icon" type="image/png" href="/pencil.png">
-  <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+  <!-- iOS 圖標配置 - 多種尺寸 -->
+  <link rel="apple-touch-icon" sizes="57x57" href="/pencil.png">
+  <link rel="apple-touch-icon" sizes="60x60" href="/pencil.png">
+  <link rel="apple-touch-icon" sizes="72x72" href="/pencil.png">
+  <link rel="apple-touch-icon" sizes="76x76" href="/pencil.png">
+  <link rel="apple-touch-icon" sizes="114x114" href="/pencil.png">
+  <link rel="apple-touch-icon" sizes="120x120" href="/pencil.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="/pencil.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="/pencil.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/pencil.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="/pencil.png">
+  
+  <!-- iOS 啟動畫面配置 -->
+  <link rel="apple-touch-startup-image" href="/pencil.png" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+  <link rel="apple-touch-startup-image" href="/pencil.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+  <link rel="apple-touch-startup-image" href="/pencil.png" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+  <link rel="apple-touch-startup-image" href="/pencil.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+  <link rel="apple-touch-startup-image" href="/pencil.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+  <link rel="apple-touch-startup-image" href="/pencil.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
   <link rel="manifest" href="/manifest.json">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cherry-markdown@latest/dist/cherry-markdown.min.css"/>
@@ -162,6 +180,58 @@
         if (event.persisted) {
           window.location.reload();
         }
+      });
+      
+      // 防止 iOS Safari 的縮放
+      document.addEventListener('touchstart', function(e) {
+        if (e.touches.length > 1) {
+          e.preventDefault();
+        }
+      });
+      
+      // 防止雙擊縮放
+      let lastTouchEnd = 0;
+      document.addEventListener('touchend', function(e) {
+        const now = Date.now();
+        if (now - lastTouchEnd <= 300) {
+          e.preventDefault();
+        }
+        lastTouchEnd = now;
+      }, false);
+      
+      // 改善 iOS PWA 體驗
+      window.addEventListener('orientationchange', function() {
+        setTimeout(function() {
+          window.scrollTo(0, 1);
+        }, 500);
+      });
+    }
+
+    // 改善 PWA 安裝提示
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      // 防止預設的安裝提示
+      e.preventDefault();
+      // 儲存事件以便稍後觸發
+      deferredPrompt = e;
+      
+      // 如果是 iOS 裝置，顯示自定義安裝指導
+      if (/iP(ad|hone|od)/.test(navigator.userAgent)) {
+        console.log('iOS 裝置檢測到，請使用 Safari 的「加入主畫面」功能');
+      }
+    });
+
+    // Service Worker 註冊狀態檢查
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then(function(registration) {
+        console.log('Service Worker 已準備就緒:', registration.scope);
+        
+        // 檢查更新
+        registration.addEventListener('updatefound', () => {
+          console.log('發現 Service Worker 更新');
+        });
+      }).catch(function(error) {
+        console.log('Service Worker 註冊失敗:', error);
       });
     }
   </script>

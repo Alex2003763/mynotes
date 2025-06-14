@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PWA 測試頁面</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f8fafc;
+    }
+    .test-card {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 10px 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .status {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .success { background: #dcfce7; color: #15803d; }
+    .error { background: #fecaca; color: #dc2626; }
+    .warning { background: #fef3c7; color: #d97706; }
+    .info { background: #dbeafe; color: #2563eb; }
+    button {
+      background: #4f46e5;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 4px;
+    }
+    button:hover {
+      background: #4338ca;
+    }
+    pre {
+      background: #f1f5f9;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <h1>📱 MyNotes PWA 測試工具</h1>
+  
+  <div class="test-card">
+    <h3>🔧 基本 PWA 功能檢測</h3>
+    <p>Service Worker 支援: <span id="sw-support" class="status">檢測中...</span></p>
+    <p>Manifest 支援: <span id="manifest-support" class="status">檢測中...</span></p>
+    <p>目前網路狀態: <span id="online-status" class="status">檢測中...</span></p>
+    <p>安裝狀態: <span id="install-status" class="status">檢測中...</span></p>
+  </div>
+
+  <div class="test-card">
+    <h3>📱 iOS 特定功能檢測</h3>
+    <p>iOS 裝置: <span id="ios-device" class="status">檢測中...</span></p>
+    <p>獨立模式 (PWA): <span id="standalone-mode" class="status">檢測中...</span></p>
+    <p>Safari 版本: <span id="safari-version" class="status">檢測中...</span></p>
+  </div>
+
+  <div class="test-card">
+    <h3>🚀 操作測試</h3>
+    <button onclick="testServiceWorker()">測試 Service Worker</button>
+    <button onclick="testCache()">測試快取</button>
+    <button onclick="testOffline()">模擬離線</button>
+    <button onclick="showInstallPrompt()">顯示安裝提示</button>
+    <div id="test-results"></div>
+  </div>
+
+  <div class="test-card">
+    <h3>📋 診斷資訊</h3>
+    <pre id="diagnostic-info">載入中...</pre>
+  </div>
+
+  <script>
+    // 基本檢測
+    function runBasicTests() {
+      // Service Worker 支援
+      const swSupport = document.getElementById('sw-support');
+      if ('serviceWorker' in navigator) {
+        swSupport.textContent = '✅ 支援';
+        swSupport.className = 'status success';
+      } else {
+        swSupport.textContent = '❌ 不支援';
+        swSupport.className = 'status error';
+      }
+
+      // Manifest 支援
+      const manifestSupport = document.getElementById('manifest-support');
+      if ('manifestchange' in window || 'BeforeInstallPromptEvent' in window) {
+        manifestSupport.textContent = '✅ 支援';
+        manifestSupport.className = 'status success';
+      } else {
+        manifestSupport.textContent = '⚠️ 部分支援';
+        manifestSupport.className = 'status warning';
+      }
+
+      // 網路狀態
+      const onlineStatus = document.getElementById('online-status');
+      if (navigator.onLine) {
+        onlineStatus.textContent = '🌐 線上';
+        onlineStatus.className = 'status success';
+      } else {
+        onlineStatus.textContent = '📴 離線';
+        onlineStatus.className = 'status warning';
+      }
+
+      // 安裝狀態
+      const installStatus = document.getElementById('install-status');
+      if (window.matchMedia('(display-mode: standalone)').matches) {
+        installStatus.textContent = '✅ 已安裝';
+        installStatus.className = 'status success';
+      } else {
+        installStatus.textContent = '📱 瀏覽器模式';
+        installStatus.className = 'status info';
+      }
+    }
+
+    // iOS 檢測
+    function runIOSTests() {
+      const iosDevice = document.getElementById('ios-device');
+      const standaloneMode = document.getElementById('standalone-mode');
+      const safariVersion = document.getElementById('safari-version');
+
+      // iOS 裝置檢測
+      const isIOS = /iP(ad|hone|od)/.test(navigator.userAgent);
+      if (isIOS) {
+        iosDevice.textContent = '🍎 iOS 裝置';
+        iosDevice.className = 'status success';
+      } else {
+        iosDevice.textContent = '🤖 非 iOS 裝置';
+        iosDevice.className = 'status info';
+      }
+
+      // 獨立模式檢測
+      if (window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches) {
+        standaloneMode.textContent = '✅ PWA 模式';
+        standaloneMode.className = 'status success';
+      } else {
+        standaloneMode.textContent = '🌐 瀏覽器模式';
+        standaloneMode.className = 'status info';
+      }
+
+      // Safari 版本檢測
+      if (isIOS) {
+        const match = navigator.userAgent.match(/Version\/(\d+(\.\d+)?)/);
+        if (match) {
+          const version = parseFloat(match[1]);
+          if (version >= 11.3) {
+            safariVersion.textContent = `✅ Safari ${match[1]}`;
+            safariVersion.className = 'status success';
+          } else {
+            safariVersion.textContent = `⚠️ Safari ${match[1]} (舊版)`;
+            safariVersion.className = 'status warning';
+          }
+        } else {
+          safariVersion.textContent = '❓ 無法檢測';
+          safariVersion.className = 'status warning';
+        }
+      } else {
+        safariVersion.textContent = '➖ 非 Safari';
+        safariVersion.className = 'status info';
+      }
+    }
+
+    // 操作測試函數
+    function testServiceWorker() {
+      const results = document.getElementById('test-results');
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistration().then(registration => {
+          if (registration) {
+            results.innerHTML = '<div class="status success">✅ Service Worker 已註冊: ' + registration.scope + '</div>';
+          } else {
+            results.innerHTML = '<div class="status warning">⚠️ Service Worker 未註冊</div>';
+          }
+        });
+      } else {
+        results.innerHTML = '<div class="status error">❌ 不支援 Service Worker</div>';
+      }
+    }
+
+    function testCache() {
+      const results = document.getElementById('test-results');
+      if ('caches' in window) {
+        caches.keys().then(cacheNames => {
+          results.innerHTML = '<div class="status success">✅ 快取可用，快取數量: ' + cacheNames.length + '</div>';
+        });
+      } else {
+        results.innerHTML = '<div class="status error">❌ 不支援 Cache API</div>';
+      }
+    }
+
+    function testOffline() {
+      const results = document.getElementById('test-results');
+      results.innerHTML = '<div class="status info">ℹ️ 請手動關閉網路連接來測試離線功能</div>';
+    }
+
+    function showInstallPrompt() {
+      const results = document.getElementById('test-results');
+      if (/iP(ad|hone|od)/.test(navigator.userAgent)) {
+        results.innerHTML = '<div class="status info">ℹ️ iOS 裝置請使用 Safari 的「加入主畫面」功能</div>';
+      } else {
+        results.innerHTML = '<div class="status info">ℹ️ 請查看瀏覽器地址欄的安裝圖示</div>';
+      }
+    }
+
+    // 診斷資訊
+    function generateDiagnosticInfo() {
+      const info = {
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        language: navigator.language,
+        cookieEnabled: navigator.cookieEnabled,
+        onLine: navigator.onLine,
+        hardwareConcurrency: navigator.hardwareConcurrency,
+        maxTouchPoints: navigator.maxTouchPoints,
+        viewport: {
+          width: window.innerWidth,
+          height: window.innerHeight,
+          devicePixelRatio: window.devicePixelRatio
+        },
+        location: {
+          protocol: location.protocol,
+          host: location.host,
+          pathname: location.pathname
+        },
+        support: {
+          serviceWorker: 'serviceWorker' in navigator,
+          caches: 'caches' in window,
+          indexedDB: 'indexedDB' in window,
+          localStorage: 'localStorage' in window,
+          sessionStorage: 'sessionStorage' in window,
+          geolocation: 'geolocation' in navigator,
+          pushNotification: 'PushManager' in window,
+          backgroundSync: 'serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype
+        }
+      };
+
+      document.getElementById('diagnostic-info').textContent = JSON.stringify(info, null, 2);
+    }
+
+    // 監聽網路狀態變化
+    window.addEventListener('online', runBasicTests);
+    window.addEventListener('offline', runBasicTests);
+
+    // 初始化
+    document.addEventListener('DOMContentLoaded', function() {
+      runBasicTests();
+      runIOSTests();
+      generateDiagnosticInfo();
+    });
+  </script>
+</body>
+</html>

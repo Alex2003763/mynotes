@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MyNotes - 離線模式</title>
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="icon" type="image/png" href="/pencil.png">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+    .container {
+      text-align: center;
+      max-width: 400px;
+      padding: 2rem;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+    .icon {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+    }
+    h1 {
+      margin: 0 0 1rem 0;
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+    p {
+      margin: 0 0 2rem 0;
+      opacity: 0.9;
+      line-height: 1.6;
+    }
+    .retry-button {
+      background: rgba(255, 255, 255, 0.2);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 25px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .retry-button:hover {
+      background: rgba(255, 255, 255, 0.3);
+      border-color: rgba(255, 255, 255, 0.5);
+      transform: translateY(-2px);
+    }
+    .features {
+      margin-top: 2rem;
+      text-align: left;
+    }
+    .feature {
+      margin: 0.5rem 0;
+      opacity: 0.8;
+      font-size: 0.9rem;
+    }
+    .feature::before {
+      content: "✓ ";
+      color: #4ade80;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">📝</div>
+    <h1>您目前處於離線模式</h1>
+    <p>MyNotes 正在離線運行。您可以繼續查看和編輯已緩存的筆記。</p>
+    
+    <div class="features">
+      <div class="feature">查看已保存的筆記</div>
+      <div class="feature">編輯現有內容</div>
+      <div class="feature">創建新筆記</div>
+      <div class="feature">使用所有核心功能</div>
+    </div>
+    
+    <button class="retry-button" onclick="window.location.reload()">
+      重新連線
+    </button>
+  </div>
+
+  <script>
+    // 檢查網路狀態
+    function checkOnline() {
+      if (navigator.onLine) {
+        window.location.href = '/';
+      }
+    }
+
+    // 監聽網路狀態變化
+    window.addEventListener('online', checkOnline);
+    
+    // 每 5 秒檢查一次網路狀態
+    setInterval(checkOnline, 5000);
+
+    // iOS Safari 特殊處理
+    if (/iP(ad|hone|od)/.test(navigator.userAgent)) {
+      // 防止 iOS Safari 的縮放
+      document.addEventListener('touchstart', function(e) {
+        if (e.touches.length > 1) {
+          e.preventDefault();
+        }
+      });
+      
+      let lastTouchEnd = 0;
+      document.addEventListener('touchend', function(e) {
+        const now = Date.now();
+        if (now - lastTouchEnd <= 300) {
+          e.preventDefault();
+        }
+        lastTouchEnd = now;
+      }, false);
+    }
+  </script>
+</body>
+</html>

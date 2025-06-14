@@ -20,12 +20,115 @@ export default defineConfig(({ mode }) => {
         react(),
         VitePWA({
           registerType: 'prompt',
-          strategies: 'injectManifest',
-          injectManifest: {
-            swSrc: 'public/service-worker.js',
-            swDest: 'dist/service-worker.js',
+          strategies: 'generateSW',
+          workbox: {
             globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
-            maximumFileSizeToCacheInBytes: 10 * 1024 * 1024 // 10 MB
+            maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 10 MB
+            runtimeCaching: [
+              // Tailwind CSS CDN - 長期緩存
+              {
+                urlPattern: /^https:\/\/cdn\.tailwindcss\.com\/.*/i,
+                handler: 'CacheFirst',
+                options: {
+                  cacheName: 'tailwind-css-cache',
+                  expiration: {
+                    maxEntries: 5,
+                    maxAgeSeconds: 60 * 60 * 24 * 365, // 365 天
+                  },
+                },
+              },
+              // Cherry Markdown CDN
+              {
+                urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/npm\/cherry-markdown@.*\/.*/i,
+                handler: 'StaleWhileRevalidate',
+                options: {
+                  cacheName: 'cherry-markdown-cache',
+                  expiration: {
+                    maxEntries: 10,
+                    maxAgeSeconds: 60 * 60 * 24 * 30, // 30 天
+                  },
+                },
+              },
+              // ESM.SH 模塊
+              {
+                urlPattern: /^https:\/\/esm\.sh\/.*/i,
+                handler: 'StaleWhileRevalidate',
+                options: {
+                  cacheName: 'esm-modules-cache',
+                  expiration: {
+                    maxEntries: 50,
+                    maxAgeSeconds: 60 * 60 * 24 * 7, // 7 天
+                  },
+                },
+              },
+              // 本地化文件
+              {
+                urlPattern: /^.*\/locales\/.*\.json$/i,
+                handler: 'CacheFirst',
+                options: {
+                  cacheName: 'translations-cache',
+                  expiration: {
+                    maxEntries: 10,
+                    maxAgeSeconds: 60 * 60 * 24 * 30, // 30 天
+                  },
+                },
+              },
+              // 圖片資源
+              {
+                urlPattern: ({ request }) =>
+                  request.destination === 'image' ||
+                  request.url.includes('/icons/') ||
+                  request.url.includes('.png') ||
+                  request.url.includes('.ico'),
+                handler: 'CacheFirst',
+                options: {
+                  cacheName: 'images-cache',
+                  expiration: {
+                    maxEntries: 20,
+                    maxAgeSeconds: 60 * 60 * 24 * 365, // 365 天
+                  },
+                },
+              },
+              // CSS 和 JS 文件
+              {
+                urlPattern: ({ request }) =>
+                  request.destination === 'style' ||
+                  request.destination === 'script',
+                handler: 'StaleWhileRevalidate',
+                options: {
+                  cacheName: 'static-resources-cache',
+                  expiration: {
+                    maxEntries: 50,
+                    maxAgeSeconds: 60 * 60 * 24 * 7, // 7 天
+                  },
+                },
+              },
+              // HTML 頁面
+              {
+                urlPattern: ({ request }) => request.mode === 'navigate',
+                handler: 'NetworkFirst',
+                options: {
+                  cacheName: 'pages-cache',
+                  expiration: {
+                    maxEntries: 10,
+                    maxAgeSeconds: 60 * 60 * 24, // 1 天
+                  },
+                  networkTimeoutSeconds: 3,
+                },
+              },
+              // 其他 GET 請求的回退策略
+              {
+                urlPattern: ({ request }) => request.method === 'GET',
+                handler: 'StaleWhileRevalidate',
+                options: {
+                  cacheName: 'general-cache',
+                  expiration: {
+                    maxEntries: 30,
+                    maxAgeSeconds: 60 * 60 * 24 * 3, // 3 天
+                  },
+                },
+              },
+            ],
           },
           
           manifest: {
@@ -41,23 +144,23 @@ export default defineConfig(({ mode }) => {
             lang: 'zh-TW',
             icons: [
               {
-                src: 'icons/icon-192x192.png',
+                src: 'pencil.png',
                 sizes: '192x192',
                 type: 'image/png'
               },
               {
-                src: 'icons/icon-512x512.png',
+                src: 'pencil.png',
                 sizes: '512x512',
                 type: 'image/png'
               },
               {
-                src: 'icons/icon-maskable-192x192.png',
+                src: 'pencil.png',
                 sizes: '192x192',
                 type: 'image/png',
                 purpose: 'maskable'
               },
               {
-                src: 'icons/icon-maskable-512x512.png',
+                src: 'pencil.png',
                 sizes: '512x512',
                 type: 'image/png',
                 purpose: 'maskable'
@@ -65,7 +168,7 @@ export default defineConfig(({ mode }) => {
             ],
             screenshots: [
               {
-                src: 'icons/icon-512x512.png',
+                src: 'pencil.png',
                 sizes: '512x512',
                 type: 'image/png',
                 label: 'MyNotes 應用程式主畫面'
