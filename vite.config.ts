@@ -20,15 +20,24 @@ export default defineConfig(({ mode }) => {
         react(),
         VitePWA({
           registerType: 'autoUpdate',
+          devOptions: {
+            enabled: true
+          },
           includeAssets: ['**/*.{png,ico,svg,woff2,woff,ttf,eot}'],
           workbox: {
-            globPatterns: ['**/*.{js,css,html,json,wasm}'],
+            globPatterns: ['**/*.{js,css,html,json,wasm,png,ico,svg,woff2,woff,ttf,eot}'],
             maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 10 MB
             navigateFallback: 'index.html',
-            navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/],
+            navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/, /^\/api\//],
             cleanupOutdatedCaches: true,
             skipWaiting: true,
             clientsClaim: true,
+            mode: 'production',
+            swDest: 'dist/sw.js',
+            additionalManifestEntries: [
+              { url: '/', revision: null },
+              { url: '/index.html', revision: null }
+            ],
             runtimeCaching: [
               {
                 urlPattern: /^https:\/\/cdn\.tailwindcss\.com\/.*/i,
