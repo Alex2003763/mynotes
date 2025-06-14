@@ -48,3 +48,21 @@ self.addEventListener('activate', (event) => {
     })()
   );
 });
+
+self.addEventListener('fetch', event => {
+  event.respondWith(
+    caches.match(event.request, { ignoreSearch: true, ignoreVary: true }).then(cachedResponse => {
+      if (cachedResponse) {
+        console.log('Serving from cache:', event.request.url);
+        return cachedResponse;
+      }
+      return fetch(event.request).then(networkResponse => {
+        return caches.open('api-cache-v1').then(cache => {
+          console.log('Caching new response:', event.request.url);
+          cache.put(event.request, networkResponse.clone());
+          return networkResponse;
+        });
+      });
+    })
+  );
+});
