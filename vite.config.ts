@@ -42,14 +42,13 @@ export default defineConfig(({ mode }) => {
             ],
             
             // 導航回退策略（重要！）
-            navigateFallback: '/app-shell.html',
+            navigateFallback: 'index.html',
             navigateFallbackDenylist: [
               /^\/_/,
               /\/[^/?]+\.[^/]+$/,
               /\/sw-test\.html$/,
               /\/test-offline\.html$/,
-              /\/offline\.html$/,
-              /\/app-shell\.html$/
+              /\/offline\.html$/
             ],
             
             // 跳過等待並立即接管頁面
