@@ -7,6 +7,7 @@ declare const self: ServiceWorkerGlobalScope & {
   __WB_MANIFEST: any;
   skipWaiting(): void;
   addEventListener(type: string, listener: (event: any) => void): void;
+  clients: any;
 };
 
 // 預快取由 Vite 生成的檔案
@@ -22,18 +23,32 @@ self.addEventListener('message', (event) => {
   }
 });
 
+// 立即接管頁面控制權
+self.addEventListener('install', (event) => {
+  console.log('Service Worker installing...');
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  console.log('Service Worker activating...');
+  event.waitUntil(self.clients.claim());
+});
+
 // 導航快取策略 - 用於 SPA 路由
 registerRoute(
   ({ request }) => request.mode === 'navigate',
-  new StaleWhileRevalidate({
-    cacheName: 'mynotes-pages',
-    plugins: [
-      new ExpirationPlugin({
-        maxEntries: 10,
-        maxAgeSeconds: 60 * 60 * 24 * 7, // 7 天
-      }),
-    ],
-  })
+  async ({ event }) => {
+    try {
+      // 嘗試從網路取得頁面
+      const networkResponse = await fetch(event.request);
+      return networkResponse;
+    } catch (error) {
+      // 網路失敗時，回退到 index.html
+      const cache = await caches.open('mynotes-pages');
+      const cachedResponse = await cache.match('/index.html');
+      return cachedResponse || new Response('頁面不存在', { status: 404 });
+    }
+  }
 );
 
 // CDN 資源快取策略
