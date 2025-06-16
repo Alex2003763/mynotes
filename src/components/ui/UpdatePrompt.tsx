@@ -10,6 +10,7 @@ export const UpdatePrompt: React.FC<UpdatePromptProps> = ({ className = '' }) =>
   const [offlineReady, setOfflineReady] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [offlineReadyTimestamp, setOfflineReadyTimestamp] = useState<number | null>(null);
+  const [showOfflineNotification, setShowOfflineNotification] = useState(false);
 
   const {
     updateServiceWorker,
@@ -34,8 +35,15 @@ export const UpdatePrompt: React.FC<UpdatePromptProps> = ({ className = '' }) =>
 
   // 監聽網絡狀態
   useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
+    const handleOnline = () => {
+      setIsOnline(true);
+      setShowOfflineNotification(false);
+    };
+    
+    const handleOffline = () => {
+      setIsOnline(false);
+      setShowOfflineNotification(true);
+    };
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -45,6 +53,22 @@ export const UpdatePrompt: React.FC<UpdatePromptProps> = ({ className = '' }) =>
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
+
+  // 自動隱藏離線模式通知
+  useEffect(() => {
+    if (showOfflineNotification) {
+      console.log('[PWA] 離線模式通知已顯示，將在3秒後自動隱藏');
+      const timer = setTimeout(() => {
+        console.log('[PWA] 自動隱藏離線模式通知');
+        setShowOfflineNotification(false);
+      }, 3000); // 3秒後自動關閉
+
+      return () => {
+        console.log('[PWA] 清除離線模式通知計時器');
+        clearTimeout(timer);
+      };
+    }
+  }, [showOfflineNotification]);
 
   // 自動隱藏離線就緒提示
   useEffect(() => {
@@ -80,7 +104,7 @@ export const UpdatePrompt: React.FC<UpdatePromptProps> = ({ className = '' }) =>
   return (
     <>
       {/* 離線狀態指示器 */}
-      {!isOnline && (
+      {showOfflineNotification && (
         <div className={`fixed top-16 left-1/2 transform -translate-x-1/2 bg-yellow-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 text-sm animate-fadeIn ${className}`}>
           <div className="flex items-center space-x-2">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
