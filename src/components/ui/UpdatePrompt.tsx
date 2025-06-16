@@ -43,6 +43,19 @@ export const UpdatePrompt: React.FC<UpdatePromptProps> = ({ className = '' }) =>
     };
   }, []);
 
+  // 自動隱藏離線就緒提示
+  useEffect(() => {
+    if (offlineReady) {
+      const timer = setTimeout(() => {
+        setOfflineReady(false);
+      }, 3000); // 3秒後自動關閉
+
+      return () => {
+        clearTimeout(timer);
+      };
+    }
+  }, [offlineReady]);
+
   const handleUpdate = async () => {
     try {
       await updateServiceWorker(true); // Pass true to reload the page after update
@@ -56,12 +69,9 @@ export const UpdatePrompt: React.FC<UpdatePromptProps> = ({ className = '' }) =>
     setNeedRefresh(false);
   };
 
-  const handleDismissOffline = () => {
-    setOfflineReady(false);
-  };
 
   return (
-    <> 
+    <>
       {/* 離線狀態指示器 */}
       {!isOnline && (
         <div className={`fixed top-16 left-1/2 transform -translate-x-1/2 bg-yellow-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 text-sm animate-fadeIn ${className}`}>
@@ -73,6 +83,7 @@ export const UpdatePrompt: React.FC<UpdatePromptProps> = ({ className = '' }) =>
           </div>
         </div>
       )}
+
       {/* 應用更新提示 */}
       {needRefresh && (
         <div className={`fixed bottom-4 right-4 bg-blue-600 text-white p-4 rounded-lg shadow-lg z-50 max-w-sm animate-fadeIn ${className}`}>
@@ -124,13 +135,6 @@ export const UpdatePrompt: React.FC<UpdatePromptProps> = ({ className = '' }) =>
                 應用程式現在可以離線使用了！您可以在沒有網路連接時繼續使用所有功能。
               </p>
             </div>
-            <button
-              onClick={handleDismissOffline}
-              className="text-2xl leading-none -mt-1 -mr-1 opacity-80 hover:opacity-100 transition-opacity"
-              aria-label="關閉通知"
-            >
-              &times;
-            </button>
           </div>
         </div>
       )}
