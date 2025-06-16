@@ -9,6 +9,7 @@ export const UpdatePrompt: React.FC<UpdatePromptProps> = ({ className = '' }) =>
   const [needRefresh, setNeedRefresh] = useState(false);
   const [offlineReady, setOfflineReady] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [offlineReadyTimestamp, setOfflineReadyTimestamp] = useState<number | null>(null);
 
   const {
     updateServiceWorker,
@@ -19,7 +20,9 @@ export const UpdatePrompt: React.FC<UpdatePromptProps> = ({ className = '' }) =>
     },
     onOfflineReady() {
       console.log('[PWA] App is ready to work offline.');
+      const timestamp = Date.now();
       setOfflineReady(true);
+      setOfflineReadyTimestamp(timestamp);
     },
     onRegistered(registration) {
       console.log('[PWA] Service Worker registered.', registration);
@@ -45,16 +48,20 @@ export const UpdatePrompt: React.FC<UpdatePromptProps> = ({ className = '' }) =>
 
   // 自動隱藏離線就緒提示
   useEffect(() => {
-    if (offlineReady) {
+    if (offlineReady && offlineReadyTimestamp) {
+      console.log('[PWA] 離線就緒提示已顯示，將在3秒後自動隱藏');
       const timer = setTimeout(() => {
+        console.log('[PWA] 自動隱藏離線就緒提示');
         setOfflineReady(false);
+        setOfflineReadyTimestamp(null);
       }, 3000); // 3秒後自動關閉
 
       return () => {
+        console.log('[PWA] 清除離線就緒提示計時器');
         clearTimeout(timer);
       };
     }
-  }, [offlineReady]);
+  }, [offlineReady, offlineReadyTimestamp]);
 
   const handleUpdate = async () => {
     try {
