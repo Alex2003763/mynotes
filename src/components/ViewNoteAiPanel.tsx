@@ -3,12 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { ApiFeedback } from '../types';
 import { useI18n } from '../contexts/I18nContext';
 import { useEditorInteraction } from '../contexts/EditorInteractionContext';
+import { useSettings } from '../contexts/SettingsContext';
 import {
-  summarizeText,
-  answerQuestionFromNote,
   summarizeTextStreaming,
   answerQuestionFromNoteStreaming
-} from '../services/openRouterService';
+} from '../services/aiService';
 import { SparklesIcon, DocumentTextIcon, ChatBubbleLeftEllipsisIcon, LightBulbIcon, ChevronDownIcon, ClipboardDocumentIcon, PlusCircleIcon, PencilSquareIcon, XCircleIcon, BoltIcon, AdjustmentsHorizontalIcon } from './Icons';
 
 interface ViewNoteAiPanelProps {
@@ -29,6 +28,7 @@ export const ViewNoteAiPanel: React.FC<ViewNoteAiPanelProps> = ({
   selectedAiModel
 }) => {
   const { t, language } = useI18n();
+  const { settings } = useSettings();
   const navigate = useNavigate();
   const editorInteraction = useEditorInteraction();
   
@@ -111,6 +111,7 @@ export const ViewNoteAiPanel: React.FC<ViewNoteAiPanelProps> = ({
       }
       
       const textToProcessForAI = noteContentForAI || currentNoteTitle;
+      const currentModel = settings.aiProvider === 'openrouter' ? selectedAiModel : settings.geminiModel;
 
       // 使用流式輸出的操作
       const streamingActions: AiViewAction[] = ['summarize_short', 'summarize_bullet', 'qna'];
@@ -123,11 +124,11 @@ export const ViewNoteAiPanel: React.FC<ViewNoteAiPanelProps> = ({
         
         switch (action) {
           case 'summarize_short':
-            await summarizeTextStreaming(textToProcessForAI, 'short', language, selectedAiModel, handleStreamingChunk);
+            await summarizeTextStreaming(textToProcessForAI, 'short', language, currentModel, settings.aiProvider, settings.customSystemPrompt, handleStreamingChunk);
             displayApiMessage({ type: 'success', text: t('aiPanel.success.summaryGenerated') });
             break;
           case 'summarize_bullet':
-            await summarizeTextStreaming(textToProcessForAI, 'bullet', language, selectedAiModel, handleStreamingChunk);
+            await summarizeTextStreaming(textToProcessForAI, 'bullet', language, currentModel, settings.aiProvider, settings.customSystemPrompt, handleStreamingChunk);
             displayApiMessage({ type: 'success', text: t('aiPanel.success.summaryGenerated') });
             break;
           case 'qna':
@@ -137,7 +138,7 @@ export const ViewNoteAiPanel: React.FC<ViewNoteAiPanelProps> = ({
               setIsStreaming(false);
               return;
             }
-            await answerQuestionFromNoteStreaming(qnaQuestion, textToProcessForAI, language, selectedAiModel, handleStreamingChunk);
+            await answerQuestionFromNoteStreaming(qnaQuestion, textToProcessForAI, language, currentModel, settings.aiProvider, settings.customSystemPrompt, handleStreamingChunk);
             displayApiMessage({ type: 'success', text: t('aiPanel.success.answerReceived') });
             break;
         }

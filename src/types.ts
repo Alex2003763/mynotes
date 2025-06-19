@@ -38,15 +38,20 @@ export interface AvailableAIModel {
 }
 
 export interface AppSettings {
-  key: string; 
+  key: string;
   theme: 'light' | 'dark';
   fontSize: 'small' | 'medium' | 'large';
   defaultSort: SortOption;
   openRouterApiKey: string;
   openRouterApiKeyStatus: 'unset' | 'checking' | 'valid' | 'invalid' | 'set';
+  geminiApiKey: string;
+  geminiApiKeyStatus: 'unset' | 'checking' | 'valid' | 'invalid' | 'set';
+  aiProvider: 'openrouter' | 'gemini';
+  customSystemPrompt: string;
   language: Language;
   primaryColor: string;
-  aiModel: string; // ID of the selected AI model
+  aiModel: string; // ID of the selected AI model for OpenRouter
+  geminiModel: string; // ID of the selected Gemini model
 }
 
 export interface MyNotesExportData {

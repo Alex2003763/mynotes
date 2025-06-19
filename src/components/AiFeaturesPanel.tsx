@@ -2,15 +2,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { ApiFeedback } from '../types';
 import { useI18n } from '../contexts/I18nContext';
 import { useEditorInteraction } from '../contexts/EditorInteractionContext';
+import { useSettings } from '../contexts/SettingsContext';
 import {
-  correctGrammarAndSpelling,
-  expandContent,
-  suggestTags as suggestTagsApi,
-  summarizeText,
   correctGrammarAndSpellingStreaming,
   expandContentStreaming,
-  summarizeTextStreaming
-} from '../services/openRouterService';
+  summarizeTextStreaming,
+  suggestTags as suggestTagsApi
+} from '../services/aiService';
 import { SparklesIcon, CheckBadgeIcon, TagIcon, LightBulbIcon, ChevronDownIcon, ClipboardDocumentIcon, CheckCircleIcon, XCircleIcon, DocumentTextIcon, BoltIcon, AdjustmentsHorizontalIcon } from './Icons';
 
 interface AiFeaturesPanelProps {
@@ -25,11 +23,12 @@ interface AiEditResultPreview {
   generatedContent: string; 
 }
 
-export const AiFeaturesPanel: React.FC<AiFeaturesPanelProps> = ({ 
+export const AiFeaturesPanel: React.FC<AiFeaturesPanelProps> = ({
   displayApiMessage,
   selectedAiModel
 }) => {
   const { t, language } = useI18n();
+  const { settings } = useSettings();
   const editorInteraction = useEditorInteraction();
 
   const [isLoading, setIsLoading] = useState<AiEditAction | null>(null);
@@ -116,6 +115,7 @@ export const AiFeaturesPanel: React.FC<AiFeaturesPanelProps> = ({
       }
       
       const textToProcessForAI = currentContentText || currentNoteTitle;
+      const currentModel = settings.aiProvider === 'openrouter' ? selectedAiModel : settings.geminiModel;
 
       // 使用流式輸出的操作
       const streamingActions: AiEditAction[] = ['correct_grammar', 'expand', 'quick_improve', 'make_formal', 'make_casual', 'summarize_inline'];
@@ -128,7 +128,7 @@ export const AiFeaturesPanel: React.FC<AiFeaturesPanelProps> = ({
         
         switch (action) {
           case 'correct_grammar':
-            await correctGrammarAndSpellingStreaming(textToProcessForAI, language, selectedAiModel, handleStreamingChunk);
+            await correctGrammarAndSpellingStreaming(textToProcessForAI, language, currentModel, settings.aiProvider, settings.customSystemPrompt, handleStreamingChunk);
             successMessageKey = 'aiPanel.success.correctionGenerated';
             break;
           case 'expand':
@@ -138,23 +138,23 @@ export const AiFeaturesPanel: React.FC<AiFeaturesPanelProps> = ({
               setIsStreaming(false);
               return;
             }
-            await expandContentStreaming(textToProcessForAI, expansionInstruction, language, selectedAiModel, handleStreamingChunk);
+            await expandContentStreaming(textToProcessForAI, expansionInstruction, language, currentModel, settings.aiProvider, settings.customSystemPrompt, handleStreamingChunk);
             successMessageKey = 'aiPanel.success.expansionGenerated';
             break;
           case 'quick_improve':
-            await expandContentStreaming(textToProcessForAI, t('aiPanel.quickImprove.instruction'), language, selectedAiModel, handleStreamingChunk);
+            await expandContentStreaming(textToProcessForAI, t('aiPanel.quickImprove.instruction'), language, currentModel, settings.aiProvider, settings.customSystemPrompt, handleStreamingChunk);
             successMessageKey = 'aiPanel.success.quickImproveGenerated';
             break;
           case 'make_formal':
-            await expandContentStreaming(textToProcessForAI, t('aiPanel.makeFormal.instruction'), language, selectedAiModel, handleStreamingChunk);
+            await expandContentStreaming(textToProcessForAI, t('aiPanel.makeFormal.instruction'), language, currentModel, settings.aiProvider, settings.customSystemPrompt, handleStreamingChunk);
             successMessageKey = 'aiPanel.success.formalGenerated';
             break;
           case 'make_casual':
-            await expandContentStreaming(textToProcessForAI, t('aiPanel.makeCasual.instruction'), language, selectedAiModel, handleStreamingChunk);
+            await expandContentStreaming(textToProcessForAI, t('aiPanel.makeCasual.instruction'), language, currentModel, settings.aiProvider, settings.customSystemPrompt, handleStreamingChunk);
             successMessageKey = 'aiPanel.success.casualGenerated';
             break;
           case 'summarize_inline':
-            await summarizeTextStreaming(textToProcessForAI, 'short', language, selectedAiModel, handleStreamingChunk);
+            await summarizeTextStreaming(textToProcessForAI, 'short', language, currentModel, settings.aiProvider, settings.customSystemPrompt, handleStreamingChunk);
             successMessageKey = 'aiPanel.success.summaryGenerated';
             break;
         }
@@ -167,7 +167,7 @@ export const AiFeaturesPanel: React.FC<AiFeaturesPanelProps> = ({
         switch (action) {
           case 'suggest_tags':
             const contentForTags = `${currentNoteTitle}\n${currentContentText}`.trim();
-            result = await suggestTagsApi(contentForTags, language, selectedAiModel);
+            result = await suggestTagsApi(contentForTags, language, currentModel, settings.aiProvider, settings.customSystemPrompt);
             if (Array.isArray(result) && result.length > 0) {
               setTagsFromAI(result);
               successMessageKey = 'aiPanel.success.tagsSuggested';

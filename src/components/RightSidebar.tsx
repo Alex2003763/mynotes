@@ -34,7 +34,8 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ width }) => {
   const isEditMode = location.pathname.startsWith('/note/') || location.pathname.startsWith('/new');
   const isViewMode = location.pathname.startsWith('/view/');
 
-  const canShowAiTools = settings.openRouterApiKeyStatus === 'valid';
+  const canShowAiTools = (settings.aiProvider === 'openrouter' && settings.openRouterApiKeyStatus === 'valid') ||
+                         (settings.aiProvider === 'gemini' && settings.geminiApiKeyStatus === 'valid');
   const editorReady = !!editorInteraction?.activeEditor;
 
   useEffect(() => {
@@ -162,8 +163,11 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ width }) => {
         <div className="p-3 border-t border-slate-200 dark:border-slate-700 bg-white/30 dark:bg-slate-800/30">
           <div className="text-xs text-slate-500 dark:text-slate-400 text-center">
             <div className="flex items-center justify-center space-x-2 sm:space-x-4 flex-wrap">
-              <span className="truncate max-w-[150px]" title={settings.aiModel}>
-                Model: {settings.aiModel.split('/').pop() || 'N/A'}
+              <span className="truncate max-w-[150px]" title={settings.aiProvider === 'openrouter' ? settings.aiModel : settings.geminiModel}>
+                {settings.aiProvider === 'openrouter'
+                  ? `Model: ${settings.aiModel.split('/').pop() || 'N/A'}`
+                  : `Gemini: ${settings.geminiModel}`
+                }
               </span>
               {canShowAiTools && editorReady && (
                 <span className="flex items-center flex-shrink-0">
