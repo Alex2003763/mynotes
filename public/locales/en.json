@@ -100,6 +100,20 @@
     "defaultSort": "Default Note Sort",
     "general": {
     },
+    "aiProvider": {
+      "title": "AI Provider Settings",
+      "description": "Choose your preferred AI service provider and configure related parameters"
+    },
+    "systemPrompt": {
+      "title": "Custom System Prompt",
+      "label": "System Prompt Content",
+      "placeholder": "Enter your custom system prompt, leave empty to use default...",
+      "importFromFile": "Import from File",
+      "clear": "Clear",
+      "importSuccess": "System prompt imported successfully",
+      "importError": "Failed to import system prompt",
+      "helpText": "You can import .txt or .md files as system prompts, or type directly in the text area above."
+    },
     "openRouterApi": {
       "title": "AI Settings (OpenRouter)",
       "keyLabel": "API Key:",

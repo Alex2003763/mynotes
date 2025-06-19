@@ -166,7 +166,7 @@ export const summarizeTextStreaming = async (
     ? '你是一位專業的摘要員。提供清晰簡潔的中文摘要。如果重要的實體、連結或程式碼片段對摘要的上下文至關重要，請予以保留。重要：僅輸出摘要內容，不要包含任何介紹性短語、解釋或對話性評論。'
     : 'You are an expert summarizer. Provide clear and concise summaries in English. Preserve important entities, links, or code snippets if they are crucial to the summary context. Important: Output ONLY the summary, without any introductory phrases, explanations, or conversational remarks.';
 
-  const systemContent = systemPrompt || defaultSystemContent;
+  const systemContent = (systemPrompt && systemPrompt.trim()) ? systemPrompt.trim() : defaultSystemContent;
 
   const userPrompt = length === 'short'
     ? (language === 'zh' ? `將以下文本總結成一個簡潔的段落。\n\n文本：\n${text}` : `Summarize the following text into a concise paragraph.\n\nText:\n${text}`)
@@ -194,7 +194,7 @@ export const correctGrammarAndSpellingStreaming = async (
     ? '你是一個中文語法和拼寫校對專家。請修正文本中的語法和拼寫錯誤。請保留原文的 Markdown 格式，例如連結、圖片、程式碼區塊、列表和標題等。重要：僅返回修正後的文本。如果不需要修正，請返回原文。不要包含任何介紹性短語、解釋或對話性評論。'
     : 'You are an expert proofreader. Correct grammar and spelling mistakes. Preserve original markdown formatting such as links, images, code blocks, lists, and headings. Important: Return ONLY the corrected text. If no corrections are needed, return the original text. Do not include any introductory phrases, explanations, or conversational remarks.';
 
-  const systemContent = systemPrompt || defaultSystemContent;
+  const systemContent = (systemPrompt && systemPrompt.trim()) ? systemPrompt.trim() : defaultSystemContent;
   const userPrompt = language === 'zh'
     ? `請修正以下文本：\n\n${text}`
     : `Please correct the following text:\n\n${text}`;
@@ -222,7 +222,7 @@ export const expandContentStreaming = async (
     ? '你是一位富有創造力的寫作助手。根據用戶的指示幫助擴展和闡述給定的文本。在您的回覆中，請保持原有的 Markdown 格式，例如連結、圖片、程式碼區塊、列表和標題等。重要：僅輸出擴展或闡述後的文本，不要包含任何介紹性短語、解釋或對話性評論。'
     : 'You are a creative writing assistant. Help expand and elaborate on given text based on user instructions. Maintain the original markdown formatting for elements like links, images, code blocks, lists, and headings in your response. Important: Output ONLY the expanded or elaborated text, without any introductory phrases, explanations, or conversational remarks.';
 
-  const systemContent = systemPrompt || defaultSystemContent;
+  const systemContent = (systemPrompt && systemPrompt.trim()) ? systemPrompt.trim() : defaultSystemContent;
   const userPrompt = language === 'zh'
     ? `指令：${instruction}\n\n待處理文本："${selectedText}"\n\n請提供擴展或潤色後的內容。`
     : `Instruction: ${instruction}\n\nText to work with: "${selectedText}"\n\nPlease provide the expanded or elaborated content.`;
@@ -250,7 +250,7 @@ export const answerQuestionFromNoteStreaming = async (
     ? '你是一個樂於助人的助手。請僅根據提供的筆記內容回答用戶的問題。如果答案不在筆記中，請說"答案未在此筆記中找到。"'
     : 'You are a helpful assistant. Answer the user question based ONLY on the provided note content. If the answer is not in the note, say "The answer is not found in this note."';
 
-  const systemContent = systemPrompt || defaultSystemInstruction;
+  const systemContent = (systemPrompt && systemPrompt.trim()) ? systemPrompt.trim() : defaultSystemInstruction;
   const userPrompt = language === 'zh'
     ? `筆記內容：\n"""\n${noteContent}\n"""\n\n問題：${question}`
     : `Note Content:\n"""\n${noteContent}\n"""\n\nQuestion: ${question}`;
@@ -276,7 +276,7 @@ export const suggestTags = async (
     ? '你是內容分析和標籤建議專家。為給定文本建議相關標籤。以逗號分隔的列表形式提供標籤，例如："科技, 編程, Web開發"。建議3-5個相關標籤。'
     : 'You are an expert in content analysis and tagging. Suggest relevant tags for the given text. Provide tags as a comma-separated list. For example: "technology, programming, web development". Suggest 3-5 relevant tags.';
 
-  const systemContent = systemPrompt || defaultSystemInstruction;
+  const systemContent = (systemPrompt && systemPrompt.trim()) ? systemPrompt.trim() : defaultSystemInstruction;
   const userPrompt = language === 'zh'
     ? `分析以下筆記內容並建議相關標籤：\n\n${noteContent}`
     : `Analyze the following note content and suggest relevant tags:\n\n${noteContent}`;

@@ -81,7 +81,7 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
   
   const verifyApiKey = useCallback(async (provider: 'openrouter' | 'gemini' = 'openrouter', keyToVerify?: string) => {
     if (provider === 'openrouter') {
-      const apiKey = keyToVerify ?? settings.openRouterApiKey;
+      const apiKey = keyToVerify;
       if (!apiKey) {
         setSettings(prev => ({ ...prev, openRouterApiKeyStatus: 'unset' }));
         setGlobalOpenRouterKey('');
@@ -93,7 +93,7 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
       const isValid = await checkOpenRouterApiKeyValidity();
       setSettings(prev => ({ ...prev, openRouterApiKeyStatus: isValid ? 'valid' : 'invalid' }));
     } else if (provider === 'gemini') {
-      const apiKey = keyToVerify ?? settings.geminiApiKey;
+      const apiKey = keyToVerify;
       if (!apiKey) {
         setSettings(prev => ({ ...prev, geminiApiKeyStatus: 'unset' }));
         setGlobalGeminiKey('');
@@ -105,7 +105,7 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
       const isValid = await checkGeminiApiKeyValidity();
       setSettings(prev => ({ ...prev, geminiApiKeyStatus: isValid ? 'valid' : 'invalid' }));
     }
-  }, [settings.openRouterApiKey, settings.geminiApiKey]);
+  }, []);
 
 
   useEffect(() => {
@@ -156,7 +156,7 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
       setIsLoadingSettings(false);
     };
     loadSettings();
-  }, [verifyApiKey, applyThemeColors]);
+  }, []);
 
   const updateSettings = useCallback(async (newSettings: Partial<AppSettings>) => {
     let openRouterKeyToVerify: string | undefined = undefined;
@@ -190,6 +190,7 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
       return updated;
     });
 
+    // Use verifyApiKey directly instead of from dependencies
     if (openRouterKeyToVerify !== undefined) {
         await verifyApiKey('openrouter', openRouterKeyToVerify);
     }

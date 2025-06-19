@@ -100,6 +100,10 @@
     "defaultSort": "預設筆記排序",
      "general": {
     },
+    "aiProvider": {
+      "title": "AI 提供者設定",
+      "description": "選擇您偏好的 AI 服務提供者並設定相關參數"
+    },
     "openRouterApi": {
       "title": "AI 設定 (OpenRouter)",
       "keyLabel": "API 金鑰:",
@@ -131,6 +135,16 @@
       "importFailed": "匯入失敗：{{message}}",
       "confirmImportSettings": "匯入的檔案同時包含應用程式設定（包括 API 金鑰和主題）。您想要套用這些設定嗎？您目前的設定將被覆寫。",
       "confirmImportSettingsTitle": "匯入設定"
+    },
+    "systemPrompt": {
+      "title": "自訂系統提示",
+      "label": "系統提示內容",
+      "placeholder": "輸入您的自訂系統提示，留空則使用預設提示...",
+      "importFromFile": "從檔案導入",
+      "clear": "清除",
+      "importSuccess": "系統提示已成功導入",
+      "importError": "系統提示導入失敗",
+      "helpText": "您可以導入 .txt 或 .md 檔案作為系統提示，或直接在上方文字框中輸入。"
     },
     "customTheme": {
         "title": "主題顏色",

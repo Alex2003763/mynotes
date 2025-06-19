@@ -121,13 +121,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
       try {
         const text = await file.text();
         await updateSettings({ customSystemPrompt: text });
-        setImportStatus({ type: 'success', message: '系統提示已成功導入' });
+        setImportStatus({ type: 'success', message: t('settingsModal.systemPrompt.importSuccess') });
         if (systemPromptFileInputRef.current) {
           systemPromptFileInputRef.current.value = "";
         }
         setTimeout(() => setImportStatus(null), 3000);
       } catch (error) {
-        setImportStatus({ type: 'error', message: '系統提示導入失敗' });
+        setImportStatus({ type: 'error', message: t('settingsModal.systemPrompt.importError') });
         setTimeout(() => setImportStatus(null), 3000);
       }
     }
@@ -435,7 +435,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
 
             {/* Custom System Prompt Section */}
             <div>
-              <label htmlFor="customSystemPrompt" className="block text-sm font-medium text-slate-700 dark:text-slate-300">自訂系統提示</label>
+              <label htmlFor="customSystemPrompt" className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('settingsModal.systemPrompt.title')}</label>
               <div className="mt-1 space-y-2">
                 <textarea
                   id="customSystemPrompt"
@@ -443,7 +443,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                   value={settings.customSystemPrompt}
                   onChange={handleChange}
                   rows={4}
-                  placeholder="輸入您的自訂系統提示，留空則使用預設提示..."
+                  placeholder={t('settingsModal.systemPrompt.placeholder')}
                   className="block w-full p-2.5 border border-slate-300 dark:border-slate-600 rounded-lg shadow-sm focus:outline-none focus:ring-primary-light focus:border-primary-light sm:text-sm bg-white dark:bg-slate-700"
                 />
                 <div className="flex gap-2">
@@ -451,13 +451,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                     onClick={handleSystemPromptImportClick}
                     className="px-3 py-1.5 text-xs border border-secondary text-secondary rounded hover:bg-secondary/10 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-secondary-light transition-colors"
                   >
-                    從檔案導入
+                    {t('settingsModal.systemPrompt.importFromFile')}
                   </button>
                   <button
                     onClick={() => updateSettings({ customSystemPrompt: '' })}
                     className="px-3 py-1.5 text-xs border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 rounded hover:bg-slate-100 dark:hover:bg-slate-600 focus:outline-none transition-colors"
                   >
-                    清除
+                    {t('settingsModal.systemPrompt.clear')}
                   </button>
                 </div>
                 <input
@@ -469,7 +469,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                   aria-label="Import system prompt file"
                 />
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  您可以導入 .txt 或 .md 檔案作為系統提示，或直接在上方文字框中輸入。
+                  {t('settingsModal.systemPrompt.helpText')}
                 </p>
               </div>
             </div>
