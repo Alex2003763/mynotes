@@ -94,19 +94,43 @@ const callGeminiAPIStreaming = async (
     throw new Error('Failed to get response reader');
   }
 
-  const decoder = new TextDecoder();
+  const decoder = new TextDecoder('utf-8', { ignoreBOM: true, fatal: false });
 
   try {
     let buffer = '';
     let currentJsonObject = '';
     let braceCount = 0;
     let inJsonObject = false;
+    let remainingBytes = new Uint8Array(0);
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
-      const chunk = decoder.decode(value);
+      // Combine remaining bytes from previous iteration with new chunk
+      const combinedBytes = new Uint8Array(remainingBytes.length + value.length);
+      combinedBytes.set(remainingBytes);
+      combinedBytes.set(value, remainingBytes.length);
+
+      // Try to decode as much as possible without cutting multi-byte characters
+      let chunk = '';
+      let bytesToProcess = combinedBytes.length;
+      
+      // Try decoding progressively from the end to find a safe cut point
+      for (let i = combinedBytes.length; i >= Math.max(0, combinedBytes.length - 4); i--) {
+        try {
+          const testChunk = decoder.decode(combinedBytes.slice(0, i), { stream: true });
+          chunk = testChunk;
+          bytesToProcess = i;
+          break;
+        } catch (e) {
+          // Continue trying with fewer bytes
+        }
+      }
+      
+      // Store remaining bytes for next iteration
+      remainingBytes = combinedBytes.slice(bytesToProcess);
+      
       buffer += chunk;
       
       // Process character by character to properly handle JSON boundaries
@@ -149,6 +173,23 @@ const callGeminiAPIStreaming = async (
       // Clear processed buffer
       buffer = '';
     }
+    
+    // Process any remaining bytes at the end
+    if (remainingBytes.length > 0) {
+      const finalChunk = decoder.decode(remainingBytes, { stream: false });
+      if (finalChunk && inJsonObject) {
+        currentJsonObject += finalChunk;
+        try {
+          const parsed = JSON.parse(currentJsonObject);
+          const content = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (content) {
+            onChunk(content);
+          }
+        } catch (e) {
+          console.warn('Failed to parse final JSON object:', currentJsonObject, e);
+        }
+      }
+    }
   } finally {
     reader.releaseLock();
   }
@@ -163,7 +204,7 @@ export const summarizeTextStreaming = async (
   onChunk: (chunk: string) => void
 ): Promise<void> => {
   const defaultSystemContent = language === 'zh'
-    ? '你是一位專業的摘要員。提供清晰簡潔的中文摘要。如果重要的實體、連結或程式碼片段對摘要的上下文至關重要，請予以保留。重要：僅輸出摘要內容，不要包含任何介紹性短語、解釋或對話性評論。'
+    ? '你是一位專業的摘要員。請使用標準的繁體中文提供清晰簡潔的摘要。如果重要的實體、連結或程式碼片段對摘要的上下文至關重要，請予以保留。重要：僅輸出摘要內容，不要包含任何介紹性短語、解釋或對話性評論。'
     : 'You are an expert summarizer. Provide clear and concise summaries in English. Preserve important entities, links, or code snippets if they are crucial to the summary context. Important: Output ONLY the summary, without any introductory phrases, explanations, or conversational remarks.';
 
   const systemContent = (systemPrompt && systemPrompt.trim()) ? systemPrompt.trim() : defaultSystemContent;
@@ -191,7 +232,7 @@ export const correctGrammarAndSpellingStreaming = async (
   onChunk: (chunk: string) => void
 ): Promise<void> => {
   const defaultSystemContent = language === 'zh'
-    ? '你是一個中文語法和拼寫校對專家。請修正文本中的語法和拼寫錯誤。請保留原文的 Markdown 格式，例如連結、圖片、程式碼區塊、列表和標題等。重要：僅返回修正後的文本。如果不需要修正，請返回原文。不要包含任何介紹性短語、解釋或對話性評論。'
+    ? '你是一個繁體中文（台灣）語法和拼寫校對專家。請使用標準的繁體中文修正文本中的語法和拼寫錯誤，避免使用粵語或方言詞彙。請保留原文的 Markdown 格式，例如連結、圖片、程式碼區塊、列表和標題等。重要：僅返回修正後的文本。如果不需要修正，請返回原文。不要包含任何介紹性短語、解釋或對話性評論。'
     : 'You are an expert proofreader. Correct grammar and spelling mistakes. Preserve original markdown formatting such as links, images, code blocks, lists, and headings. Important: Return ONLY the corrected text. If no corrections are needed, return the original text. Do not include any introductory phrases, explanations, or conversational remarks.';
 
   const systemContent = (systemPrompt && systemPrompt.trim()) ? systemPrompt.trim() : defaultSystemContent;
@@ -219,7 +260,7 @@ export const expandContentStreaming = async (
   onChunk: (chunk: string) => void
 ): Promise<void> => {
   const defaultSystemContent = language === 'zh'
-    ? '你是一位富有創造力的寫作助手。根據用戶的指示幫助擴展和闡述給定的文本。在您的回覆中，請保持原有的 Markdown 格式，例如連結、圖片、程式碼區塊、列表和標題等。重要：僅輸出擴展或闡述後的文本，不要包含任何介紹性短語、解釋或對話性評論。'
+    ? '你是一位富有創造力的寫作助手。請使用標準的繁體中文（台灣）根據用戶的指示幫助擴展和闡述給定的文本，避免使用粵語或方言詞彙。在您的回覆中，請保持原有的 Markdown 格式，例如連結、圖片、程式碼區塊、列表和標題等。重要：僅輸出擴展或闡述後的文本，不要包含任何介紹性短語、解釋或對話性評論。'
     : 'You are a creative writing assistant. Help expand and elaborate on given text based on user instructions. Maintain the original markdown formatting for elements like links, images, code blocks, lists, and headings in your response. Important: Output ONLY the expanded or elaborated text, without any introductory phrases, explanations, or conversational remarks.';
 
   const systemContent = (systemPrompt && systemPrompt.trim()) ? systemPrompt.trim() : defaultSystemContent;
@@ -247,7 +288,7 @@ export const answerQuestionFromNoteStreaming = async (
   onChunk: (chunk: string) => void
 ): Promise<void> => {
   const defaultSystemInstruction = language === 'zh'
-    ? '你是一個樂於助人的助手。請僅根據提供的筆記內容回答用戶的問題。如果答案不在筆記中，請說"答案未在此筆記中找到。"'
+    ? '你是一個樂於助人的助手。請使用標準的繁體中文（台灣）回答，避免使用粵語或方言詞彙。請僅根據提供的筆記內容回答用戶的問題。如果答案不在筆記中，請說"答案未在此筆記中找到。"'
     : 'You are a helpful assistant. Answer the user question based ONLY on the provided note content. If the answer is not in the note, say "The answer is not found in this note."';
 
   const systemContent = (systemPrompt && systemPrompt.trim()) ? systemPrompt.trim() : defaultSystemInstruction;
@@ -273,7 +314,7 @@ export const suggestTags = async (
   systemPrompt: string = ''
 ): Promise<string[]> => {
   const defaultSystemInstruction = language === 'zh'
-    ? '你是內容分析和標籤建議專家。為給定文本建議相關標籤。以逗號分隔的列表形式提供標籤，例如："科技, 編程, Web開發"。建議3-5個相關標籤。'
+    ? '你是內容分析和標籤建議專家。請使用標準的繁體中文為給定文本建議相關標籤以逗號分隔的列表形式提供標籤，例如："科技, 編程, Web開發"。建議3-5個相關標籤。'
     : 'You are an expert in content analysis and tagging. Suggest relevant tags for the given text. Provide tags as a comma-separated list. For example: "technology, programming, web development". Suggest 3-5 relevant tags.';
 
   const systemContent = (systemPrompt && systemPrompt.trim()) ? systemPrompt.trim() : defaultSystemInstruction;
