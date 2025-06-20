@@ -94,7 +94,7 @@ const callGeminiAPIStreaming = async (
     throw new Error('Failed to get response reader');
   }
 
-  const decoder = new TextDecoder('utf-8', { ignoreBOM: true, fatal: false });
+  const decoder = new TextDecoder('utf-8', { ignoreBOM: true, fatal: true });
 
   try {
     let buffer = '';
