@@ -94,43 +94,22 @@ const callGeminiAPIStreaming = async (
     throw new Error('Failed to get response reader');
   }
 
-  const decoder = new TextDecoder('utf-8', { ignoreBOM: true, fatal: true });
+  // Use a single decoder instance with stream: true for proper multi-byte character handling
+  const decoder = new TextDecoder('utf-8', { ignoreBOM: true, fatal: false });
 
   try {
     let buffer = '';
     let currentJsonObject = '';
     let braceCount = 0;
     let inJsonObject = false;
-    let remainingBytes = new Uint8Array(0);
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
-      // Combine remaining bytes from previous iteration with new chunk
-      const combinedBytes = new Uint8Array(remainingBytes.length + value.length);
-      combinedBytes.set(remainingBytes);
-      combinedBytes.set(value, remainingBytes.length);
-
-      // Try to decode as much as possible without cutting multi-byte characters
-      let chunk = '';
-      let bytesToProcess = combinedBytes.length;
-      
-      // Try decoding progressively from the end to find a safe cut point
-      for (let i = combinedBytes.length; i >= Math.max(0, combinedBytes.length - 4); i--) {
-        try {
-          const testChunk = decoder.decode(combinedBytes.slice(0, i), { stream: true });
-          chunk = testChunk;
-          bytesToProcess = i;
-          break;
-        } catch (e) {
-          // Continue trying with fewer bytes
-        }
-      }
-      
-      // Store remaining bytes for next iteration
-      remainingBytes = combinedBytes.slice(bytesToProcess);
-      
+      // Decode the chunk directly using stream mode
+      // This properly handles multi-byte characters across chunk boundaries
+      const chunk = decoder.decode(value, { stream: true });
       buffer += chunk;
       
       // Process character by character to properly handle JSON boundaries
@@ -174,20 +153,18 @@ const callGeminiAPIStreaming = async (
       buffer = '';
     }
     
-    // Process any remaining bytes at the end
-    if (remainingBytes.length > 0) {
-      const finalChunk = decoder.decode(remainingBytes, { stream: false });
-      if (finalChunk && inJsonObject) {
-        currentJsonObject += finalChunk;
-        try {
-          const parsed = JSON.parse(currentJsonObject);
-          const content = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (content) {
-            onChunk(content);
-          }
-        } catch (e) {
-          console.warn('Failed to parse final JSON object:', currentJsonObject, e);
+    // Finalize the decoder to process any remaining partial characters
+    const finalChunk = decoder.decode();
+    if (finalChunk && inJsonObject) {
+      currentJsonObject += finalChunk;
+      try {
+        const parsed = JSON.parse(currentJsonObject);
+        const content = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (content) {
+          onChunk(content);
         }
+      } catch (e) {
+        console.warn('Failed to parse final JSON object:', currentJsonObject, e);
       }
     }
   } finally {
